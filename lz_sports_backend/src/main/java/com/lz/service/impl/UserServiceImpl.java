@@ -1,0 +1,279 @@
+package com.lz.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.lz.common.context.BaseContext;
+import com.lz.common.exception.BusinessException;
+import com.lz.common.result.PageResult;
+import com.lz.dto.EventListDTO;
+import com.lz.dto.UserLoginDTO;
+import com.lz.dto.UserRegisterDTO;
+import com.lz.entity.User;
+import com.lz.entity.Athlete;
+import com.lz.mapper.UserMapper;
+import com.lz.mapper.AthleteMapper;
+import com.lz.mapper.EventMapper;
+import com.lz.mapper.ProjectMapper;
+import com.lz.mapper.RegistrationMapper;
+import com.lz.service.SportsImgService;
+import com.lz.service.UserService;
+import com.lz.config.AppConfig;
+import com.lz.dto.UserUpdateDTO;
+import com.lz.vo.UserDetailVO;
+import com.lz.vo.UserVO;
+import com.lz.vo.chart.UserData;
+import com.lz.vo.chart.UserType;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+/**
+ * User Service Implementation
+ */
+import com.lz.config.AppConfig;
+import com.lz.dto.UserUpdateDTO;
+import com.lz.vo.UserDetailVO;
+
+@Service
+public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
+
+    @Autowired
+    private UserMapper userMapper;
+
+    @Autowired
+    private AthleteMapper athleteMapper;
+
+    @Autowired
+    private EventMapper eventMapper;
+
+    @Autowired
+    private ProjectMapper projectMapper;
+
+    @Autowired
+    private RegistrationMapper registrationMapper;
+
+    @Autowired
+    private SportsImgService sportsImgService;
+
+    @Autowired
+    private AppConfig appConfig;
+
+    // TODO: Inject other Daos/Services when migrated
+    // private AthleteDao athleteDao;
+    // private EventDao eventDao;
+    // private ProjectDao projectDao;
+    // private RegistrationDao registrationDao;
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void register(UserRegisterDTO userRegisterDTO) {
+        // Check Username
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("Username", userRegisterDTO.getUsername());
+        if (userMapper.selectCount(queryWrapper) > 0) {
+            throw new BusinessException("用户名已存在");
+        }
+
+        // Check Email
+        queryWrapper.clear();
+        queryWrapper.eq("Email", userRegisterDTO.getEmail());
+        if (userMapper.selectCount(queryWrapper) > 0) {
+            throw new BusinessException("邮箱已被注册");
+        }
+
+        User user = new User();
+        user.setUserName(userRegisterDTO.getUsername());
+        user.setPassword(userRegisterDTO.getPassword());
+        user.setEmail(userRegisterDTO.getEmail());
+        user.setRegisterTime(LocalDateTime.now());
+        user.setStatus("已激活"); // Default active for now
+        user.setUserType("普通用户");
+        
+        userMapper.insert(user);
+    }
+
+    @Override
+    public User login(UserLoginDTO userLoginDTO) {
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        if (userLoginDTO.getUsername().contains("@")) {
+            queryWrapper.eq("Email", userLoginDTO.getUsername());
+        } else {
+            queryWrapper.eq("Username", userLoginDTO.getUsername());
+        }
+        queryWrapper.eq("Password", userLoginDTO.getPassword());
+        User user = userMapper.selectOne(queryWrapper);
+        
+        if (user == null) {
+            throw new BusinessException("用户名或密码错误");
+        }
+        return user;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateUser(UserUpdateDTO userUpdateDTO) {
+        Long userId = BaseContext.getCurrentId();
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+
+        if (userUpdateDTO.getUserName() != null) {
+            user.setUserName(userUpdateDTO.getUserName());
+        }
+        if (userUpdateDTO.getEmail() != null) {
+            user.setEmail(userUpdateDTO.getEmail());
+        }
+        if (userUpdateDTO.getNewPassword() != null) {
+             if (userUpdateDTO.getOldPassword() == null || !user.getPassword().equals(userUpdateDTO.getOldPassword())) {
+                 throw new BusinessException("旧密码错误");
+             }
+             user.setPassword(userUpdateDTO.getNewPassword());
+        }
+
+        userMapper.updateById(user);
+    }
+
+    @Override
+    public PageResult list(EventListDTO listDto) {
+        if (listDto.getPageSize() == 0) {
+            listDto.setPageSize(10); // 默认每页10条
+        }
+        // 计算分页偏移量
+        long currentPage = listDto.getCurrentPage();
+        if (currentPage > 0) {
+            listDto.setCurrentPage((currentPage - 1) * listDto.getPageSize());
+        }
+
+        List<UserVO> list = userMapper.selectAllAndState(listDto);
+        int total = userMapper.getTotalUserCount(listDto);
+        return new PageResult(total, list);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteUser(String id) {
+        // Check if athlete exists
+        LambdaQueryWrapper<Athlete> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Athlete::getUserId, Long.valueOf(id));
+        if (athleteMapper.selectCount(wrapper) > 0) {
+            throw new BusinessException("删除失败，请删除相关信息");
+        }
+
+        int delete = userMapper.deleteById(id);
+        if (delete == 0) {
+            throw new BusinessException("删除失败，用户不存在");
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void examinePlayer(String id) {
+        User user = new User();
+        user.setUserId(Long.valueOf(id));
+        user.setUserType("运动员");
+        userMapper.updateById(user);
+
+        // Update Athlete status
+        Athlete athlete = new Athlete();
+        athlete.setAgreeTime(LocalDateTime.now());
+        athlete.setAthleteState("成功");
+        
+        LambdaQueryWrapper<Athlete> updateWrapper = new LambdaQueryWrapper<>();
+        updateWrapper.eq(Athlete::getUserId, Long.valueOf(id));
+        athleteMapper.update(athlete, updateWrapper);
+    }
+
+    @Override
+    public UserData getUserNumsByMonth(String month) {
+        UserData userData = new UserData();
+        userData.setDate(month);
+        userData.setAddUser(userMapper.getUserNumsByMonth(month));
+        userData.setAddAthlete(athleteMapper.getAthleteNumsByMonth(month));
+        return userData;
+    }
+
+    @Override
+    public List<UserType> getUserTypes() {
+        List<UserType> userTypes = new ArrayList<>();
+
+        UserType userType1 = new UserType();
+        Integer userNums = userMapper.getUserTotal();
+        userType1.setType("学生");
+        userType1.setNums(userNums != null ? userNums : 0);
+        userTypes.add(userType1);
+
+        // TODO: Get real data
+        UserType userType2 = new UserType();
+        Integer registrationNums = registrationMapper.getRegistrationPlayerTotal();
+        if (registrationNums == null) registrationNums = 0;
+        userType2.setType("已参加项目的运动员");
+        userType2.setNums(registrationNums);
+        userTypes.add(userType2);
+
+        UserType userType3 = new UserType();
+        Integer athleteNums = athleteMapper.getAthleteTotal();
+        if (athleteNums == null) athleteNums = 0;
+        userType3.setType("未参加项目的运动员");
+        userType3.setNums(athleteNums - registrationNums);
+        userTypes.add(userType3);
+
+        return userTypes;
+    }
+
+    @Override
+    public int[] getNums() {
+        int[] nums = new int[6];
+        Integer athleteTotal = athleteMapper.getAthleteTotal();
+        nums[0] = athleteTotal != null ? athleteTotal : 0;
+        nums[1] = eventMapper.getEventTotal();
+        nums[2] = projectMapper.getProjectTotal();
+        
+        LocalDate currentDate = LocalDate.now();
+        int year = currentDate.getYear();
+        int month = currentDate.getMonthValue();
+        
+        nums[3] = athleteMapper.getAthleteNumByMonth(year, month);
+        nums[4] = eventMapper.getEventNumsByMonth(year, month);
+        nums[5] = projectMapper.getProjectNumsByMonth(year, month);
+        
+        return nums;
+    }
+
+    @Override
+    public User selectUserInfo() {
+        Long userId = BaseContext.getCurrentId();
+        return getById(userId);
+    }
+
+    @Override
+    public UserDetailVO getUserDetail() {
+        Long userId = BaseContext.getCurrentId();
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+
+        String avatarImg = sportsImgService.selectImg(user.getUserId(), "avatar");
+        if (avatarImg != null && !avatarImg.startsWith("http")) {
+            avatarImg = "https://" + appConfig.getBucketName() + "." + appConfig.getEndpoint() + "/" + avatarImg;
+        }
+
+        return UserDetailVO.builder()
+                .userId(user.getUserId())
+                .userName(user.getUserName())
+                .email(user.getEmail())
+                .userType(user.getUserType())
+                .status(user.getStatus())
+                .registerTime(user.getRegisterTime())
+                .avatarSrc(avatarImg)
+                .build();
+    }
+}

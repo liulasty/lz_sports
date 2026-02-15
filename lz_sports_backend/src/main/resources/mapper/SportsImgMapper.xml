@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.lz.mapper.SportsImgMapper">
+
+    <insert id="addImageSrcs">
+        INSERT INTO sportsimg(ImgType, typeId, ImgSrc)
+        VALUES
+        <foreach collection="imgSrc" item="src" separator=",">
+            (#{type}, #{imgId}, #{src})
+        </foreach>
+    </insert>
+
+    <delete id="deleteByTypeIdAndImgSrcAndImgType">
+        DELETE FROM sportsimg
+        WHERE typeid = #{typeId}
+        AND ImgType = #{imgType}
+        AND ImgSrc IN
+        <foreach item="item" collection="src" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </delete>
+
+    <select id="selectImgSrcByTypeAndId" resultType="java.lang.String">
+        SELECT ImgSrc
+        FROM sportsimg
+        WHERE ImgType = #{imgType}
+          AND typeId = #{typeId}
+    </select>
+
+</mapper>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace = "com.lz.Dao.EventDao">
+	
+	<insert id="insertEvent" parameterType="com.lz.pojo.entity.Event" useGeneratedKeys="true" keyProperty="eventId">
+		INSERT INTO lz_sports.event (EventName, RegistrationStart, RegistrationFee, Eligibility,RegistrationEnd)
+		VALUES (#{eventName}, #{registrationStart}, #{registrationFee}, #{eligibility},#{registrationDeadline})
+	</insert>
+	<select id="selectEventName" resultType="map">
+		select EventID, EventName
+		from lz_sports.event
+	</select>
+	<select id="selectNumsByDate" resultType="com.lz.pojo.result.chart.TypeData">
+		SELECT
+			SUM(CASE WHEN eligibility = '线上报名' THEN 1 ELSE 0 END) AS online,
+			SUM(CASE WHEN eligibility = '单位报名' THEN 1 ELSE 0 END) AS 'group',
+			SUM(CASE WHEN eligibility = '线下报名' THEN 1 ELSE 0 END) AS offline,
+			SUM(CASE WHEN eligibility NOT IN ('线上报名', '单位报名', '线下报名') THEN 1 ELSE 0 END) AS other
+		FROM lz_sports.Event
+		WHERE DATE_FORMAT(registrationStart, '%Y%m') = (#{date})
+	</select>
+
+
+</mapper>

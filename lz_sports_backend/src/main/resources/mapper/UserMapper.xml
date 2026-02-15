@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.lz.mapper.UserMapper">
+
+    <select id="selectByEmail" parameterType="string" resultType="com.lz.entity.User">
+        SELECT *
+        FROM user
+        WHERE Email = #{email}
+    </select>
+
+    <select id="selectAllAndState" resultType="com.lz.vo.UserVO">
+        SELECT u.UserID as id, u.registerTime, u.Username as name, u.Status as state, u.UserType as type,
+               a.AthleteState as applyState, a.applyTime as applyTime
+        FROM user u
+        LEFT JOIN Athlete a ON u.UserID = a.UserID
+        <where>
+            <if test="listDto.name != null and listDto.name != ''">
+                AND u.Username like CONCAT('%', #{listDto.name}, '%')
+            </if>
+            <if test="listDto.type != null and listDto.type != ''">
+                AND u.UserType = #{listDto.type}
+            </if>
+            <if test="listDto.date != null">
+                AND u.registerTime > #{listDto.date}
+            </if>
+        </where>
+        ORDER BY u.registerTime
+        LIMIT #{listDto.pageSize} OFFSET #{listDto.currentPage}
+    </select>
+
+    <select id="getTotalUserCount" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM user
+        <where>
+            <if test="listDto.name != null and listDto.name != ''">
+                AND Username like CONCAT('%', #{listDto.name}, '%')
+            </if>
+            <if test="listDto.type != null and listDto.type != ''">
+                AND UserType = #{listDto.type}
+            </if>
+            <if test="listDto.date != null">
+                AND registerTime >= #{listDto.date}
+            </if>
+        </where>
+    </select>
+
+    <select id="getUserNumsByMonth" resultType="java.lang.Integer">
+        SELECT count(*) FROM user
+        WHERE DATE_FORMAT(registerTime, '%Y%m') = #{month} and UserType != '工作人员'
+    </select>
+
+</mapper>

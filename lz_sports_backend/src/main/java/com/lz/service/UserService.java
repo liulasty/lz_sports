@@ -1,0 +1,43 @@
+package com.lz.service;
+
+import com.baomidou.mybatisplus.extension.service.IService;
+import com.lz.dto.EventListDTO;
+import com.lz.dto.UserLoginDTO;
+import com.lz.entity.User;
+import com.lz.common.result.PageResult;
+import com.lz.vo.chart.UserData;
+import com.lz.vo.chart.UserType;
+
+import java.util.List;
+
+/**
+ * User Service Interface
+ */
+import com.lz.dto.UserRegisterDTO;
+
+import com.lz.dto.UserUpdateDTO;
+import com.lz.vo.UserDetailVO;
+
+public interface UserService extends IService<User> {
+    void register(UserRegisterDTO userRegisterDTO);
+
+    User login(UserLoginDTO userLoginDTO);
+
+    UserDetailVO getUserDetail();
+
+    void updateUser(UserUpdateDTO userUpdateDTO);
+
+    PageResult list(EventListDTO listDto);
+
+    void deleteUser(String id);
+
+    void examinePlayer(String id);
+
+    UserData getUserNumsByMonth(String month);
+
+    List<UserType> getUserTypes();
+
+    int[] getNums();
+
+    User selectUserInfo();
+}

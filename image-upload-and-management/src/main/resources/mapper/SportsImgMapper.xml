@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace = "com.lz.Dao.SportsImgDao">
+	<insert id="addImageSrcs" >
+		<foreach collection="imgSrc" item="src" separator=";">
+			INSERT INTO lz_sports.sportsimg(ImgType, typeId, ImgSrc)
+			VALUES (#{type}, #{imgId}, #{src})
+		</foreach>
+	</insert>
+	<delete id="deleteByTypeIdAndImgSrc">
+		DELETE FROM lz_sports.sportsimg WHERE ImgType='项目图片' AND typeId = #{typeId} AND ImgSrc IN (#{src})
+	</delete>
+	<delete id="deleteByTypeIdAndImgSrcAndImgType">
+		
+			DELETE FROM lz_sports.sportsimg
+			WHERE typeid = #{typeId}
+			AND ImgSrc IN
+			<foreach item="item" collection="src" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+			AND ImgType = #{imgType}
+		
+	</delete>
+	
+	<select id="selectImgSrcByTypeAndId" resultType="java.lang.String">
+		SELECT ImgSrc
+		FROM lz_sports.sportsimg
+		WHERE ImgType = #{imgType}
+		  AND typeId = #{typeId}
+	</select>
+</mapper>

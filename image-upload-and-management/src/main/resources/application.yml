@@ -1,0 +1,39 @@
+# application.yml  
+spring:
+  profiles:
+    active: dev # 这里可以设置默认激活的Profile，比如开发环境
+    group:
+      "dev": devDB,devRedis,devMVC
+      "pro": proDB,proRedis,proMVC
+      "test": testDB,testRedis,testMVC
+# 开启日志
+mybatis-plus:
+  configuration:
+     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+#    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
+  #  启动Banner是在应用程序启动时打印的MyBatis-Plus的Logo和版本信息，默认情况下是启用的。
+  global-config:
+    banner: true
+
+#logging:
+#  config: src/main/resources/custom-logback.xml
+logging:
+  # 设置日志组
+  group:
+    # 自定义组名，设置当前组中所包含的包
+    ebank: com.itheima.controller
+  level:
+
+    root: INFO
+    org.springframework.data.convert.CustomConversions: ERROR
+    com.example: DEBUG
+    ebank: warn
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+#    console: "%d %clr(%5p) --- [%16t] %clr(%-40.40c){cyan} : %m %n "
+#  file:
+#    name: server.log
+#  logback:
+#    rollingpolicy:
+#      max-file-size: 4KB
+#      file-name-pattern: server.%d{yyyy-MM-dd}.%i.log

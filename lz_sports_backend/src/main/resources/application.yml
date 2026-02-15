@@ -1,0 +1,59 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: lz-sports-backend
+  security:
+    user:
+      name: admin
+      password: admin123
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/lz_sports?serverTimezone=GMT%2B8&characterEncoding=utf-8&useSSL=false
+    username: root
+    password: 1234
+    type: com.zaxxer.hikari.HikariDataSource
+  data:
+    redis:
+      repositories:
+        enabled: false
+      host: localhost
+      port: 6379
+      database: 0
+      # password: 
+
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true
+  mapper-locations: classpath:mapper/*.xml
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# Custom Config
+jwt:
+  key: lz_sports_secret_key
+  expiration: 43200000 # 12 hours
+
+aliyun:
+  oss:
+    endpoint: oss-cn-hangzhou.aliyuncs.com
+    accessKeyId: your-access-key-id
+    accessKeySecret: your-access-key-secret
+    bucketName: lz-sports
+
+logging:
+  file:
+    path: logs
+  logback:
+    rollingpolicy:
+      max-file-size: 100MB
+      max-history: 30
+      total-size-cap: 5GB
+  level:
+    com.lz.mapper: debug
