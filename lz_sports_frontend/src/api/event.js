@@ -31,6 +31,14 @@ export function updateEvent(id, data) {
   })
 }
 
+export function changeEventStatus(id, status) {
+  return request({
+    url: `/sports/event/${id}/status`,
+    method: 'put',
+    params: { status }
+  })
+}
+
 export function getEventById(id) {
   return request({
     url: `/sports/event/${id}`,

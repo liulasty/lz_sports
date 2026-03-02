@@ -21,6 +21,9 @@ public class EventDTO implements Serializable {
     private String fee;
     private String type; // Eligibility
     
+    // Admin user IDs
+    private List<Long> adminIds;
+
     // For compatibility with frontend sending image objects
     // In new backend, we might simplify this, but let's keep it close to old structure for now
     private ImgDTO[] imageUrls; 

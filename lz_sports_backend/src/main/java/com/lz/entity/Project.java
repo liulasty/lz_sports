@@ -51,4 +51,7 @@ public class Project implements Serializable {
 
     @TableField("attendance")
     private Integer attendance;
+
+    @TableField("school_id")
+    private Long schoolId;
 }

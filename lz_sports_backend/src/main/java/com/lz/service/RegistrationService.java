@@ -51,4 +51,9 @@ public interface RegistrationService extends IService<Registration> {
      * 获取运动员报名总数
      */
     int getCountByAthlete(Long athleteId);
+
+    /**
+     * 导出报名名单
+     */
+    void export(Long eventId, jakarta.servlet.http.HttpServletResponse response);
 }

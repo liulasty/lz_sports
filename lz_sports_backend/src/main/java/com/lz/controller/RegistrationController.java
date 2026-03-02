@@ -101,6 +101,15 @@ public class RegistrationController {
         return Result.success("已拒绝报名");
     }
 
+    /**
+     * 导出报名名单
+     */
+    @GetMapping("/export/{eventId}")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public void export(@PathVariable Long eventId, jakarta.servlet.http.HttpServletResponse response) {
+        registrationService.export(eventId, response);
+    }
+
     private Date parseDate(String dateStr) {
         if (dateStr == null || dateStr.isEmpty() || "null".equals(dateStr)) return null;
         // Try parsing ISO date or simple date

@@ -15,16 +15,35 @@
       <el-table :data="eventList" style="width: 100%" v-loading="loading">
         <el-table-column prop="name" label="赛事名称" />
         <el-table-column prop="type" label="参赛要求" />
-        <el-table-column prop="fee" label="报名费(元)" />
+        <el-table-column prop="status" label="状态" width="100">
+          <template #default="scope">
+             <el-tag :type="getStatusType(scope.row.status)">{{ getStatusLabel(scope.row.status) }}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="报名时间" width="300">
           <template #default="scope">
             {{ scope.row.date }} 至 {{ scope.row.end }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="180">
+        <el-table-column label="操作" width="350">
           <template #default="scope">
             <el-button type="primary" size="small" @click="handleEdit(scope.row)">编辑</el-button>
             <el-button type="danger" size="small" @click="handleDelete(scope.row)">删除</el-button>
+            
+            <el-dropdown style="margin-left: 10px">
+              <el-button type="warning" size="small">
+                更多<el-icon class="el-icon--right"><arrow-down /></el-icon>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item @click="handleStatus(scope.row, 'PUBLISHED')" v-if="scope.row.status === 'DRAFT'">发布赛事</el-dropdown-item>
+                  <el-dropdown-item @click="handleStatus(scope.row, 'ENDED')" v-if="scope.row.status === 'PUBLISHED'">结束赛事</el-dropdown-item>
+                  <el-dropdown-item @click="handleExport(scope.row)">导出名单</el-dropdown-item>
+                  <el-dropdown-item @click="handleImportClick(scope.row)">导入成绩</el-dropdown-item>
+                  <el-dropdown-item @click="handlePublishScore(scope.row)">发布成绩</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </template>
         </el-table-column>
       </el-table>
@@ -41,6 +60,28 @@
         />
       </div>
     </el-card>
+
+    <!-- Import Dialog -->
+    <el-dialog v-model="importVisible" title="导入成绩" width="30%">
+      <el-upload
+        class="upload-demo"
+        drag
+        action="#"
+        :http-request="uploadFile"
+        :limit="1"
+        accept=".xlsx, .xls"
+      >
+        <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+        <div class="el-upload__text">
+          Drop file here or <em>click to upload</em>
+        </div>
+        <template #tip>
+          <div class="el-upload__tip">
+            请上传 Excel 文件
+          </div>
+        </template>
+      </el-upload>
+    </el-dialog>
 
     <!-- Dialog -->
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="50%">
@@ -79,13 +120,17 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { getEventList, addEvent, updateEvent, deleteEvent } from '@/api/event'
+import { getEventList, addEvent, updateEvent, deleteEvent, changeEventStatus } from '@/api/event'
+import { exportRegistration, importScores, publishScores } from '@/api/score'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { ArrowDown, UploadFilled } from '@element-plus/icons-vue'
 
 const loading = ref(false)
 const eventList = ref([])
 const total = ref(0)
 const dialogVisible = ref(false)
+const importVisible = ref(false)
+const currentEventId = ref(null)
 const dialogTitle = ref('新增赛事')
 const isEdit = ref(false)
 
@@ -104,6 +149,18 @@ const form = reactive({
   imageUrlInput: ''
 })
 
+const getStatusType = (status) => {
+  if (status === 'PUBLISHED') return 'success'
+  if (status === 'ENDED') return 'info'
+  return 'warning'
+}
+
+const getStatusLabel = (status) => {
+  if (status === 'PUBLISHED') return '已发布'
+  if (status === 'ENDED') return '已结束'
+  return '草稿'
+}
+
 const getList = async () => {
   loading.value = true
   try {
@@ -117,6 +174,83 @@ const getList = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const handleStatus = (row, status) => {
+  ElMessageBox.confirm(`确认将赛事状态更改为 ${getStatusLabel(status)} 吗？`, '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(async () => {
+    try {
+      const res = await changeEventStatus(row.id, status)
+      if (res.code === 1) {
+        ElMessage.success('操作成功')
+        getList()
+      } else {
+        ElMessage.error(res.msg || '操作失败')
+      }
+    } catch (error) {
+      console.error(error)
+    }
+  })
+}
+
+const handleExport = async (row) => {
+  try {
+    const res = await exportRegistration(row.id)
+    // Create Blob and download
+    const url = window.URL.createObjectURL(new Blob([res]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', `${row.name}_名单.xlsx`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('导出失败')
+  }
+}
+
+const handleImportClick = (row) => {
+  currentEventId.value = row.id
+  importVisible.value = true
+}
+
+const uploadFile = async (param) => {
+  const file = param.file
+  try {
+    const res = await importScores(currentEventId.value, file)
+    if (res.code === 1) {
+      ElMessage.success('导入成功')
+      importVisible.value = false
+    } else {
+      ElMessage.error(res.msg || '导入失败')
+    }
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('导入失败')
+  }
+}
+
+const handlePublishScore = (row) => {
+  ElMessageBox.confirm(`确认发布该赛事的所有成绩吗？`, '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(async () => {
+    try {
+      const res = await publishScores(row.id)
+      if (res.code === 1) {
+        ElMessage.success('发布成功')
+      } else {
+        ElMessage.error(res.msg || '发布失败')
+      }
+    } catch (error) {
+      console.error(error)
+    }
+  })
 }
 
 const handleQuery = () => {

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.lz.common.enums.EventStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -39,4 +40,10 @@ public class Event implements Serializable {
 
     @TableField("Eligibility")
     private String eligibility;
+
+    @TableField("status")
+    private EventStatus status;
+
+    @TableField("school_id")
+    private Long schoolId;
 }

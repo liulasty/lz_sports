@@ -1,6 +1,7 @@
 package com.lz.controller;
 
 import com.lz.common.context.BaseContext;
+import com.lz.common.enums.UserStatus;
 import com.lz.common.result.PageResult;
 import com.lz.common.result.Result;
 import com.lz.config.AppConfig;
@@ -57,7 +58,7 @@ public class UserController {
         User user = userService.login(userLoginDTO);
 
         // Check status
-        if (!"已激活".equals(user.getStatus())) {
+        if (UserStatus.ACTIVE != user.getStatus()) {
              log.warn("用户 {} 状态为 {}, 但为了测试继续放行。", user.getUserName(), user.getStatus());
         }
 
@@ -72,7 +73,7 @@ public class UserController {
         Map<String, Object> claims = new HashMap<>();
         claims.put("id", user.getUserId());
         claims.put("username", user.getUserName());
-        claims.put("role", user.getUserType());
+        claims.put("role", user.getUserType().getRole());
         String token = JwtUtil.genToken(claims, appConfig.getJwtKey());
         
         log.info("用户登录成功: {}, Token: {}", user.getUserName(), token);
@@ -80,7 +81,7 @@ public class UserController {
         UserLoginVO userLoginVO = UserLoginVO.builder()
                 .id(user.getUserId())
                 .userName(user.getUserName())
-                .type(user.getUserType())
+                .type(user.getUserType().getRole())
                 .token(token)
                 .avatarSrc(avatarImg)
                 .build();
@@ -89,12 +90,31 @@ public class UserController {
     }
 
     /**
+     * Send Verification Code
+     */
+    @PostMapping("/send-code")
+    public Result<String> sendCode(@RequestParam String email) {
+        userService.sendCode(email);
+        return Result.success("验证码已发送");
+    }
+
+    /**
      * Register
      */
     @PostMapping("/register")
     public Result<String> register(@Validated @RequestBody UserRegisterDTO userRegisterDTO) {
         userService.register(userRegisterDTO);
-        return Result.success("注册成功");
+        return Result.success("注册申请已提交，请等待管理员审核");
+    }
+
+    /**
+     * Audit User (Admin)
+     */
+    @PutMapping("/audit/{userId}")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public Result<String> auditUser(@PathVariable Long userId, @RequestParam Integer status, @RequestParam(required = false) String reason) {
+        userService.auditUser(userId, status, reason);
+        return Result.success("操作成功");
     }
 
     /**

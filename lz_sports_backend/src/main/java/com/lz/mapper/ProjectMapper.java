@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lz.entity.Project;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 /**
  * Project Mapper
@@ -16,4 +17,7 @@ public interface ProjectMapper extends BaseMapper<Project> {
 
     @Select("select COUNT(*) from eventitem")
     int getProjectTotal();
+
+    @Update("UPDATE eventitem SET attendance = attendance + 1 WHERE ItemID = #{projectId} AND attendance < #{maxAttendance}")
+    int incrementAttendance(Long projectId, Integer maxAttendance);
 }

@@ -18,4 +18,7 @@ public class UserRegisterDTO {
     @Email(message = "Invalid email format")
     @NotBlank(message = "Email cannot be empty")
     private String email;
+
+    @NotBlank(message = "Verification code cannot be empty")
+    private String code;
 }

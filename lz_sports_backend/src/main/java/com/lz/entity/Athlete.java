@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.lz.common.enums.AthleteStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -41,7 +42,7 @@ public class Athlete implements Serializable {
     private String contact;
 
     @TableField(value = "AthleteState")
-    private String athleteState;
+    private AthleteStatus athleteState;
 
     @TableField(value = "applyTime")
     private LocalDateTime applyTime;
@@ -51,4 +52,7 @@ public class Athlete implements Serializable {
 
     @TableField(value = "grade")
     private String grade;
+
+    @TableField(value = "school_id")
+    private Long schoolId;
 }

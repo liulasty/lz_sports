@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.lz.common.enums.UserRole;
+import com.lz.common.enums.UserStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -30,14 +32,17 @@ public class User {
     private String password;
 
     @TableField("UserType")
-    private String userType;
+    private UserRole userType;
 
     @TableField("Status")
-    private String status;
+    private UserStatus status;
 
     @TableField("Email")
     private String email;
 
     @TableField("registerTime")
     private LocalDateTime registerTime;
+
+    @TableField("school_id")
+    private Long schoolId;
 }

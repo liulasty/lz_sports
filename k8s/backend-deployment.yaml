@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lz-sports-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lz-sports-backend
+  template:
+    metadata:
+      labels:
+        app: lz-sports-backend
+    spec:
+      containers:
+        - name: lz-sports-backend
+          image: lz-sports-backend:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:mysql://host.docker.internal:3306/lz_sports?serverTimezone=GMT%2B8&characterEncoding=utf-8&useSSL=false"
+            - name: SPRING_DATA_REDIS_HOST
+              value: "host.docker.internal"
+            - name: SPRING_DATA_REDIS_PORT
+              value: "6379"
+          imagePullPolicy: IfNotPresent

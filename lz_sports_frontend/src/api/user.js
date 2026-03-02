@@ -16,6 +16,22 @@ export function register(data) {
   })
 }
 
+export function sendCode(email) {
+  return request({
+    url: '/sports/user/send-code',
+    method: 'post',
+    params: { email }
+  })
+}
+
+export function auditUser(userId, status, reason) {
+  return request({
+    url: `/sports/user/audit/${userId}`,
+    method: 'put',
+    params: { status, reason }
+  })
+}
+
 export function logout() {
   return request({
     url: '/sports/user/logout',

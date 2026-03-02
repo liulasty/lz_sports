@@ -6,22 +6,37 @@ spring:
     name: lz-sports-backend
   security:
     user:
-      name: admin
-      password: admin123
+      name: ${SECURITY_USER_NAME:admin}
+      password: ${SECURITY_USER_PASSWORD:admin123}
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/lz_sports?serverTimezone=GMT%2B8&characterEncoding=utf-8&useSSL=false
-    username: root
-    password: 1234
+    url: ${DB_URL:jdbc:mysql://localhost:3306/lz_sports?serverTimezone=GMT%2B8&characterEncoding=utf-8&useSSL=false}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:1234}
     type: com.zaxxer.hikari.HikariDataSource
   data:
     redis:
       repositories:
         enabled: false
-      host: localhost
-      port: 6379
-      database: 0
-      # password: 
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      database: ${REDIS_DB:0}
+      password: ${REDIS_PASSWORD:}
+
+  mail:
+    host: ${MAIL_HOST:smtp.qq.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:your-email@qq.com}
+    password: ${MAIL_PASSWORD:your-auth-code}
+    protocol: smtp
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
 
 mybatis-plus:
   configuration:
@@ -34,18 +49,19 @@ mybatis-plus:
       logic-delete-field: deleted
       logic-delete-value: 1
       logic-not-delete-value: 0
+  type-enums-package: com.lz.common.enums
 
 # Custom Config
 jwt:
-  key: lz_sports_secret_key
+  key: ${JWT_SECRET:lz_sports_secret_key}
   expiration: 43200000 # 12 hours
 
 aliyun:
   oss:
-    endpoint: oss-cn-hangzhou.aliyuncs.com
-    accessKeyId: your-access-key-id
-    accessKeySecret: your-access-key-secret
-    bucketName: lz-sports
+    endpoint: ${OSS_ENDPOINT:oss-cn-hangzhou.aliyuncs.com}
+    accessKeyId: ${OSS_ACCESS_KEY_ID:your-access-key-id}
+    accessKeySecret: ${OSS_ACCESS_KEY_SECRET:your-access-key-secret}
+    bucketName: ${OSS_BUCKET_NAME:lz-sports}
 
 logging:
   file:

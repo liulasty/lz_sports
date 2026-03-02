@@ -47,6 +47,11 @@ public interface EventService extends IService<Event> {
     void update(String eventId, EventDTO eventDTO);
 
     /**
+     * Change Event Status
+     */
+    void changeStatus(Long eventId, String status);
+
+    /**
      * Get Event Types
      */
     List<Map<Long, String>> getEventType();

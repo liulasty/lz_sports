@@ -37,15 +37,27 @@ import java.util.List;
 /**
  * User Service Implementation
  */
+import com.lz.common.enums.UserRole;
+import com.lz.common.enums.UserStatus;
 import com.lz.config.AppConfig;
 import com.lz.dto.UserUpdateDTO;
 import com.lz.vo.UserDetailVO;
+
+import com.lz.util.MailUtils;
+import com.lz.util.RedisUtil;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private MailUtils mailUtils;
+
+    @Autowired
+    private RedisUtil redisUtil;
 
     @Autowired
     private AthleteMapper athleteMapper;
@@ -74,6 +86,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void register(UserRegisterDTO userRegisterDTO) {
+        // Check verification code
+        String code = (String) redisUtil.get("REGISTER_CODE:" + userRegisterDTO.getEmail());
+        if (code == null || !code.equals(userRegisterDTO.getCode())) {
+            throw new BusinessException("验证码错误或已过期");
+        }
+
         // Check Username
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("Username", userRegisterDTO.getUsername());
@@ -93,10 +111,50 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setPassword(userRegisterDTO.getPassword());
         user.setEmail(userRegisterDTO.getEmail());
         user.setRegisterTime(LocalDateTime.now());
-        user.setStatus("已激活"); // Default active for now
-        user.setUserType("普通用户");
+        user.setStatus(UserStatus.PENDING); // Set to PENDING
+        user.setUserType(UserRole.USER);
         
         userMapper.insert(user);
+        
+        // Remove code from redis
+        redisUtil.del("REGISTER_CODE:" + userRegisterDTO.getEmail());
+    }
+
+    @Override
+    public void sendCode(String email) {
+        // Verify QQ email
+        if (!email.endsWith("@qq.com")) {
+            throw new BusinessException("仅支持QQ邮箱注册");
+        }
+        
+        // Check if email registered
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("Email", email);
+        if (userMapper.selectCount(queryWrapper) > 0) {
+            throw new BusinessException("该邮箱已注册");
+        }
+
+        String code = MailUtils.generateCode();
+        redisUtil.set("REGISTER_CODE:" + email, code, 300); // 5 minutes
+        
+        mailUtils.sendMail(email, "注册验证码", "您的验证码是: " + code + "，有效期5分钟。");
+    }
+
+    @Override
+    public void auditUser(Long userId, Integer status, String reason) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        
+        if (status == 1) {
+            user.setStatus(UserStatus.ACTIVE);
+            mailUtils.sendMail(user.getEmail(), "账号审核通过", "您的账号已通过审核，现在可以登录系统了。");
+        } else {
+            user.setStatus(UserStatus.REJECTED);
+            mailUtils.sendMail(user.getEmail(), "账号审核拒绝", "很遗憾，您的账号审核未通过。原因: " + reason);
+        }
+        userMapper.updateById(user);
     }
 
     @Override

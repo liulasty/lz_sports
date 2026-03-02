@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.lz.common.enums.RegistrationStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -38,5 +39,8 @@ public class Registration implements Serializable {
     private Date registrationTime;
 
     @TableField("RegistrationStatus")
-    private String registrationStatus;
+    private RegistrationStatus registrationStatus;
+
+    @TableField("school_id")
+    private Long schoolId;
 }

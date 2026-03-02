@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lz-sports-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lz-sports-frontend
+  template:
+    metadata:
+      labels:
+        app: lz-sports-frontend
+    spec:
+      containers:
+        - name: lz-sports-frontend
+          image: lz-sports-frontend:latest
+          ports:
+            - containerPort: 80
+          imagePullPolicy: IfNotPresent

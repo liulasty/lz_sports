@@ -21,6 +21,16 @@ import com.lz.vo.UserDetailVO;
 public interface UserService extends IService<User> {
     void register(UserRegisterDTO userRegisterDTO);
 
+    /**
+     * Send verification code
+     */
+    void sendCode(String email);
+
+    /**
+     * Approve or reject user
+     */
+    void auditUser(Long userId, Integer status, String reason);
+
     User login(UserLoginDTO userLoginDTO);
 
     UserDetailVO getUserDetail();

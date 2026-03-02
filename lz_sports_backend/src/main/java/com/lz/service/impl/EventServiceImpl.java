@@ -33,6 +33,11 @@ import java.util.stream.Collectors;
 /**
  * Event Service Implementation
  */
+import com.lz.common.enums.EventStatus;
+import com.lz.entity.EventAdminMapping;
+import com.lz.mapper.EventAdminMappingMapper;
+import java.time.LocalDateTime;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -40,6 +45,7 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
 
     private final EventMapper eventMapper;
     private final SportsImgService sportsImgService;
+    private final EventAdminMappingMapper eventAdminMappingMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -61,6 +67,7 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
                     .registrationFee(Integer.parseInt(eventDTO.getFee()))
                     .registrationStart(startDate)
                     .registrationDeadline(endDate)
+                    .status(EventStatus.DRAFT) // Default to DRAFT
                     .build();
 
             save(event);
@@ -76,12 +83,39 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
                 }
             }
 
+            // Add Event Admins
+            if (eventDTO.getAdminIds() != null && !eventDTO.getAdminIds().isEmpty()) {
+                for (Long userId : eventDTO.getAdminIds()) {
+                    EventAdminMapping mapping = new EventAdminMapping();
+                    mapping.setEventId(event.getEventId());
+                    mapping.setUserId(userId);
+                    mapping.setCreateTime(LocalDateTime.now());
+                    eventAdminMappingMapper.insert(mapping);
+                }
+            }
+
             return "添加成功";
         } catch (NumberFormatException e) {
             throw new BusinessException("费用格式错误");
         } catch (Exception e) {
             log.error("添加事件失败", e);
             throw new BusinessException("添加事件失败: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void changeStatus(Long eventId, String status) {
+        Event event = getById(eventId);
+        if (event == null) {
+            throw new BusinessException("赛事不存在");
+        }
+        
+        try {
+            EventStatus eventStatus = EventStatus.valueOf(status);
+            event.setStatus(eventStatus);
+            updateById(event);
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException("无效的状态: " + status);
         }
     }
 

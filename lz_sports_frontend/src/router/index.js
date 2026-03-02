@@ -1,8 +1,15 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import Layout from '@/layout/index.vue'
+import { checkInit } from '@/api/init'
 
 const routes = [
+  {
+    path: '/init',
+    name: 'Init',
+    component: () => import('@/views/init/index.vue'),
+    meta: { title: '系统初始化' }
+  },
   {
     path: '/login',
     name: 'Login',
@@ -31,6 +38,12 @@ const routes = [
         meta: { requiresAuth: true }
       },
       {
+        path: 'event/:id',
+        name: 'EventDetail',
+        component: () => import('@/views/event/detail.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
         path: 'project',
         name: 'ProjectList',
         component: () => import('@/views/project/index.vue'),
@@ -40,6 +53,12 @@ const routes = [
         path: 'profile',
         name: 'Profile',
         component: () => import('@/views/profile/index.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'score',
+        name: 'ScoreList',
+        component: () => import('@/views/score/index.vue'),
         meta: { requiresAuth: true }
       },
       {
@@ -65,6 +84,12 @@ const routes = [
         name: 'RegistrationAudit',
         component: () => import('@/views/admin/RegistrationAudit.vue'),
         meta: { requiresAuth: true, roles: ['管理员'] }
+      },
+      {
+        path: 'user-audit',
+        name: 'UserAudit',
+        component: () => import('@/views/admin/UserAudit.vue'),
+        meta: { requiresAuth: true, roles: ['管理员'] }
       }
     ]
   }
@@ -75,8 +100,46 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const userStore = useUserStore()
+  
+  // Check System Initialization Status
+  const isInit = localStorage.getItem('isInitialized')
+
+  if (isInit === 'true') {
+    if (to.path === '/init') {
+      next('/login')
+      return
+    }
+  } else {
+    // If not cached as true, check API
+    if (to.path !== '/init') {
+      try {
+        const { data } = await checkInit()
+        if (data === false) {
+          next('/init')
+          return
+        } else {
+          localStorage.setItem('isInitialized', 'true')
+        }
+      } catch (error) {
+        console.error('Init check failed', error)
+      }
+    } else {
+      // If accessing /init, check if already initialized
+      try {
+        const { data } = await checkInit()
+        if (data === true) {
+          localStorage.setItem('isInitialized', 'true')
+          next('/login')
+          return
+        }
+      } catch (error) {
+        console.error('Init check failed', error)
+      }
+    }
+  }
+
   console.log('Router Guard:', { to: to.path, from: from.path, token: userStore.token })
   if (to.meta.requiresAuth && !userStore.token) {
     console.log('Redirecting to login: No token')

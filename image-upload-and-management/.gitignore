@@ -1,7 +1,0 @@
-# 项目排除路径
-/target/
-
-application-dev.yml
-/src/test/
-
-*.log

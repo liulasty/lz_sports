@@ -2,6 +2,8 @@ package com.lz.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.lz.common.enums.AthleteStatus;
+import com.lz.common.enums.UserRole;
 import com.lz.common.exception.BusinessException;
 import com.lz.dto.AthleteDTO;
 import com.lz.dto.AthleteUpdateDTO;
@@ -35,7 +37,7 @@ public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> impl
                 .gender(athleteDTO.getGender())
                 .contact(athleteDTO.getPhone())
                 .grade(athleteDTO.getGrade())
-                .athleteState("申请中")
+                .athleteState(AthleteStatus.AUDITING)
                 .applyTime(LocalDateTime.now())
                 .build();
         
@@ -85,7 +87,7 @@ public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> impl
         // Update User Type to "Student"
         User user = userMapper.selectById(athlete.getUserId());
         if (user != null) {
-            user.setUserType("学生");
+            user.setUserType(UserRole.STUDENT);
             userMapper.updateById(user);
         }
 
@@ -97,7 +99,7 @@ public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> impl
                 .gender(dto.getGender() != null ? dto.getGender() : athlete.getGender())
                 .contact(dto.getContact() != null ? dto.getContact() : athlete.getContact())
                 .grade(dto.getGrade() != null ? dto.getGrade() : athlete.getGrade())
-                .athleteState("申请中")
+                .athleteState(AthleteStatus.AUDITING)
                 .applyTime(LocalDateTime.now())
                 .build();
         

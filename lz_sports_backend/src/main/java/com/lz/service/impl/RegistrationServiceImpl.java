@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lz.common.context.BaseContext;
+import com.lz.common.enums.RegistrationStatus;
 import com.lz.common.exception.BusinessException;
 import com.lz.common.result.PageResult;
 import com.lz.dto.RegistrationAndAthleteDTO;
@@ -25,11 +26,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.net.URLEncoder;
 
 /**
  * 报名服务实现
  */
+import com.lz.common.enums.EventStatus;
+import com.alibaba.excel.EasyExcel;
+import com.lz.vo.RegistrationExportVO;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -41,77 +47,94 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
     private final ProjectMapper projectMapper;
 
     @Override
-    public PageResult list(int currentPage, int pageSize, String name, String status, Date date) {
-        IPage<Registration> page = new Page<>(currentPage, pageSize);
-        LambdaQueryWrapper<Registration> lqw = new LambdaQueryWrapper<>();
-
-        // Filter by status and date
-        lqw.eq(status != null && !status.isEmpty(), Registration::getRegistrationStatus, status)
-           .eq(date != null, Registration::getRegistrationTime, date);
-
-        // Filter by athlete name (requires subquery or memory filtering)
-        if (name != null && !name.isEmpty()) {
-            LambdaQueryWrapper<Athlete> athleteQw = new LambdaQueryWrapper<>();
-            athleteQw.like(Athlete::getName, name);
-            List<Object> athleteIds = athleteMapper.selectObjs(athleteQw.select(Athlete::getAthleteId));
-            if (athleteIds.isEmpty()) {
-                return new PageResult(0, List.of());
-            }
-            lqw.in(Registration::getAthleteId, athleteIds);
+    @Transactional(rollbackFor = Exception.class)
+    public void add(Long projectId) {
+        Long userId = BaseContext.getCurrentId();
+        Athlete athlete = athleteMapper.selectByUserId(userId);
+        if (athlete == null) {
+            throw new BusinessException("请先完善运动员信息");
         }
 
-        registrationMapper.selectPage(page, lqw);
-        return buildPageResult(page);
+        Project project = projectMapper.selectById(projectId);
+        if (project == null) {
+            throw new BusinessException("项目不存在");
+        }
+
+        Event event = eventMapper.selectById(project.getEventId());
+        if (event == null) {
+            throw new BusinessException("赛事不存在");
+        }
+
+        // 1. Check Event Status
+        if (event.getStatus() != EventStatus.PUBLISHED) {
+            throw new BusinessException("赛事未发布或已结束，无法报名");
+        }
+
+        // 2. Check Registration Deadline
+        Date now = new Date();
+        if (event.getRegistrationDeadline() != null && now.after(event.getRegistrationDeadline())) {
+            throw new BusinessException("报名已截止");
+        }
+
+        // 3. Check Duplicate Registration
+        LambdaQueryWrapper<Registration> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(Registration::getAthleteId, athlete.getAthleteId());
+        lqw.eq(Registration::getItemId, projectId);
+        if (count(lqw) > 0) {
+            throw new BusinessException("您已报名该项目，请勿重复报名");
+        }
+
+        // 4. Check Gender Limit
+        if (project.getLimitation() != null && !project.getLimitation().equals("无限制")) {
+            if (!project.getLimitation().equals(athlete.getGender())) {
+                throw new BusinessException("性别不符合项目要求");
+            }
+        }
+
+        // 5. Check Grade Limit (Optional, logic depends on requirement)
+        if (project.getGrade() != null && !project.getGrade().isEmpty()) {
+             // Simple string match or contains logic? Assuming exact match for now based on old data
+             if (!project.getGrade().contains(athlete.getGrade())) {
+                 // throw new BusinessException("年级不符合项目要求");
+                 // Relaxed for now as data might be comma separated or single
+             }
+        }
+        
+        // 6. Check Max Attendance (Optimistic Lock or simple check)
+        // For simplicity, using synchronized block or database lock is better, 
+        // but here we just check count. Ideally Project table should have version for optimistic lock.
+        if (project.getAttendance() >= project.getMaxAttendance()) {
+            throw new BusinessException("项目报名人数已满");
+        }
+
+        // Create Registration
+        Registration registration = new Registration();
+        registration.setAthleteId(athlete.getAthleteId());
+        registration.setEventId(event.getEventId());
+        registration.setItemId(projectId);
+        registration.setRegistrationTime(now);
+        registration.setRegistrationStatus(RegistrationStatus.PENDING); // Default PENDING
+        
+        save(registration);
+
+        // Update Project Attendance
+        // Note: This is not thread-safe without lock. 
+        // Better: UPDATE eventitem SET attendance = attendance + 1 WHERE ItemID = ? AND attendance < maxAttendance
+        int updated = projectMapper.incrementAttendance(projectId, project.getMaxAttendance());
+        if (updated == 0) {
+            throw new BusinessException("报名失败，名额已满"); // Double check
+        }
+    }
+        Page<RegistrationDTO> page = new Page<>(currentPage, pageSize);
+        IPage<RegistrationDTO> result = registrationMapper.selectRegistrationPage(page, name, status, date, null);
+        return new PageResult(result.getTotal(), result.getRecords());
     }
 
     @Override
     public PageResult listByAthlete(int currentPage, int pageSize, String name, String status, Date date, Long athleteId) {
-        IPage<Registration> page = new Page<>(currentPage, pageSize);
-        LambdaQueryWrapper<Registration> lqw = new LambdaQueryWrapper<>();
-
-        lqw.eq(Registration::getAthleteId, athleteId)
-           .eq(status != null && !status.isEmpty(), Registration::getRegistrationStatus, status)
-           .eq(date != null, Registration::getRegistrationTime, date);
-           
-        // 'name' param here likely refers to Project/Event name filter?
-        // Old code used custom SQL. Let's assume it filters project name.
-        if (name != null && !name.isEmpty()) {
-             LambdaQueryWrapper<Project> projectQw = new LambdaQueryWrapper<>();
-             projectQw.like(Project::getItemName, name);
-             List<Object> itemIds = projectMapper.selectObjs(projectQw.select(Project::getItemId));
-             if (itemIds.isEmpty()) {
-                 return new PageResult(0, List.of());
-             }
-             lqw.in(Registration::getItemId, itemIds);
-        }
-
-        registrationMapper.selectPage(page, lqw);
-        return buildPageResult(page);
-    }
-
-    private PageResult buildPageResult(IPage<Registration> page) {
-        List<RegistrationDTO> dtos = page.getRecords().stream().map(r -> {
-            RegistrationDTO dto = new RegistrationDTO();
-            dto.setId(r.getRegistrationId());
-            dto.setAthleteId(r.getAthleteId());
-            dto.setEventId(r.getEventId());
-            dto.setItemId(r.getItemId());
-            dto.setRegistrationTime(r.getRegistrationTime());
-            dto.setRegistrationStatus(r.getRegistrationStatus());
-
-            Athlete athlete = athleteMapper.selectById(r.getAthleteId());
-            if (athlete != null) dto.setAthleteName(athlete.getName());
-
-            Event event = eventMapper.selectById(r.getEventId());
-            if (event != null) dto.setEventName(event.getEventName());
-
-            Project project = projectMapper.selectById(r.getItemId());
-            if (project != null) dto.setItemName(project.getItemName());
-
-            return dto;
-        }).collect(Collectors.toList());
-
-        return new PageResult(page.getTotal(), dtos);
+        Page<RegistrationDTO> page = new Page<>(currentPage, pageSize);
+        IPage<RegistrationDTO> result = registrationMapper.selectRegistrationPage(page, name, status, date, athleteId);
+        return new PageResult(result.getTotal(), result.getRecords());
     }
 
     @Override
@@ -169,7 +192,7 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
             projectMapper.updateById(project);
         }
         
-        r.setRegistrationStatus("通过");
+        r.setRegistrationStatus(RegistrationStatus.APPROVED);
         updateById(r);
     }
 
@@ -178,10 +201,7 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
     public void refuse(Long id) {
         Registration r = getById(id);
         if (r == null) throw new BusinessException("Registration not found");
-        r.setRegistrationStatus("未通过"); // Or "拒绝" based on old logic? Old logic: delete or update status?
-        // Old logic `refuse` method deleted the registration? No, let's check old code.
-        // Old service interface says `refuse`. Impl usually updates status or deletes.
-        // Let's assume updating status to "未通过" is safer than delete.
+        r.setRegistrationStatus(RegistrationStatus.REJECTED);
         updateById(r);
     }
 
@@ -189,7 +209,7 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
     @Transactional(rollbackFor = Exception.class)
     public void delete(Long id) {
         Registration r = getById(id);
-        if (r != null && "通过".equals(r.getRegistrationStatus())) {
+        if (r != null && RegistrationStatus.APPROVED.equals(r.getRegistrationStatus())) {
              // If approved, decrement attendance
              Project project = projectMapper.selectById(r.getItemId());
              if (project != null && project.getAttendance() > 0) {
@@ -228,8 +248,40 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
 
     @Override
     public int getCountByAthlete(Long athleteId) {
-        LambdaQueryWrapper<Registration> qw = new LambdaQueryWrapper<>();
-        qw.eq(Registration::getAthleteId, athleteId);
-        return (int) count(qw);
+        LambdaQueryWrapper<Registration> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(Registration::getAthleteId, athleteId);
+        return (int) count(lqw);
+    }
+
+    @Override
+    public void export(Long eventId, jakarta.servlet.http.HttpServletResponse response) {
+        // Fetch data
+        List<RegistrationDTO> list = registrationMapper.selectRegistrationList(eventId);
+        
+        List<RegistrationExportVO> exportList = new ArrayList<>();
+        for (RegistrationDTO dto : list) {
+            RegistrationExportVO vo = new RegistrationExportVO();
+            vo.setRegistrationId(dto.getRegistrationId());
+            vo.setEventName(dto.getEventName());
+            vo.setItemName(dto.getItemName());
+            vo.setAthleteName(dto.getAthleteName());
+            vo.setGender(dto.getGender());
+            vo.setGrade(dto.getGrade());
+            vo.setContact(dto.getContact());
+            vo.setRegistrationTime(dto.getRegistrationTime());
+            vo.setStatus(dto.getRegistrationStatus().getStatus());
+            exportList.add(vo);
+        }
+
+        try {
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setCharacterEncoding("utf-8");
+            String fileName = URLEncoder.encode("报名名单", "UTF-8").replaceAll("\\+", "%20");
+            response.setHeader("Content-disposition", "attachment;filename*=utf-8''" + fileName + ".xlsx");
+            EasyExcel.write(response.getOutputStream(), RegistrationExportVO.class).sheet("名单").doWrite(exportList);
+        } catch (Exception e) {
+            log.error("Export failed", e);
+            throw new BusinessException("导出失败");
+        }
     }
 }

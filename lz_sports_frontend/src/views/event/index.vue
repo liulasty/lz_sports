@@ -13,7 +13,7 @@
 
       <el-row :gutter="20">
         <el-col :span="6" v-for="item in eventList" :key="item.id" style="margin-bottom: 20px;">
-          <el-card :body-style="{ padding: '0px' }" shadow="hover">
+          <el-card :body-style="{ padding: '0px' }" shadow="hover" @click="goDetail(item.id)">
             <div class="image-container">
                <img v-if="item.imageUrls && item.imageUrls.length > 0" :src="item.imageUrls[0]" class="image"/>
                <div v-else class="image-placeholder">暂无图片</div>
@@ -51,25 +51,32 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { getEventList } from '@/api/event'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const eventList = ref([])
 const total = ref(0)
 const queryParams = reactive({
   currentPage: 1,
   pageSize: 8,
-  name: ''
+  name: '',
+  status: 'PUBLISHED' // Only show published events
 })
 
 const getList = async () => {
   try {
     const res = await getEventList(queryParams)
     if (res.code === 1) {
-      eventList.value = res.data.records
+      eventList.value = res.data.records || res.data.rows
       total.value = res.data.total
     }
   } catch (error) {
     console.error(error)
   }
+}
+
+const goDetail = (id) => {
+  router.push(`/event/${id}`)
 }
 
 const handleQuery = () => {

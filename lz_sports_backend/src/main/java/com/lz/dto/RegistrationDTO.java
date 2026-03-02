@@ -17,8 +17,12 @@ import java.util.Date;
 @AllArgsConstructor
 public class RegistrationDTO implements Serializable {
     private Long id;
+    private Long registrationId; // Alias for id in export
     private Long athleteId;
     private String athleteName;
+    private String gender;
+    private String grade;
+    private String contact;
     private Long eventId;
     private String eventName;
     private Long itemId;

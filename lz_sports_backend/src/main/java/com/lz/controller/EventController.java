@@ -93,6 +93,16 @@ public class EventController {
     }
 
     /**
+     * Change Event Status
+     */
+    @PutMapping("/{id}/status")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public Result<String> changeStatus(@PathVariable Long id, @RequestParam String status) {
+        eventService.changeStatus(id, status);
+        return Result.success("状态更新成功");
+    }
+
+    /**
      * Get Event Types (Name/ID map)
      */
     @GetMapping("/getEventType")
