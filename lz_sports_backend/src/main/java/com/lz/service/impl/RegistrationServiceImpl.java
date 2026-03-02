@@ -125,6 +125,9 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
             throw new BusinessException("报名失败，名额已满"); // Double check
         }
     }
+
+    @Override
+    public PageResult list(int currentPage, int pageSize, String name, String status, Date date) {
         Page<RegistrationDTO> page = new Page<>(currentPage, pageSize);
         IPage<RegistrationDTO> result = registrationMapper.selectRegistrationPage(page, name, status, date, null);
         return new PageResult(result.getTotal(), result.getRecords());
@@ -220,31 +223,7 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
         removeById(id);
     }
 
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void add(Long projectId) {
-        Long userId = BaseContext.getCurrentId();
-        Athlete athlete = athleteMapper.selectByUserId(userId);
-        if (athlete == null) throw new BusinessException("Not an athlete");
-        
-        Project project = projectMapper.selectById(projectId);
-        if (project == null) throw new BusinessException("Project not found");
-        
-        // Check if already registered
-        LambdaQueryWrapper<Registration> qw = new LambdaQueryWrapper<>();
-        qw.eq(Registration::getAthleteId, athlete.getAthleteId())
-          .eq(Registration::getItemId, projectId);
-        if (count(qw) > 0) throw new BusinessException("Already registered");
 
-        Registration r = new Registration();
-        r.setAthleteId(athlete.getAthleteId());
-        r.setEventId(project.getEventId());
-        r.setItemId(projectId);
-        r.setRegistrationTime(new Date());
-        r.setRegistrationStatus("审核中");
-        
-        save(r);
-    }
 
     @Override
     public int getCountByAthlete(Long athleteId) {
@@ -269,7 +248,7 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
             vo.setGrade(dto.getGrade());
             vo.setContact(dto.getContact());
             vo.setRegistrationTime(dto.getRegistrationTime());
-            vo.setStatus(dto.getRegistrationStatus().getStatus());
+            vo.setStatus(dto.getRegistrationStatus());
             exportList.add(vo);
         }
 

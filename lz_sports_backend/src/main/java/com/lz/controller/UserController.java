@@ -148,12 +148,6 @@ public class UserController {
         return Result.success(pageResult);
     }
 
-    private void sendActivationEmail(String email, String activationUrl) {
-        String subject = "账户激活邮件";
-        String content = "你好，这是一封激活邮件，无需回复，点击此链接激活：" + activationUrl;
-        MailUtils.sendMail(email, subject, content);
-    }
-
     /**
      * Delete User (Admin)
      */

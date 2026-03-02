@@ -54,7 +54,7 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
                 if (registration == null) {
                     vo.setRegistrationStatus("未报名");
                 } else {
-                    vo.setRegistrationStatus(registration.getRegistrationStatus());
+                    vo.setRegistrationStatus(registration.getRegistrationStatus().getStatus());
                 }
             }
         } else {

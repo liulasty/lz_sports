@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lz.common.context.BaseContext;
+import com.lz.common.enums.AthleteStatus;
 import com.lz.common.exception.BusinessException;
 import com.lz.common.result.PageResult;
 import com.lz.dto.EventListDTO;
@@ -236,13 +237,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public void examinePlayer(String id) {
         User user = new User();
         user.setUserId(Long.valueOf(id));
-        user.setUserType("运动员");
+        user.setUserType(UserRole.ATHLETE);
         userMapper.updateById(user);
 
         // Update Athlete status
         Athlete athlete = new Athlete();
         athlete.setAgreeTime(LocalDateTime.now());
-        athlete.setAthleteState("成功");
+        athlete.setAthleteState(AthleteStatus.SUCCESS);
         
         LambdaQueryWrapper<Athlete> updateWrapper = new LambdaQueryWrapper<>();
         updateWrapper.eq(Athlete::getUserId, Long.valueOf(id));
@@ -328,8 +329,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 .userId(user.getUserId())
                 .userName(user.getUserName())
                 .email(user.getEmail())
-                .userType(user.getUserType())
-                .status(user.getStatus())
+                .userType(user.getUserType().getRole())
+                .status(user.getStatus().getStatus())
                 .registerTime(user.getRegisterTime())
                 .avatarSrc(avatarImg)
                 .build();
