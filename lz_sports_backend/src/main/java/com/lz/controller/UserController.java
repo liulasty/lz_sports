@@ -12,7 +12,6 @@ import com.lz.entity.User;
 import com.lz.service.SportsImgService;
 import com.lz.service.UserService;
 import com.lz.util.JwtUtil;
-import com.lz.util.MailUtils;
 import com.lz.dto.UserUpdateDTO;
 import com.lz.vo.UserDetailVO;
 import com.lz.vo.UserLoginVO;
@@ -25,7 +24,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

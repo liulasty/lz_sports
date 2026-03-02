@@ -32,7 +32,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 /**
@@ -40,13 +39,8 @@ import java.util.List;
  */
 import com.lz.common.enums.UserRole;
 import com.lz.common.enums.UserStatus;
-import com.lz.config.AppConfig;
-import com.lz.dto.UserUpdateDTO;
-import com.lz.vo.UserDetailVO;
-
 import com.lz.util.MailUtils;
 import com.lz.util.RedisUtil;
-import java.util.concurrent.TimeUnit;
 
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
@@ -78,11 +72,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Autowired
     private AppConfig appConfig;
 
-    // TODO: Inject other Daos/Services when migrated
-    // private AthleteDao athleteDao;
-    // private EventDao eventDao;
-    // private ProjectDao projectDao;
-    // private RegistrationDao registrationDao;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
