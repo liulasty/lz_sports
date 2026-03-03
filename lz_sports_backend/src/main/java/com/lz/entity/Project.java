@@ -19,37 +19,31 @@ import java.util.Date;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("eventitem")
+@TableName("event_item")
 public class Project implements Serializable {
 
-    @TableId(value = "ItemID", type = IdType.AUTO)
+    @TableId(value = "id", type = IdType.AUTO)
     private Long itemId;
 
-    @TableField("EventID")
+    @TableField("event_id")
     private Long eventId;
 
-    @TableField("ItemName")
+    @TableField("name")
     private String itemName;
 
-    @TableField("createTime")
+    @TableField("create_time")
     private Date createTime;
 
-    @TableField("grade")
+    @TableField("grade_limit")
     private String grade;
 
-    @TableField("limitation")
+    @TableField("gender_limit")
     private String limitation;
 
-    @TableField("start")
-    private Date projectStart;
-
-    @TableField("end")
-    private Date projectEnd;
-
-    @TableField("maxAttendance")
+    @TableField("max_count")
     private Integer maxAttendance;
 
-    @TableField("attendance")
+    @TableField("current_count")
     private Integer attendance;
 
     @TableField("school_id")

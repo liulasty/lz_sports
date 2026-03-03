@@ -12,12 +12,12 @@ import org.apache.ibatis.annotations.Update;
 @Mapper
 public interface ProjectMapper extends BaseMapper<Project> {
 
-    @Select("SELECT COUNT(*) FROM eventitem WHERE YEAR(createTime) = #{year} AND MONTH(createTime) = #{month}")
+    @Select("SELECT COUNT(*) FROM event_item WHERE YEAR(create_time) = #{year} AND MONTH(create_time) = #{month}")
     int getProjectNumsByMonth(int year, int month);
 
-    @Select("select COUNT(*) from eventitem")
+    @Select("select COUNT(*) from event_item")
     int getProjectTotal();
 
-    @Update("UPDATE eventitem SET attendance = attendance + 1 WHERE ItemID = #{projectId} AND attendance < #{maxAttendance}")
+    @Update("UPDATE event_item SET current_count = current_count + 1 WHERE id = #{projectId} AND current_count < #{maxAttendance}")
     int incrementAttendance(Long projectId, Integer maxAttendance);
 }

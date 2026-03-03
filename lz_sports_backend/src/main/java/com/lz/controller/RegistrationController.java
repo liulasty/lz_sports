@@ -96,7 +96,7 @@ public class RegistrationController {
      * 管理员审核通过报名申请
      */
     @PutMapping("/attend/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAuthority('SCHOOL_ADMIN')")
     @Operation(summary = "同意报名", description = "管理员审核通过报名申请")
     public Result<String> attend(@Parameter(description = "报名ID") @PathVariable Long id) {
         registrationService.approve(id);

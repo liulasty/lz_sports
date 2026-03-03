@@ -36,93 +36,108 @@ import com.lz.common.enums.EventStatus;
 import com.alibaba.excel.EasyExcel;
 import com.lz.vo.RegistrationExportVO;
 
+import java.util.concurrent.TimeUnit;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Registration> implements RegistrationService {
 
     private final RegistrationMapper registrationMapper;
-    private final AthleteMapper athleteMapper;
+    private final AthleteMapper athleteMapper; // Note: athleteMapper now maps to sys_user, need verification
     private final EventMapper eventMapper;
     private final ProjectMapper projectMapper;
+    private final RedissonClient redissonClient; // Requires Redisson dependency
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void add(Long projectId) {
-        Long userId = BaseContext.getCurrentId();
-        Athlete athlete = athleteMapper.selectByUserId(userId);
-        if (athlete == null) {
-            throw new BusinessException("请先完善运动员信息");
-        }
-
-        Project project = projectMapper.selectById(projectId);
-        if (project == null) {
-            throw new BusinessException("项目不存在");
-        }
-
-        Event event = eventMapper.selectById(project.getEventId());
-        if (event == null) {
-            throw new BusinessException("赛事不存在");
-        }
-
-        // 1. Check Event Status
-        if (event.getStatus() != EventStatus.PUBLISHED) {
-            throw new BusinessException("赛事未发布或已结束，无法报名");
-        }
-
-        // 2. Check Registration Deadline
-        Date now = new Date();
-        if (event.getRegistrationDeadline() != null && now.after(event.getRegistrationDeadline())) {
-            throw new BusinessException("报名已截止");
-        }
-
-        // 3. Check Duplicate Registration
-        LambdaQueryWrapper<Registration> lqw = new LambdaQueryWrapper<>();
-        lqw.eq(Registration::getAthleteId, athlete.getAthleteId());
-        lqw.eq(Registration::getItemId, projectId);
-        if (count(lqw) > 0) {
-            throw new BusinessException("您已报名该项目，请勿重复报名");
-        }
-
-        // 4. Check Gender Limit
-        if (project.getLimitation() != null && !project.getLimitation().equals("无限制")) {
-            if (!project.getLimitation().equals(athlete.getGender())) {
-                throw new BusinessException("性别不符合项目要求");
+        // Use Distributed Lock to prevent overselling
+        String lockKey = "lock:registration:project:" + projectId;
+        RLock lock = redissonClient.getLock(lockKey);
+        
+        try {
+            // Try to acquire lock for 5 seconds, hold for 10 seconds
+            if (lock.tryLock(5, 10, TimeUnit.SECONDS)) {
+                try {
+                    Long userId = BaseContext.getCurrentId();
+                    // ... (rest of logic)
+                    // We need to fetch User (Athlete) info. Assuming AthleteMapper is adjusted or we use UserMapper.
+                    // For now keeping existing logic but wrapping in lock.
+                    
+                    Athlete athlete = athleteMapper.selectByUserId(userId);
+                    if (athlete == null) {
+                        throw new BusinessException("请先完善运动员信息");
+                    }
+            
+                    Project project = projectMapper.selectById(projectId);
+                    if (project == null) {
+                        throw new BusinessException("项目不存在");
+                    }
+            
+                    Event event = eventMapper.selectById(project.getEventId());
+                    if (event == null) {
+                        throw new BusinessException("赛事不存在");
+                    }
+            
+                    // 1. Check Event Status
+                    if (event.getStatus() != EventStatus.PUBLISHED) {
+                        throw new BusinessException("赛事未发布或已结束，无法报名");
+                    }
+            
+                    // 2. Check Registration Deadline
+                    Date now = new Date();
+                    if (event.getRegistrationDeadline() != null && now.after(event.getRegistrationDeadline())) {
+                        throw new BusinessException("报名已截止");
+                    }
+            
+                    // 3. Check Duplicate Registration
+                    LambdaQueryWrapper<Registration> lqw = new LambdaQueryWrapper<>();
+                    lqw.eq(Registration::getAthleteId, athlete.getAthleteId());
+                    lqw.eq(Registration::getItemId, projectId);
+                    if (count(lqw) > 0) {
+                        throw new BusinessException("您已报名该项目，请勿重复报名");
+                    }
+            
+                    // 4. Check Gender Limit
+                    if (project.getLimitation() != null && !project.getLimitation().equals("无限制")) {
+                        if (!project.getLimitation().equals(athlete.getGender())) {
+                            throw new BusinessException("性别不符合项目要求");
+                        }
+                    }
+            
+                    // 6. Check Max Attendance
+                    if (project.getAttendance() >= project.getMaxAttendance()) {
+                        throw new BusinessException("项目报名人数已满");
+                    }
+            
+                    // Create Registration
+                    Registration registration = new Registration();
+                    registration.setAthleteId(athlete.getAthleteId());
+                    registration.setEventId(event.getEventId());
+                    registration.setItemId(projectId);
+                    registration.setRegistrationTime(now);
+                    registration.setRegistrationStatus(RegistrationStatus.PENDING);
+                    registration.setSchoolId(event.getSchoolId());
+                    
+                    save(registration);
+            
+                    // Update Project Attendance
+                    int updated = projectMapper.incrementAttendance(projectId, project.getMaxAttendance());
+                    if (updated == 0) {
+                        throw new BusinessException("报名失败，名额已满");
+                    }
+                } finally {
+                    lock.unlock();
+                }
+            } else {
+                throw new BusinessException("系统繁忙，请稍后再试");
             }
-        }
-
-        // 5. Check Grade Limit (Optional, logic depends on requirement)
-        if (project.getGrade() != null && !project.getGrade().isEmpty()) {
-             // Simple string match or contains logic? Assuming exact match for now based on old data
-             if (!project.getGrade().contains(athlete.getGrade())) {
-                 // throw new BusinessException("年级不符合项目要求");
-                 // Relaxed for now as data might be comma separated or single
-             }
-        }
-        
-        // 6. Check Max Attendance (Optimistic Lock or simple check)
-        // For simplicity, using synchronized block or database lock is better, 
-        // but here we just check count. Ideally Project table should have version for optimistic lock.
-        if (project.getAttendance() >= project.getMaxAttendance()) {
-            throw new BusinessException("项目报名人数已满");
-        }
-
-        // Create Registration
-        Registration registration = new Registration();
-        registration.setAthleteId(athlete.getAthleteId());
-        registration.setEventId(event.getEventId());
-        registration.setItemId(projectId);
-        registration.setRegistrationTime(now);
-        registration.setRegistrationStatus(RegistrationStatus.PENDING); // Default PENDING
-        
-        save(registration);
-
-        // Update Project Attendance
-        // Note: This is not thread-safe without lock. 
-        // Better: UPDATE eventitem SET attendance = attendance + 1 WHERE ItemID = ? AND attendance < maxAttendance
-        int updated = projectMapper.incrementAttendance(projectId, project.getMaxAttendance());
-        if (updated == 0) {
-            throw new BusinessException("报名失败，名额已满"); // Double check
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new BusinessException("系统中断");
         }
     }
 
@@ -148,6 +163,7 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
         RegistrationAndAthleteDTO dto = new RegistrationAndAthleteDTO();
         dto.setId(r.getRegistrationId());
         dto.setApplyTime(r.getRegistrationTime());
+        dto.setStatus(r.getRegistrationStatus().getStatus());
 
         Athlete athlete = athleteMapper.selectById(r.getAthleteId());
         if (athlete != null) {

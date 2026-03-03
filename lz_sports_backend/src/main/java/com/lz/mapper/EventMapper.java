@@ -17,24 +17,21 @@ import java.util.Map;
 public interface EventMapper extends BaseMapper<Event> {
 
     @MapKey("eventId")
-    @Select("SELECT EventID, EventName FROM event")
+    @Select("SELECT id as eventId, name as eventName FROM event")
     List<Map<Long, String>> selectEventName();
 
-    @Select("SELECT COUNT(*) FROM event WHERE YEAR(RegistrationStart) = #{year} AND MONTH(RegistrationStart) = #{month}")
+    @Select("SELECT COUNT(*) FROM event WHERE YEAR(reg_start_time) = #{year} AND MONTH(reg_start_time) = #{month}")
     int getEventNumsByMonth(int year, int month);
-
-    @Select("SELECT count(*) from event")
-    int getEventTotal();
     
     // Complex query for stats - simplified or ported from XML
     @Select("""
         SELECT
-            SUM(CASE WHEN eligibility = '线上报名' THEN 1 ELSE 0 END) AS online,
-            SUM(CASE WHEN eligibility = '单位报名' THEN 1 ELSE 0 END) AS 'group',
-            SUM(CASE WHEN eligibility = '线下报名' THEN 1 ELSE 0 END) AS offline,
-            SUM(CASE WHEN eligibility NOT IN ('线上报名', '单位报名', '线下报名') THEN 1 ELSE 0 END) AS other
+            SUM(CASE WHEN description LIKE '%线上%' THEN 1 ELSE 0 END) AS online,
+            SUM(CASE WHEN description LIKE '%单位%' THEN 1 ELSE 0 END) AS 'group',
+            SUM(CASE WHEN description LIKE '%线下%' THEN 1 ELSE 0 END) AS offline,
+            SUM(CASE WHEN description NOT LIKE '%线上%' AND description NOT LIKE '%单位%' AND description NOT LIKE '%线下%' THEN 1 ELSE 0 END) AS other
         FROM event
-        WHERE DATE_FORMAT(RegistrationStart, '%Y%m') = #{date}
+        WHERE DATE_FORMAT(reg_start_time, '%Y%m') = #{date}
     """)
     TypeData selectNumsByDate(String date);
 }

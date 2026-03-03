@@ -1,5 +1,6 @@
 package com.lz.filter;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lz.common.context.BaseContext;
 import com.lz.util.JwtUtil;
 import jakarta.servlet.FilterChain;
@@ -8,11 +9,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -23,6 +27,7 @@ import java.util.Map;
 
 /**
  * JWT Authentication Filter
+ * @author Administrator
  */
 @Component
 @Slf4j
@@ -60,10 +65,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                     userId, null, authorities);
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            
+
         } catch (Exception e) {
             log.error("Token validation failed: {}", e.getMessage());
-            // Don't fail here, let Security check permissions
+
+            // --- 安全性改进 ---
+            // 不再调用 filterChain.doFilter，而是直接返回错误响应
+            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            new ObjectMapper().writeValue(response.getWriter(), Map.of("msg", "无效的令牌"));
+            return;
+            // --- 结束改进 ---
         }
 
         filterChain.doFilter(request, response);

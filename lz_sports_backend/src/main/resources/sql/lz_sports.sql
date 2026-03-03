@@ -1,17 +1,9 @@
 /*
-Navicat MySQL Data Transfer
-
-Source Server         : Moyii
-Source Server Version : 50724
-Source Host           : 127.0.0.1:3306
-Source Database       : lz_sports
-
-Target Server Type    : MYSQL
-Target Server Version : 50724
-File Encoding         : 65001
-
-Date: 2024-01-12 21:02:12
-*/
+ * LZ Sports Management System Database Initialization Script
+ * Version: 2.1 (Refactored based on PRD Transformation Goals)
+ * Date: 2026-03-03
+ * Description: Contains all tables for School Admin, Event Admin, Athlete, and Result Management.
+ */
 
 CREATE DATABASE IF NOT EXISTS `lz_sports` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 USE `lz_sports`;
@@ -19,173 +11,155 @@ USE `lz_sports`;
 SET FOREIGN_KEY_CHECKS=0;
 
 -- ----------------------------
--- Table structure for athlete
+-- 1. School Configuration (Global)
 -- ----------------------------
-DROP TABLE IF EXISTS `athlete`;
-CREATE TABLE `athlete` (
-  `AthleteID` int(11) NOT NULL AUTO_INCREMENT COMMENT '运动员ID',
-  `UserID` int(11) DEFAULT NULL COMMENT '用户ID',
-  `Name` varchar(50) COLLATE utf8mb4_general_ci NOT NULL COMMENT '姓名',
-  `Age` int(11) DEFAULT NULL COMMENT '年龄',
-  `Gender` varchar(10) COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '性别',
-  `Contact` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '联系方式',
-  `AthleteState` varchar(20) COLLATE utf8mb4_general_ci DEFAULT '在审核' COMMENT '运动员审核状态',
-  `applyTime` datetime NOT NULL DEFAULT '2023-11-10 02:10:00' COMMENT '申请时间',
-  `agreeTime` datetime DEFAULT NULL COMMENT '同意时间',
-  `grade` varchar(20) COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '学生年级',
-  PRIMARY KEY (`AthleteID`)
-) ENGINE=InnoDB AUTO_INCREMENT=36 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+DROP TABLE IF EXISTS `school_config`;
+CREATE TABLE `school_config` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `name` varchar(100) NOT NULL COMMENT '学校名称',
+  `logo_url` varchar(255) DEFAULT NULL COMMENT 'Logo地址',
+  `theme_color` varchar(20) DEFAULT '#409EFF' COMMENT '主题色',
+  `contact_email` varchar(100) DEFAULT NULL COMMENT '联系邮箱',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='学校配置表';
 
 -- ----------------------------
--- Records of athlete
+-- 2. Grade/Department Dictionary
 -- ----------------------------
-INSERT INTO `athlete` VALUES ('28', '14', '李四', '20', '男', '15619763223', '成功', '2024-01-04 01:01:11', '2024-01-04 01:06:51', '九年级');
-INSERT INTO `athlete` VALUES ('29', '13', '刘震', '20', '男', '15619763223', '成功', '2024-01-04 17:18:44', '2024-01-04 17:19:10', '六年级');
-INSERT INTO `athlete` VALUES ('30', '15', '王五', '20', '男', '15619763223', '成功', '2024-01-05 00:32:44', '2024-01-09 12:47:47', '二年级');
-INSERT INTO `athlete` VALUES ('32', '12', '吴晨浩', '18', '男', '15619763223', '成功', '2024-01-05 16:15:57', '2024-01-05 16:16:15', '八年级');
-INSERT INTO `athlete` VALUES ('33', '17', '万牧', '20', '男', '15619763223', '成功', '2024-01-09 12:47:35', '2024-01-09 12:47:50', '八年级');
-INSERT INTO `athlete` VALUES ('34', '18', '万路', '20', '男', '15619763223', '成功', '2024-01-09 13:37:19', '2024-01-09 14:09:36', '八年级');
-INSERT INTO `athlete` VALUES ('35', '19', '刘毅', '20', '男', '15619763223', '不同意', '2024-01-09 14:21:27', null, '八年级');
+DROP TABLE IF EXISTS `grade`;
+CREATE TABLE `grade` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `name` varchar(50) NOT NULL COMMENT '年级名称',
+  `school_id` bigint(20) DEFAULT 1 COMMENT '学校ID',
+  `sort_order` int(11) DEFAULT 0 COMMENT '排序',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='年级/院系表';
 
 -- ----------------------------
--- Table structure for event
+-- 3. System User (Merged with Athlete)
+-- ----------------------------
+DROP TABLE IF EXISTS `sys_user`;
+CREATE TABLE `sys_user` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `username` varchar(50) NOT NULL COMMENT '用户名',
+  `password` varchar(100) NOT NULL COMMENT '密码',
+  `name` varchar(50) DEFAULT NULL COMMENT '真实姓名',
+  `gender` varchar(10) DEFAULT NULL COMMENT '性别',
+  `student_id` varchar(50) DEFAULT NULL COMMENT '学号/工号',
+  `grade_id` bigint(20) DEFAULT NULL COMMENT '所属年级ID',
+  `email` varchar(50) NOT NULL COMMENT '邮箱',
+  `role` varchar(20) NOT NULL COMMENT '角色：SCHOOL_ADMIN/EVENT_ADMIN/ATHLETE',
+  `status` varchar(20) NOT NULL DEFAULT 'PENDING' COMMENT '状态：PENDING/ACTIVE/REJECTED',
+  `school_id` bigint(20) DEFAULT 1 COMMENT '学校ID',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_username` (`username`),
+  UNIQUE KEY `uk_email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统用户表';
+
+-- ----------------------------
+-- 4. Event (Sports Meeting)
 -- ----------------------------
 DROP TABLE IF EXISTS `event`;
 CREATE TABLE `event` (
-  `EventID` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT '活动ID',
-  `EventName` varchar(50) COLLATE utf8mb4_general_ci NOT NULL COMMENT '活动名称',
-  `RegistrationStart` datetime DEFAULT NULL COMMENT '报名开始时间',
-  `RegistrationFee` decimal(10,2) NOT NULL COMMENT '报名费用',
-  `Eligibility` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '参赛方式',
-  `RegistrationEnd` datetime DEFAULT NULL COMMENT '报名截止时间',
-  PRIMARY KEY (`EventID`),
-  UNIQUE KEY `EventName` (`EventName`)
-) ENGINE=InnoDB AUTO_INCREMENT=98 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '赛事ID',
+  `name` varchar(50) NOT NULL COMMENT '赛事名称',
+  `description` varchar(500) DEFAULT NULL COMMENT '赛事描述',
+  `img_url` varchar(255) DEFAULT NULL COMMENT '封面图',
+  `reg_start_time` datetime DEFAULT NULL COMMENT '报名开始时间',
+  `reg_deadline` datetime DEFAULT NULL COMMENT '报名截止时间',
+  `start_time` datetime DEFAULT NULL COMMENT '比赛开始时间',
+  `end_time` datetime DEFAULT NULL COMMENT '比赛结束时间',
+  `status` varchar(20) DEFAULT 'DRAFT' COMMENT '状态: DRAFT/PUBLISHED/ENDED',
+  `school_id` bigint(20) DEFAULT 1 COMMENT '学校ID',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='赛事活动表';
 
 -- ----------------------------
--- Records of event
+-- 5. Event Item (Projects)
 -- ----------------------------
-INSERT INTO `event` VALUES ('94', '夏季运动会', '2024-01-03 16:00:00', '0.00', '线上报名', '2024-01-10 16:00:00');
-INSERT INTO `event` VALUES ('95', '秋季运动会', '2024-01-02 16:00:00', '0.00', '线下报名', '2024-01-09 16:00:00');
-INSERT INTO `event` VALUES ('96', '春季运动会', '2024-01-02 19:33:23', '0.00', '线下报名', '2024-01-08 19:33:50');
-INSERT INTO `event` VALUES ('97', '24年运动会', '2024-01-03 03:34:33', '0.00', '单位报名', '2024-01-09 03:35:19');
+DROP TABLE IF EXISTS `event_item`;
+CREATE TABLE `event_item` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '项目ID',
+  `event_id` bigint(20) NOT NULL COMMENT '所属赛事ID',
+  `name` varchar(50) NOT NULL COMMENT '项目名称',
+  `gender_limit` varchar(20) DEFAULT '无限制' COMMENT '性别限制',
+  `grade_limit` varchar(50) DEFAULT NULL COMMENT '年级限制',
+  `max_count` int(11) DEFAULT 20 COMMENT '最大报名人数',
+  `current_count` int(11) DEFAULT 0 COMMENT '当前报名人数',
+  `school_id` bigint(20) DEFAULT 1 COMMENT '学校ID',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_event_id` (`event_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='比赛项目表';
 
 -- ----------------------------
--- Table structure for eventitem
+-- 6. Event Admin Mapping
 -- ----------------------------
-DROP TABLE IF EXISTS `eventitem`;
-CREATE TABLE `eventitem` (
-  `ItemID` int(11) NOT NULL AUTO_INCREMENT COMMENT '项目ID',
-  `EventID` int(11) DEFAULT NULL COMMENT '活动ID',
-  `ItemName` varchar(50) COLLATE utf8mb4_general_ci NOT NULL COMMENT '项目名称',
-  `createTime` datetime DEFAULT NULL COMMENT '创建时间',
-  `grade` varchar(20) COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '项目所属年级',
-  `limitation` varchar(20) COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '报名限制',
-  `start` datetime DEFAULT NULL COMMENT '项目开始时间',
-  `end` datetime DEFAULT NULL COMMENT '项目结束时间',
-  `attendance` int(11) DEFAULT '0' COMMENT '参加项目人数',
-  `maxAttendance` int(11) DEFAULT '20' COMMENT '最大参加人数',
-  PRIMARY KEY (`ItemID`)
-) ENGINE=InnoDB AUTO_INCREMENT=63 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+DROP TABLE IF EXISTS `event_admin_mapping`;
+CREATE TABLE `event_admin_mapping` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `event_id` bigint(20) NOT NULL COMMENT '赛事ID',
+  `user_id` bigint(20) NOT NULL COMMENT '用户ID(赛事管理员)',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_event_user` (`event_id`, `user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='赛事管理员关联表';
 
 -- ----------------------------
--- Records of eventitem
--- ----------------------------
-INSERT INTO `eventitem` VALUES ('31', '94', '跳高', '2024-01-03 20:14:40', '八年级', '男', '2024-01-07 07:19:27', '2024-01-11 19:19:30', '2', '10');
-INSERT INTO `eventitem` VALUES ('32', '95', '短跑400米', '2024-01-03 22:34:26', '八年级', '男', '2024-01-07 17:19:27', '2024-01-11 19:19:30', '0', '20');
-INSERT INTO `eventitem` VALUES ('34', '94', '三级跳远', '2024-01-04 19:04:28', '五年级', '男', '2024-01-07 08:19:27', '2024-01-11 19:19:30', '0', '20');
-INSERT INTO `eventitem` VALUES ('35', '94', '跳高', '2024-01-04 19:09:14', '八年级', '女', '2024-01-07 09:19:27', '2024-01-11 19:19:30', '0', '10');
-INSERT INTO `eventitem` VALUES ('36', '94', '铅球', '2024-01-04 19:12:58', '八年级', '男', '2024-01-07 11:19:27', '2024-01-11 16:00:00', '1', '5');
-INSERT INTO `eventitem` VALUES ('37', '97', '短跑100米', '2024-01-04 21:25:27', '八年级', '男', '2024-01-07 12:19:27', '2024-01-11 16:00:00', '0', '20');
-INSERT INTO `eventitem` VALUES ('38', '96', '4x100米', '2024-01-04 21:26:33', '九年级', '男', '2024-01-07 19:19:27', '2024-01-11 19:19:30', '0', '20');
-INSERT INTO `eventitem` VALUES ('39', '94', '100米', '2024-01-04 21:27:13', '三年级', '男', '2024-01-07 19:19:27', '2024-01-11 19:19:30', '0', '10');
-INSERT INTO `eventitem` VALUES ('40', '94', '跳高', '2024-01-04 21:51:29', '八年级', '男', '2024-01-07 19:19:27', '2024-01-11 19:19:30', '1', '20');
-INSERT INTO `eventitem` VALUES ('41', '95', '跳远', '2024-01-03 22:34:26', '八年级', '男', '2024-01-07 19:19:27', '2024-01-11 19:19:30', '0', '20');
-INSERT INTO `eventitem` VALUES ('42', '94', '跳高', '2024-01-04 21:51:29', '八年级', '男', '2024-01-07 19:19:27', '2024-01-11 19:19:30', '0', '13');
-INSERT INTO `eventitem` VALUES ('43', '95', '跳远', '2024-01-03 22:34:26', '八年级', '男', '2024-01-07 19:19:27', '2024-01-11 19:19:30', '0', '20');
-INSERT INTO `eventitem` VALUES ('44', '95', '跳远', '2024-01-03 22:34:26', '八年级', '男', '2024-01-07 19:19:27', '2024-01-11 19:19:30', '0', '20');
-INSERT INTO `eventitem` VALUES ('45', '95', '跳远', '2024-01-03 22:34:26', '八年级', '男', '2024-01-07 19:19:27', '2024-01-11 19:19:30', '0', '20');
-INSERT INTO `eventitem` VALUES ('46', '94', '跳高', '2024-01-04 21:51:29', '八年级', '男', '2024-01-07 19:19:27', '2024-01-11 19:19:30', '0', '13');
-INSERT INTO `eventitem` VALUES ('47', '95', '跳远', '2024-01-03 22:34:26', '八年级', '男', '2024-01-07 19:19:27', '2024-01-11 19:19:30', '1', '20');
-INSERT INTO `eventitem` VALUES ('49', '94', '4x100米', '2024-01-04 21:51:29', '八年级', '男', '2024-01-07 19:19:27', '2024-01-11 19:19:30', '0', '10');
-INSERT INTO `eventitem` VALUES ('51', '94', '铅球', '2024-01-04 21:51:29', '八年级', '女', '2024-01-07 19:19:27', '2024-01-11 19:19:30', '0', '10');
-INSERT INTO `eventitem` VALUES ('56', '95', '跳远', '2024-01-03 22:34:26', '八年级', '男', '2024-01-07 19:19:27', '2024-01-11 19:19:30', '0', '20');
-INSERT INTO `eventitem` VALUES ('57', '95', '跳远', '2024-01-03 22:34:26', '八年级', '男', '2024-01-07 19:19:27', '2024-01-11 19:19:30', '0', '20');
-INSERT INTO `eventitem` VALUES ('58', '94', '跳高', '2024-01-04 21:51:29', '八年级', '男', '2024-01-07 19:19:27', '2024-01-11 19:19:30', '1', '20');
-INSERT INTO `eventitem` VALUES ('59', '95', '跳远', '2024-01-03 22:34:26', '八年级', '男', '2024-01-07 19:19:27', '2024-01-11 19:19:30', '0', '20');
-INSERT INTO `eventitem` VALUES ('61', '95', '跳远', '2024-01-03 22:34:26', '七年级', '男', '2024-01-07 19:19:27', '2024-01-11 19:19:30', '0', '20');
-INSERT INTO `eventitem` VALUES ('62', '97', '100米', '2024-01-05 09:52:28', '七年级', '女', '2024-01-07 19:19:27', '2024-01-11 19:19:30', '0', '10');
-
--- ----------------------------
--- Table structure for registration
+-- 7. Registration
 -- ----------------------------
 DROP TABLE IF EXISTS `registration`;
 CREATE TABLE `registration` (
-  `RegistrationID` int(11) NOT NULL AUTO_INCREMENT COMMENT '报名ID',
-  `AthleteID` int(11) NOT NULL COMMENT '运动员ID',
-  `EventID` int(11) NOT NULL COMMENT '活动ID',
-  `ItemID` int(11) NOT NULL COMMENT '项目ID',
-  `RegistrationTime` datetime NOT NULL COMMENT '报名时间',
-  `RegistrationStatus` varchar(20) COLLATE utf8mb4_general_ci DEFAULT '审核中' COMMENT '报名状态',
-  PRIMARY KEY (`RegistrationID`)
-) ENGINE=InnoDB AUTO_INCREMENT=64 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '报名ID',
+  `user_id` bigint(20) NOT NULL COMMENT '用户ID (原 AthleteID)',
+  `event_id` bigint(20) NOT NULL COMMENT '赛事ID',
+  `item_id` bigint(20) NOT NULL COMMENT '项目ID',
+  `status` varchar(20) DEFAULT '审核中' COMMENT '状态: 审核中/通过/拒绝',
+  `reject_reason` varchar(255) DEFAULT NULL COMMENT '拒绝原因',
+  `school_id` bigint(20) DEFAULT 1 COMMENT '学校ID',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '报名时间',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user_item` (`user_id`, `item_id`),
+  KEY `idx_event_id` (`event_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='报名记录表';
 
 -- ----------------------------
--- Records of registration
+-- 8. Result (Score)
 -- ----------------------------
-INSERT INTO `registration` VALUES ('58', '33', '94', '58', '2024-01-09 13:05:43', '通过');
-INSERT INTO `registration` VALUES ('59', '33', '94', '36', '2024-01-09 13:06:14', '未通过');
-INSERT INTO `registration` VALUES ('60', '33', '94', '31', '2024-01-09 13:06:28', '通过');
-INSERT INTO `registration` VALUES ('61', '33', '94', '40', '2024-01-09 13:11:14', '审核中');
-INSERT INTO `registration` VALUES ('62', '32', '94', '31', '2024-01-09 14:37:11', '审核中');
-INSERT INTO `registration` VALUES ('63', '32', '94', '36', '2024-01-09 14:37:13', '通过');
+DROP TABLE IF EXISTS `result`;
+CREATE TABLE `result` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `registration_id` bigint(20) NOT NULL COMMENT '报名ID',
+  `event_id` bigint(20) NOT NULL COMMENT '赛事ID',
+  `item_id` bigint(20) NOT NULL COMMENT '项目ID',
+  `user_id` bigint(20) NOT NULL COMMENT '用户ID',
+  `score_value` varchar(50) DEFAULT NULL COMMENT '成绩数值(如 10.5s, 1.8m)',
+  `score_rank` int(11) DEFAULT NULL COMMENT '名次',
+  `is_published` tinyint(1) DEFAULT 0 COMMENT '是否发布: 0-否, 1-是',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '录入时间',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_registration` (`registration_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='成绩记录表';
 
 -- ----------------------------
--- Table structure for sportsimg
+-- 9. Images (OSS/Local) - Optional but kept for compatibility
 -- ----------------------------
 DROP TABLE IF EXISTS `sportsimg`;
 CREATE TABLE `sportsimg` (
-  `ImgId` int(11) NOT NULL AUTO_INCREMENT COMMENT '图片id',
-  `ImgType` varchar(20) COLLATE utf8mb4_general_ci NOT NULL COMMENT '图片类型',
-  `typeId` int(11) NOT NULL COMMENT '图片相关ID',
-  `ImgSrc` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '图片地址',
-  PRIMARY KEY (`ImgId`)
-) ENGINE=InnoDB AUTO_INCREMENT=84 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '图片id',
+  `type` varchar(20) NOT NULL COMMENT '图片类型',
+  `type_id` bigint(20) NOT NULL COMMENT '关联ID',
+  `url` varchar(255) DEFAULT NULL COMMENT '图片地址',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='图片资源表';
 
--- ----------------------------
--- Records of sportsimg
--- ----------------------------
-INSERT INTO `sportsimg` VALUES ('69', '活动图片', '1', '1bedab37-1256-4254-85d1-1ee8c34a30bc-image0.png');
-INSERT INTO `sportsimg` VALUES ('70', '活动图片', '1', '892245b3-d540-470a-87b9-f392cead5379-image0.png');
-INSERT INTO `sportsimg` VALUES ('73', '项目图片', '1', '7a51bb6a-42eb-4706-ace6-d039480bfea3-image0.png');
-INSERT INTO `sportsimg` VALUES ('77', '项目图片', '1', '09212f2b-7162-4a71-ab76-f8642377f3d1-image1.png');
-INSERT INTO `sportsimg` VALUES ('82', '项目图片', '38', '8afc3b24-1211-4775-81e5-5059ab6bbd62-image0.png');
-INSERT INTO `sportsimg` VALUES ('83', '项目图片', '31', 'ee5ee8eb-6cb3-46f4-925c-50b0767a9db2-image0.png');
-
--- ----------------------------
--- Table structure for user
--- ----------------------------
-DROP TABLE IF EXISTS `user`;
-CREATE TABLE `user` (
-  `UserID` int(11) NOT NULL AUTO_INCREMENT COMMENT '主键 用户ID',
-  `Username` varchar(50) COLLATE utf8mb4_general_ci NOT NULL COMMENT '用户名',
-  `Password` varchar(50) COLLATE utf8mb4_general_ci NOT NULL COMMENT '密码',
-  `UserType` varchar(20) COLLATE utf8mb4_general_ci NOT NULL COMMENT '用户类型：运动员或工作人员',
-  `Status` varchar(20) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '未启用' COMMENT '是否激活',
-  `Email` varchar(20) COLLATE utf8mb4_general_ci NOT NULL COMMENT '激活邮箱',
-  `registerTime` datetime NOT NULL DEFAULT '2023-11-10 02:10:00' COMMENT '注册时间',
-  PRIMARY KEY (`UserID`)
-) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- ----------------------------
--- Records of user
--- ----------------------------
-INSERT INTO `user` VALUES ('1', 'lz1223', '2312034544lz', '工作人员', '已激活', '2312034544@qq.com', '2023-11-10 02:10:00');
-INSERT INTO `user` VALUES ('12', 'player', '2312034544lz', '运动员', '已激活', '2312034544@qq.com', '2024-01-03 16:18:32');
-INSERT INTO `user` VALUES ('13', 'zhangsan', '2312034544lz', '运动员', '已激活', '2312034544@qq.com', '2024-01-03 22:47:28');
-INSERT INTO `user` VALUES ('14', 'lisi', '2312034544lz', '运动员', '已激活', '2312034544@qq.com', '2024-01-04 00:54:31');
-INSERT INTO `user` VALUES ('15', 'wanwu', '2312034544lz', '运动员', '已激活', '2312034544@qq.com', '2023-11-10 02:10:00');
-INSERT INTO `user` VALUES ('16', 'wanhua', '2312034544', '学生', '已激活', '2312034544@qq.com', '2024-01-03 01:10:00');
-INSERT INTO `user` VALUES ('17', 'wanmu', '2312034544lz', '运动员', '已激活', '2312034544@qq.com', '2023-11-10 02:10:00');
-INSERT INTO `user` VALUES ('18', 'wanlu', '2312034544lz', '运动员', '已激活', '2312034544@qq.com', '2023-11-10 02:10:00');
-INSERT INTO `user` VALUES ('19', 'liuyi', '2312034544lz', '学生', '已激活', '2312034544@qq.com', '2023-11-10 02:10:00');
+SET FOREIGN_KEY_CHECKS=1;

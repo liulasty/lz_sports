@@ -60,7 +60,7 @@ public class SchoolConfigServiceImpl extends ServiceImpl<SchoolConfigMapper, Sch
         // Note: In a real system, password should be encrypted. Following existing pattern (plain text based on UserServiceImpl).
         adminUser.setPassword(schoolInitDTO.getAdminPassword()); 
         adminUser.setEmail(schoolInitDTO.getAdminEmail());
-        adminUser.setUserType(UserRole.ADMIN);
+        adminUser.setUserType(UserRole.SCHOOL_ADMIN);
         adminUser.setStatus(UserStatus.ACTIVE);
         adminUser.setRegisterTime(LocalDateTime.now());
         adminUser.setSchoolId(schoolId);

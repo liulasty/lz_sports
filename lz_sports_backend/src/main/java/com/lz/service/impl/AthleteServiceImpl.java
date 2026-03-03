@@ -87,7 +87,7 @@ public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> impl
         // Update User Type to "Student"
         User user = userMapper.selectById(athlete.getUserId());
         if (user != null) {
-            user.setUserType(UserRole.STUDENT);
+            user.setUserType(UserRole.ATHLETE);
             userMapper.updateById(user);
         }
 

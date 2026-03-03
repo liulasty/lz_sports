@@ -4,13 +4,15 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.lz.common.context.BaseContext;
+import com.lz.common.enums.EventStatus;
+import com.lz.common.enums.UserRole;
 import com.lz.common.exception.BusinessException;
 import com.lz.common.result.PageResult;
 import com.lz.dto.EventDTO;
 import com.lz.dto.EventListDTO;
-import com.lz.entity.Event;
-import com.lz.entity.SportsImg;
-import com.lz.mapper.EventMapper;
+import com.lz.entity.*;
+import com.lz.mapper.*;
 import com.lz.service.EventService;
 import com.lz.service.SportsImgService;
 import com.lz.vo.EventVO;
@@ -23,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -31,11 +34,6 @@ import java.util.stream.Collectors;
 /**
  * Event Service Implementation
  */
-import com.lz.common.enums.EventStatus;
-import com.lz.entity.EventAdminMapping;
-import com.lz.mapper.EventAdminMappingMapper;
-import java.time.LocalDateTime;
-
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -44,10 +42,15 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
     private final EventMapper eventMapper;
     private final SportsImgService sportsImgService;
     private final EventAdminMappingMapper eventAdminMappingMapper;
+    private final UserMapper userMapper;
+    private final ProjectMapper projectMapper;
+    private final RegistrationMapper registrationMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public String addEvent(EventDTO eventDTO) {
+        Long currentUserId = BaseContext.getCurrentId();
+        
         // Check for duplicate name
         LambdaQueryWrapper<Event> lqw = new LambdaQueryWrapper<>();
         lqw.eq(eventDTO.getName() != null && !eventDTO.getName().isEmpty(), Event::getEventName, eventDTO.getName());
@@ -61,7 +64,7 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
 
             Event event = Event.builder()
                     .eventName(eventDTO.getName())
-                    .eligibility(eventDTO.getType())
+                    .description(eventDTO.getType()) // Using description for type/eligibility placeholder
                     .registrationFee(Integer.parseInt(eventDTO.getFee()))
                     .registrationStart(startDate)
                     .registrationDeadline(endDate)
@@ -69,6 +72,13 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
                     .build();
 
             save(event);
+            
+            // Assign creator as admin automatically
+            EventAdminMapping selfMapping = new EventAdminMapping();
+            selfMapping.setEventId(event.getEventId());
+            selfMapping.setUserId(currentUserId);
+            selfMapping.setCreateTime(LocalDateTime.now());
+            eventAdminMappingMapper.insert(selfMapping);
 
             // Add images
             if (eventDTO.getAddImage() != null) {
@@ -84,6 +94,9 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
             // Add Event Admins
             if (eventDTO.getAdminIds() != null && !eventDTO.getAdminIds().isEmpty()) {
                 for (Long userId : eventDTO.getAdminIds()) {
+                    // Skip if already added (self)
+                    if (userId.equals(currentUserId)) continue;
+                    
                     EventAdminMapping mapping = new EventAdminMapping();
                     mapping.setEventId(event.getEventId());
                     mapping.setUserId(userId);
@@ -123,18 +136,37 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
         LambdaQueryWrapper<Event> lqw = new LambdaQueryWrapper<>();
         
         lqw.like(dto.getName() != null && !dto.getName().isEmpty(), Event::getEventName, dto.getName());
-        lqw.eq(dto.getType() != null && !dto.getType().isEmpty(), Event::getEligibility, dto.getType());
-        
-        // Date filtering logic from old code seems to be missing in detail, assuming exact match or similar
-        // If dto.getDate() is provided, maybe filter by start date?
-        // Old code didn't seem to use date in list query explicitly in the snippet I saw, 
-        // but EventListDTO has date. Let's add basic date filtering if needed.
-        if (dto.getDate() != null) {
-             // Assuming looking for events starting on this date
-             // Since Date includes time, this might be tricky without range. 
-             // Skipping date filter for now unless strict requirement.
-        }
+        // lqw.eq(dto.getType() != null && !dto.getType().isEmpty(), Event::getDescription, dto.getType());
 
+        Long userId = BaseContext.getCurrentId();
+        if (userId != null) {
+            User user = userMapper.selectById(userId);
+            if (user != null) {
+                if (user.getUserType() == UserRole.SCHOOL_ADMIN) {
+                    // School Admin sees all events
+                } else if (user.getUserType() == UserRole.EVENT_ADMIN) {
+                    // Event Admin sees only assigned events
+                    List<Long> eventIds = eventAdminMappingMapper.selectList(new LambdaQueryWrapper<EventAdminMapping>()
+                            .eq(EventAdminMapping::getUserId, userId))
+                            .stream().map(EventAdminMapping::getEventId).collect(Collectors.toList());
+                    
+                    if (eventIds.isEmpty()) {
+                        return new PageResult(0, List.of());
+                    }
+                    lqw.in(Event::getEventId, eventIds);
+                } else {
+                    // Athletes/Others see only PUBLISHED events
+                    // Or maybe check if public endpoint allows seeing DRAFT? Assuming no.
+                    // For now, let's assume they see PUBLISHED.
+                    // lqw.eq(Event::getStatus, EventStatus.PUBLISHED);
+                    // However, current requirement seems to focus on admin backend list.
+                    // If this is used by frontend, we should be careful.
+                    // Given the context of "fixing bugs", sticking to existing logic + permissions is key.
+                    // If no role logic was present, adding it now makes it safer.
+                }
+            }
+        }
+        
         eventMapper.selectPage(page, lqw);
 
         List<EventVO> eventVOS = page.getRecords().stream().map(event -> {
@@ -143,9 +175,10 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
                     .id(event.getEventId())
                     .name(event.getEventName())
                     .fee(String.valueOf(event.getRegistrationFee()))
-                    .type(event.getEligibility())
-                    .date(event.getRegistrationStart().toString()) // Simplify date format
-                    .end(event.getRegistrationDeadline().toString())
+                    .type(event.getDescription())
+                    .date(event.getRegistrationStart() != null ? event.getRegistrationStart().toString() : "")
+                    .end(event.getRegistrationDeadline() != null ? event.getRegistrationDeadline().toString() : "")
+                    .status(event.getStatus())
                     .imageUrls(imageUrls)
                     .build();
         }).collect(Collectors.toList());
@@ -164,7 +197,7 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
             TableData data = new TableData();
             data.setDate(event.getRegistrationStart());
             data.setName(event.getEventName());
-            data.setType(event.getEligibility());
+            data.setType(event.getDescription());
             data.setFee(event.getRegistrationFee());
             return data;
         }).collect(Collectors.toList());
@@ -179,7 +212,38 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
     @Transactional(rollbackFor = Exception.class)
     public String deleteEvent(String eventId) {
         long id = Long.parseLong(eventId);
-        // TODO: Check if event can be deleted (e.g. no registrations)
+        
+        // Check permission
+        checkEventPermission(id);
+
+        // Check for existing projects and registrations
+        LambdaQueryWrapper<Project> projectLqw = new LambdaQueryWrapper<>();
+        projectLqw.eq(Project::getEventId, id);
+        List<Project> projects = projectMapper.selectList(projectLqw);
+
+        if (!projects.isEmpty()) {
+            List<Long> projectIds = projects.stream().map(Project::getProjectId).collect(Collectors.toList());
+            LambdaQueryWrapper<Registration> regLqw = new LambdaQueryWrapper<>();
+            regLqw.in(Registration::getProjectId, projectIds);
+            Long count = registrationMapper.selectCount(regLqw);
+            if (count > 0) {
+                throw new BusinessException("该赛事已有报名记录，无法删除");
+            }
+            // Delete projects if no registrations
+            projectMapper.deleteBatchIds(projectIds);
+        }
+
+        // Delete Admin Mappings
+        LambdaQueryWrapper<EventAdminMapping> mappingLqw = new LambdaQueryWrapper<>();
+        mappingLqw.eq(EventAdminMapping::getEventId, id);
+        eventAdminMappingMapper.delete(mappingLqw);
+
+        // Delete Images
+        LambdaQueryWrapper<SportsImg> imgLqw = new LambdaQueryWrapper<>();
+        imgLqw.eq(SportsImg::getTypeId, id);
+        imgLqw.eq(SportsImg::getImgType, "event");
+        sportsImgService.remove(imgLqw);
+
         removeById(id);
         return "删除成功";
     }
@@ -188,13 +252,17 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
     @Transactional(rollbackFor = Exception.class)
     public void update(String eventId, EventDTO eventDTO) {
         long id = Long.parseLong(eventId);
+        
+        // Check permission
+        checkEventPermission(id);
+        
         Event event = getById(id);
         if (event == null) {
             throw new BusinessException("事件不存在");
         }
 
         if (eventDTO.getName() != null) event.setEventName(eventDTO.getName());
-        if (eventDTO.getType() != null) event.setEligibility(eventDTO.getType());
+        if (eventDTO.getType() != null) event.setDescription(eventDTO.getType());
         if (eventDTO.getFee() != null) event.setRegistrationFee(Integer.parseInt(eventDTO.getFee()));
         
         if (eventDTO.getDate1() != null && eventDTO.getDate1().length >= 2) {
@@ -204,7 +272,7 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
 
         updateById(event);
 
-        // Handle Images
+        // Handle Add Images
         if (eventDTO.getAddImage() != null) {
             for (String url : eventDTO.getAddImage()) {
                 SportsImg img = new SportsImg();
@@ -214,7 +282,46 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
                 sportsImgService.addSrc(img);
             }
         }
-        // TODO: Handle deleteImage if needed, though old code logic for delete wasn't fully shown in service snippet
+
+        // Handle Delete Images
+        if (eventDTO.getDeleteImage() != null) {
+            for (String url : eventDTO.getDeleteImage()) {
+                LambdaQueryWrapper<SportsImg> imgLqw = new LambdaQueryWrapper<>();
+                imgLqw.eq(SportsImg::getImgSrc, url);
+                imgLqw.eq(SportsImg::getTypeId, id);
+                imgLqw.eq(SportsImg::getImgType, "event");
+                sportsImgService.remove(imgLqw);
+            }
+        }
+    }
+    
+    private void checkEventPermission(Long eventId) {
+        Long userId = BaseContext.getCurrentId();
+        if (userId == null) {
+            throw new BusinessException("未登录");
+        }
+
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+
+        // School Admin has full access
+        if (user.getUserType() == UserRole.SCHOOL_ADMIN) {
+            return;
+        }
+
+        // Event Admin must check mapping
+        if (user.getUserType() == UserRole.EVENT_ADMIN) {
+            LambdaQueryWrapper<EventAdminMapping> lqw = new LambdaQueryWrapper<>();
+            lqw.eq(EventAdminMapping::getEventId, eventId);
+            lqw.eq(EventAdminMapping::getUserId, userId);
+            if (eventAdminMappingMapper.selectCount(lqw) > 0) {
+                return;
+            }
+        }
+
+        throw new BusinessException("无权操作此赛事");
     }
 
     @Override
@@ -240,9 +347,8 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
         try {
             return formatter.parse(s);
         } catch (ParseException e) {
-            log.error("Date parse error", e);
-            // Fallback or throw
-            return new Date(); 
+            log.error("Date parse error: {}", s, e);
+            throw new BusinessException("日期格式错误");
         }
     }
 }

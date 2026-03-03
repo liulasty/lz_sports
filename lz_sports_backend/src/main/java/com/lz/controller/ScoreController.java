@@ -43,7 +43,7 @@ public class ScoreController {
      * 管理员通过Excel文件批量导入指定赛事的成绩
      */
     @PostMapping("/import/{eventId}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAuthority('SCHOOL_ADMIN')")
     @Operation(summary = "导入成绩", description = "管理员上传Excel文件批量导入赛事成绩")
     public Result<String> importScores(
             @Parameter(description = "成绩Excel文件") @RequestParam("file") MultipartFile file, 
@@ -57,7 +57,7 @@ public class ScoreController {
      * 管理员将录入的成绩正式对外发布，运动员方可查看
      */
     @PutMapping("/publish/{eventId}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAuthority('SCHOOL_ADMIN')")
     @Operation(summary = "发布成绩", description = "管理员正式发布指定赛事的成绩")
     public Result<String> publishScores(@Parameter(description = "赛事ID") @PathVariable Long eventId) {
         scoreService.publishScores(eventId);

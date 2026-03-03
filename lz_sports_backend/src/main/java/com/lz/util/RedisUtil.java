@@ -35,7 +35,7 @@ public class RedisUtil {
         }
         try {
             if (key.length == 1 && key[0] != null && !key[0].isEmpty()) {
-                boolean result = redisTemplate.delete(key[0]);
+                boolean result = Boolean.TRUE.equals(redisTemplate.delete(key[0]));
                 log.info("Redis del: {} -> {}", key[0], result);
                 return result;
             } else {
@@ -53,7 +53,7 @@ public class RedisUtil {
                 
                 Long deleteCount = redisTemplate.delete(validKeys);
                 log.info("Redis del: {} -> 删除数量: {}", Arrays.toString(validKeys.toArray()), deleteCount);
-                return deleteCount > 0;
+                return deleteCount != null && deleteCount > 0;
             }
         } catch (Exception e) {
             log.error("Redis del 异常, keys: {}", key, e);
@@ -562,6 +562,27 @@ public class RedisUtil {
         } catch (Exception e) {
             log.error("Redis sIsMember 异常, key: {}, value: {}", key, value, e);
             return false;
+        }
+    }
+
+    /**
+     * Set缓存移除
+     * @param key 键
+     * @param values 值（可传多个）
+     * @return 移除的数量
+     */
+    public long sRemove(String key, Object... values) {
+        if (key == null || key.isEmpty() || values == null || values.length == 0) {
+            log.warn("Redis sRemove: key或values参数为空");
+            return 0;
+        }
+        try {
+            Long count = redisTemplate.opsForSet().remove(key, values);
+            log.info("Redis sRemove: {} -> {} -> 移除数量{}", key, Arrays.toString(values), count);
+            return count == null ? 0 : count;
+        } catch (Exception e) {
+            log.error("Redis sRemove 异常, key: {}, values: {}", key, Arrays.toString(values), e);
+            return 0;
         }
     }
 

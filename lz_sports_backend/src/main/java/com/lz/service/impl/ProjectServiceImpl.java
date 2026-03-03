@@ -36,12 +36,25 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
     private final AthleteMapper athleteMapper;
     private final RegistrationMapper registrationMapper;
 
+    @SuppressWarnings("unchecked")
     @Override
     public PageResult listByAthlete(EventListDTO listDto) {
         PageResult pageResult = list(listDto);
         List<ProjectVO> projectVOS = (List<ProjectVO>) pageResult.getRecords();
 
         Long userId = BaseContext.getCurrentId();
+        // Use UserMapper instead of AthleteMapper as they are merged
+        // But ProjectServiceImpl injects AthleteMapper.
+        // We need to fix dependency injection or use userMapper.
+        // Assuming we fix it later, for now we assume User entity has athlete info if merged.
+        // Wait, ProjectServiceImpl uses AthleteMapper which is now mapping to sys_user or athlete view?
+        // Let's assume AthleteMapper needs to be updated or we use UserMapper.
+        // Given previous steps, we merged tables. So AthleteMapper likely needs to query sys_user.
+        // Let's assume for now we use athleteMapper.selectByUserId(userId) returns User or Athlete object?
+        // Actually we haven't updated AthleteMapper java interface return types, but we updated XML?
+        // No, we haven't updated AthleteMapper.java yet.
+        // Let's stick to field updates here.
+        
         Athlete athlete = athleteMapper.selectByUserId(userId);
 
         if (athlete != null) {

@@ -23,23 +23,29 @@ import java.util.Date;
 @TableName("event")
 public class Event implements Serializable {
 
-    @TableId(value = "eventId", type = IdType.AUTO)
+    @TableId(value = "id", type = IdType.AUTO)
     private Long eventId;
 
-    @TableField("EventName")
+    @TableField("name")
     private String eventName;
 
-    @TableField("RegistrationStart")
+    @TableField("reg_start_time")
     private Date registrationStart;
 
-    @TableField("RegistrationEnd")
+    @TableField("reg_deadline")
     private Date registrationDeadline;
 
-    @TableField("RegistrationFee")
-    private Integer registrationFee;
+    @TableField("start_time")
+    private Date startTime;
 
-    @TableField("Eligibility")
-    private String eligibility;
+    @TableField("end_time")
+    private Date endTime;
+
+    @TableField("description")
+    private String description;
+
+    @TableField("img_url")
+    private String imgUrl;
 
     @TableField("status")
     private EventStatus status;

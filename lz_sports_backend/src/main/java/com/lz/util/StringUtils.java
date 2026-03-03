@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
  * 自定义字符串工具类
  * 适配lz_sports单校版体育赛事管理系统的业务场景，覆盖空值判断、格式校验、字符串处理等核心需求
  */
-public final class MyStringUtils {
+public final class StringUtils {
 
     // QQ邮箱正则（项目核心注册规则）
     private static final Pattern QQ_EMAIL_PATTERN = Pattern.compile("^[a-zA-Z0-9_]+@qq\\.com$");
@@ -14,7 +14,7 @@ public final class MyStringUtils {
     /**
      * 私有构造方法，禁止实例化工具类
      */
-    private MyStringUtils() {
+    private StringUtils() {
         throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
     }
 

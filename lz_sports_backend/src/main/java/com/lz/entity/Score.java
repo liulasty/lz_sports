@@ -8,14 +8,23 @@ import lombok.Data;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.IdType;
+import lombok.Data;
+import java.io.Serializable;
+import java.time.LocalDateTime;
+
 @Data
-@TableName("score")
+@TableName("result")
 public class Score implements Serializable {
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
     private Long registrationId;
     private Long eventId;
     private Long itemId;
+    @TableField("user_id")
     private Long athleteId;
     private String scoreValue;
     private Integer scoreRank;

@@ -20,29 +20,41 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("user")
+@TableName("sys_user")
 public class User {
-    @TableId(value = "UserID", type = IdType.AUTO)
+    @TableId(value = "id", type = IdType.AUTO)
     private Long userId;
 
-    @TableField("Username")
+    @TableField("username")
     private String userName;
 
-    @TableField("Password")
+    @TableField("password")
     private String password;
 
-    @TableField("UserType")
+    @TableField("role")
     private UserRole userType;
 
-    @TableField("Status")
+    @TableField("status")
     private UserStatus status;
 
-    @TableField("Email")
+    @TableField("email")
     private String email;
 
-    @TableField("registerTime")
+    @TableField("create_time")
     private LocalDateTime registerTime;
 
     @TableField("school_id")
     private Long schoolId;
+
+    @TableField("name")
+    private String name;
+
+    @TableField("gender")
+    private String gender;
+
+    @TableField("student_id")
+    private String studentId;
+
+    @TableField("grade_id")
+    private Long gradeId;
 }

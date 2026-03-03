@@ -5,49 +5,48 @@
 
     <select id="selectByEmail" parameterType="string" resultType="com.lz.entity.User">
         SELECT *
-        FROM user
-        WHERE Email = #{email}
+        FROM sys_user
+        WHERE email = #{email}
     </select>
 
     <select id="selectAllAndState" resultType="com.lz.vo.UserVO">
-        SELECT u.UserID as id, u.registerTime, u.Username as name, u.Status as state, u.UserType as type,
-               a.AthleteState as applyState, a.applyTime as applyTime
-        FROM user u
-        LEFT JOIN Athlete a ON u.UserID = a.UserID
+        SELECT u.id as id, u.create_time as registerTime, u.username as name, u.status as state, u.role as type,
+               '通过' as applyState, u.create_time as applyTime
+        FROM sys_user u
         <where>
             <if test="listDto.name != null and listDto.name != ''">
-                AND u.Username like CONCAT('%', #{listDto.name}, '%')
+                AND u.username like CONCAT('%', #{listDto.name}, '%')
             </if>
             <if test="listDto.type != null and listDto.type != ''">
-                AND u.UserType = #{listDto.type}
+                AND u.role = #{listDto.type}
             </if>
             <if test="listDto.date != null">
-                AND u.registerTime > #{listDto.date}
+                AND u.create_time > #{listDto.date}
             </if>
         </where>
-        ORDER BY u.registerTime
+        ORDER BY u.create_time DESC
         LIMIT #{listDto.pageSize} OFFSET #{listDto.currentPage}
     </select>
 
     <select id="getTotalUserCount" resultType="java.lang.Integer">
         SELECT COUNT(*)
-        FROM user
+        FROM sys_user
         <where>
             <if test="listDto.name != null and listDto.name != ''">
-                AND Username like CONCAT('%', #{listDto.name}, '%')
+                AND username like CONCAT('%', #{listDto.name}, '%')
             </if>
             <if test="listDto.type != null and listDto.type != ''">
-                AND UserType = #{listDto.type}
+                AND role = #{listDto.type}
             </if>
             <if test="listDto.date != null">
-                AND registerTime >= #{listDto.date}
+                AND create_time >= #{listDto.date}
             </if>
         </where>
     </select>
 
     <select id="getUserNumsByMonth" resultType="java.lang.Integer">
-        SELECT count(*) FROM user
-        WHERE DATE_FORMAT(registerTime, '%Y%m') = #{month} and UserType != '工作人员'
+        SELECT count(*) FROM sys_user
+        WHERE DATE_FORMAT(create_time, '%Y%m') = #{month} and role != 'SCHOOL_ADMIN'
     </select>
 
 </mapper>

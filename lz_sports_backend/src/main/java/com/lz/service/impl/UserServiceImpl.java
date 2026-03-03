@@ -84,14 +84,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
         // Check Username
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("Username", userRegisterDTO.getUsername());
+        queryWrapper.eq("username", userRegisterDTO.getUsername());
         if (userMapper.selectCount(queryWrapper) > 0) {
             throw new BusinessException("用户名已存在");
         }
 
         // Check Email
         queryWrapper.clear();
-        queryWrapper.eq("Email", userRegisterDTO.getEmail());
+        queryWrapper.eq("email", userRegisterDTO.getEmail());
         if (userMapper.selectCount(queryWrapper) > 0) {
             throw new BusinessException("邮箱已被注册");
         }
@@ -102,7 +102,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setEmail(userRegisterDTO.getEmail());
         user.setRegisterTime(LocalDateTime.now());
         user.setStatus(UserStatus.PENDING); // Set to PENDING
-        user.setUserType(UserRole.USER);
+        user.setUserType(UserRole.ATHLETE);
+        user.setSchoolId(1L); // Default School ID for single-school version
         
         userMapper.insert(user);
         
@@ -119,7 +120,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         
         // Check if email registered
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("Email", email);
+        queryWrapper.eq("email", email);
         if (userMapper.selectCount(queryWrapper) > 0) {
             throw new BusinessException("该邮箱已注册");
         }
@@ -151,11 +152,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public User login(UserLoginDTO userLoginDTO) {
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         if (userLoginDTO.getUsername().contains("@")) {
-            queryWrapper.eq("Email", userLoginDTO.getUsername());
+            queryWrapper.eq("email", userLoginDTO.getUsername());
         } else {
-            queryWrapper.eq("Username", userLoginDTO.getUsername());
+            queryWrapper.eq("username", userLoginDTO.getUsername());
         }
-        queryWrapper.eq("Password", userLoginDTO.getPassword());
+        queryWrapper.eq("password", userLoginDTO.getPassword());
         User user = userMapper.selectOne(queryWrapper);
         
         if (user == null) {

@@ -62,7 +62,7 @@ public class ProjectController {
      * 管理员在指定赛事下创建新的比赛项目
      */
     @PostMapping
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAuthority('SCHOOL_ADMIN')")
     @Operation(summary = "添加项目", description = "管理员添加新的比赛项目")
     public Result<String> addProject(@RequestBody ProjectDTO projectDTO) {
         if (projectDTO.getImageUrls() != null) {
@@ -87,7 +87,7 @@ public class ProjectController {
      * 管理员删除指定的比赛项目
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAuthority('SCHOOL_ADMIN')")
     @Operation(summary = "删除项目", description = "根据ID删除比赛项目")
     public Result<String> delete(@Parameter(description = "项目ID") @PathVariable Long id) {
         projectService.delete(id);

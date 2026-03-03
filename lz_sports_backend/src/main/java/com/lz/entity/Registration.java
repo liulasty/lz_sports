@@ -20,26 +20,29 @@ import java.util.Date;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("Registration")
+@TableName("registration")
 public class Registration implements Serializable {
 
-    @TableId(value = "RegistrationID", type = IdType.AUTO)
+    @TableId(value = "id", type = IdType.AUTO)
     private Long registrationId;
 
-    @TableField("AthleteID")
+    @TableField("user_id")
     private Long athleteId;
 
-    @TableField("EventID")
+    @TableField("event_id")
     private Long eventId;
 
-    @TableField("ItemID")
+    @TableField("item_id")
     private Long itemId;
 
-    @TableField("RegistrationTime")
+    @TableField("create_time")
     private Date registrationTime;
 
-    @TableField("RegistrationStatus")
+    @TableField("status")
     private RegistrationStatus registrationStatus;
+
+    @TableField("reject_reason")
+    private String rejectReason;
 
     @TableField("school_id")
     private Long schoolId;

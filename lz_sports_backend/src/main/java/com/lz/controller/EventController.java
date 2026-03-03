@@ -36,7 +36,7 @@ public class EventController {
      * 注意：路径保持 /EventList 是为了兼容旧版前端
      */
     @PostMapping("/EventList")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAuthority('SCHOOL_ADMIN')")
     @Operation(summary = "发布赛事", description = "管理员发布新的赛事活动")
     public Result<String> addEvent(@RequestBody EventDTO eventDTO) {
         // 如果包含图片URL列表，映射到添加图片逻辑
@@ -88,7 +88,7 @@ public class EventController {
      * 管理员删除指定赛事
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAuthority('SCHOOL_ADMIN')")
     @Operation(summary = "删除赛事", description = "根据ID删除赛事")
     public Result<String> deleteEvent(@Parameter(description = "赛事ID") @PathVariable String id) {
         return Result.success(eventService.deleteEvent(id));

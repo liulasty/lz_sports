@@ -5,23 +5,23 @@
     <select id="selectScorePage" resultType="com.lz.vo.ScoreVO">
         SELECT 
             s.id,
-            e.EventName as eventName,
-            p.ItemName as itemName,
-            a.Name as athleteName,
+            e.name as eventName,
+            p.name as itemName,
+            u.name as athleteName,
             s.score_value as scoreValue,
             s.score_rank as scoreRank,
             s.create_time as createTime
-        FROM score s
-        LEFT JOIN event e ON s.event_id = e.EventID
-        LEFT JOIN eventitem p ON s.item_id = p.ItemID
-        LEFT JOIN athlete a ON s.athlete_id = a.AthleteID
+        FROM result s
+        LEFT JOIN event e ON s.event_id = e.id
+        LEFT JOIN event_item p ON s.item_id = p.id
+        LEFT JOIN sys_user u ON s.user_id = u.id
         <where>
             AND s.is_published = 1
             <if test="eventName != null and eventName != ''">
-                AND e.EventName LIKE CONCAT('%', #{eventName}, '%')
+                AND e.name LIKE CONCAT('%', #{eventName}, '%')
             </if>
         </where>
-        ORDER BY e.EventID DESC, p.ItemID ASC, s.score_rank ASC
+        ORDER BY e.id DESC, p.id ASC, s.score_rank ASC
     </select>
 
 </mapper>
