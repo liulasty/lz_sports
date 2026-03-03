@@ -1,5 +1,8 @@
 server:
   port: 8080
+  # 配置上下文路径
+  servlet:
+    context-path: /api
 
 spring:
   application:
@@ -53,7 +56,7 @@ mybatis-plus:
 
 # Custom Config
 jwt:
-  key: ${JWT_SECRET:lz_sports_secret_key}
+  key: ${JWT_SECRET:lz_sports_7f8e9d2c-4b1a-3e5f-8c7d-9a2b4e6f1d8a}
   expiration: 43200000 # 12 hours
 
 aliyun:

@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Component;
-import org.springframework.util.CollectionUtils;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -35,17 +34,29 @@ public class RedisUtil {
             return false;
         }
         try {
-            if (key.length == 1) {
+            if (key.length == 1 && key[0] != null && !key[0].isEmpty()) {
                 boolean result = redisTemplate.delete(key[0]);
                 log.info("Redis del: {} -> {}", key[0], result);
                 return result;
             } else {
-                Long deleteCount = redisTemplate.delete(Arrays.asList(key));
-                log.info("Redis del: {} -> 删除数量: {}", Arrays.toString(key), deleteCount);
+                // 过滤掉null值
+                List<String> validKeys = new ArrayList<>();
+                for (String k : key) {
+                    if (k != null && !k.isEmpty()) {
+                        validKeys.add(k);
+                    }
+                }
+                if (validKeys.isEmpty()) {
+                    log.warn("Redis del: 所有key均为空");
+                    return false;
+                }
+                
+                Long deleteCount = redisTemplate.delete(validKeys);
+                log.info("Redis del: {} -> 删除数量: {}", Arrays.toString(validKeys.toArray()), deleteCount);
                 return deleteCount > 0;
             }
         } catch (Exception e) {
-            log.error("Redis del 异常, keys: {}", Arrays.toString(key), e);
+            log.error("Redis del 异常, keys: {}", key, e);
             return false;
         }
     }
@@ -64,7 +75,7 @@ public class RedisUtil {
      * 设置key的过期时间（指定时间单位）
      * @param key 键
      * @param expire 过期时间
-     * @param timeUnit 时间单位
+     * @param timeUnit 时间单位（null则默认秒）
      * @return 是否设置成功
      */
     public boolean expire(String key, long expire, TimeUnit timeUnit) {
@@ -76,9 +87,21 @@ public class RedisUtil {
             log.warn("Redis expire: 过期时间必须大于0, key: {}, expire: {}", key, expire);
             return false;
         }
+        
+        // ========== 核心修改：提前判空 + 设置默认值 ==========
+        TimeUnit finalTimeUnit = timeUnit;
+        if (finalTimeUnit == null) {
+            finalTimeUnit = TimeUnit.SECONDS;
+            log.warn("Redis expire: timeUnit 为null,默认使用 TimeUnit.SECONDS, key: {}", key);
+        }
+        
         try {
-            boolean result = redisTemplate.expire(key, expire, timeUnit);
-            log.info("Redis expire: {} -> {} {}", key, expire, timeUnit.name());
+            // 使用非空的 finalTimeUnit 调用方法，消除警告
+            Boolean expireResult = redisTemplate.expire(key, expire, finalTimeUnit);
+            // 处理返回值可能为null的情况，避免拆箱空指针
+            boolean result = expireResult != null && expireResult;
+            
+            log.info("Redis expire: {} -> {} {}", key, expire, finalTimeUnit.name());
             return result;
         } catch (Exception e) {
             log.error("Redis expire 异常, key: {}, expire: {}", key, expire, e);
@@ -98,7 +121,7 @@ public class RedisUtil {
     /**
      * 获取key的过期时间（指定时间单位）
      * @param key 键
-     * @param timeUnit 时间单位
+     * @param timeUnit 时间单位（null则默认秒）
      * @return 过期时间，返回-1表示永久有效，返回-2表示key不存在
      */
     public long getExpire(String key, TimeUnit timeUnit) {
@@ -106,9 +129,17 @@ public class RedisUtil {
             log.warn("Redis getExpire: key参数为空");
             return -2;
         }
+        
+        // ========== 核心修改：提前判空 + 设置默认值 ==========
+        TimeUnit finalTimeUnit = timeUnit;
+        if (finalTimeUnit == null) {
+            finalTimeUnit = TimeUnit.SECONDS;
+            log.warn("Redis getExpire: timeUnit 为null，默认使用 TimeUnit.SECONDS, key: {}", key);
+        }
+        
         try {
-            Long expire = redisTemplate.getExpire(key, timeUnit);
-            log.info("Redis getExpire: {} -> {} {}", key, expire, timeUnit.name());
+            Long expire = redisTemplate.getExpire(key, finalTimeUnit);
+            log.info("Redis getExpire: {} -> {} {}", key, expire, finalTimeUnit.name());
             return expire == null ? -2 : expire;
         } catch (Exception e) {
             log.error("Redis getExpire 异常, key: {}", key, e);
@@ -180,7 +211,7 @@ public class RedisUtil {
      * @param key 键
      * @param value 值
      * @param expire 过期时间
-     * @param timeUnit 时间单位
+     * @param timeUnit 时间单位（null则默认秒）
      * @return 是否成功
      */
     public boolean set(String key, Object value, long expire, TimeUnit timeUnit) {
@@ -225,6 +256,10 @@ public class RedisUtil {
             throw new IllegalArgumentException("递增步长必须大于0");
         }
         try {
+            if (key == null || key.isEmpty()) {
+                log.warn("Redis incr: key参数为空, delta: {}", delta);
+                return 0;
+            }
             Long result = redisTemplate.opsForValue().increment(key, delta);
             log.info("Redis incr: {} -> 步长{}, 结果{}", key, delta, result);
             return result == null ? 0 : result;
@@ -246,6 +281,10 @@ public class RedisUtil {
             throw new IllegalArgumentException("递减步长必须大于0");
         }
         try {
+            if (key == null || key.isEmpty()) {
+                log.warn("Redis decr: key参数为空, delta: {}", delta);
+                return 0;
+            }
             Long result = redisTemplate.opsForValue().increment(key, -delta);
             log.info("Redis decr: {} -> 步长{}, 结果{}", key, delta, result);
             return result == null ? 0 : result;
@@ -424,6 +463,10 @@ public class RedisUtil {
             return Collections.emptyList();
         }
         try {
+            if (start < 0 || end < -1) {
+                log.warn("Redis lrange: 范围参数错误, start: {}, end: {}", start, end);
+                return Collections.emptyList();
+            }
             List<Object> list = redisTemplate.opsForList().range(key, start, end);
             log.info("Redis lrange: {} -> 范围[{},{}] -> 大小{}", key, start, end, list.size());
             return list;
@@ -487,6 +530,10 @@ public class RedisUtil {
             return Collections.emptySet();
         }
         try {
+            if (key.isEmpty()) {
+                log.warn("Redis sMembers: key参数为空");
+                return Collections.emptySet();
+            }
             Set<Object> set = redisTemplate.opsForSet().members(key);
             log.info("Redis sMembers: {} -> 大小{}", key, set.size());
             return set;

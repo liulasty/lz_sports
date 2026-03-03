@@ -10,6 +10,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
@@ -76,6 +77,22 @@ public class GlobalExceptionHandler {
     public Result<String> businessExceptionHandler(BusinessException e) {
         log.warn("Business Exception: {}", e.getMessage());
         return Result.error(e.getMessage());
+    }
+
+    // 处理静态资源未找到异常（过滤 Knife4j 和 favicon 相关路径）
+    @ExceptionHandler(NoResourceFoundException.class)
+    public Result<String> handleNoResourceFound(NoResourceFoundException e) {
+        String resourcePath = e.getResourcePath();
+
+        // 忽略 Knife4j 过时路径和 favicon.ico 错误
+        if (resourcePath.contains("swagger-resources") || resourcePath.equals("favicon.ico")) {
+            // 返回 404 但不打印自定义错误，避免干扰
+            return Result.error("Resource not found");
+        }
+
+        // 其他资源未找到异常，返回原有自定义错误
+
+        return Result.error("Internal Server Error: No static resource " + resourcePath + ".");
     }
 
     @ExceptionHandler(Exception.class)

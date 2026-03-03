@@ -15,3 +15,8 @@ Desktop.ini
 # Temp
 tmp/
 temp/
+
+# 忽略环境配置文件
+.env
+.env.local
+.env.*.local
