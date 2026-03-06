@@ -6,9 +6,11 @@ import lombok.Getter;
 
 @Getter
 public enum UserRole {
-    SCHOOL_ADMIN("学校管理员"),
-    EVENT_ADMIN("赛事管理员"),
-    ATHLETE("运动员");
+    SUPER_ADMIN("SUPER_ADMIN"),
+    SCHOOL_ADMIN("SCHOOL_ADMIN"),
+    EVENT_ADMIN("EVENT_ADMIN"),
+    ATHLETE("ATHLETE"),
+    USER("USER");
 
     @EnumValue
     @JsonValue

@@ -35,9 +35,10 @@ import java.util.stream.Collectors;
  * Event Service Implementation
  */
 @Service
-@Slf4j
 @RequiredArgsConstructor
 public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements EventService {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(EventServiceImpl.class);
 
     private final EventMapper eventMapper;
     private final SportsImgService sportsImgService;
@@ -64,11 +65,11 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
 
             Event event = Event.builder()
                     .eventName(eventDTO.getName())
-                    .description(eventDTO.getType()) // Using description for type/eligibility placeholder
-                    .registrationFee(Integer.parseInt(eventDTO.getFee()))
-                    .registrationStart(startDate)
-                    .registrationDeadline(endDate)
-                    .status(EventStatus.DRAFT) // Default to DRAFT
+                    .eventDescription(eventDTO.getType()) // Using description for type/eligibility placeholder
+                    // .registrationFee(Integer.parseInt(eventDTO.getFee())) // Removed field in new entity
+                    .registrationStartTime(startDate)
+                    .registrationEndTime(endDate)
+                    .eventStatus(EventStatus.DRAFT) // Default to DRAFT
                     .build();
 
             save(event);
@@ -123,7 +124,7 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
         
         try {
             EventStatus eventStatus = EventStatus.valueOf(status);
-            event.setStatus(eventStatus);
+            event.setEventStatus(eventStatus);
             updateById(event);
         } catch (IllegalArgumentException e) {
             throw new BusinessException("无效的状态: " + status);
@@ -142,7 +143,7 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
         if (userId != null) {
             User user = userMapper.selectById(userId);
             if (user != null) {
-                if (user.getUserType() == UserRole.SCHOOL_ADMIN) {
+                if (user.getUserType() == UserRole.SUPER_ADMIN) {
                     // School Admin sees all events
                 } else if (user.getUserType() == UserRole.EVENT_ADMIN) {
                     // Event Admin sees only assigned events
@@ -174,11 +175,11 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
             return EventVO.builder()
                     .id(event.getEventId())
                     .name(event.getEventName())
-                    .fee(String.valueOf(event.getRegistrationFee()))
-                    .type(event.getDescription())
-                    .date(event.getRegistrationStart() != null ? event.getRegistrationStart().toString() : "")
-                    .end(event.getRegistrationDeadline() != null ? event.getRegistrationDeadline().toString() : "")
-                    .status(event.getStatus())
+                    .fee("0") // .fee(String.valueOf(event.getRegistrationFee()))
+                    .type(event.getEventDescription())
+                    .date(event.getRegistrationStartTime() != null ? event.getRegistrationStartTime().toString() : "")
+                    .end(event.getRegistrationEndTime() != null ? event.getRegistrationEndTime().toString() : "")
+                    .status(event.getEventStatus().name()) // Convert Enum to String for VO if needed, or update VO
                     .imageUrls(imageUrls)
                     .build();
         }).collect(Collectors.toList());
@@ -190,15 +191,15 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
     public List<TableData> getNewTen() {
         IPage<Event> page = new Page<>(1, 10);
         LambdaQueryWrapper<Event> lqw = new LambdaQueryWrapper<>();
-        lqw.orderByDesc(Event::getRegistrationStart);
+        lqw.orderByDesc(Event::getRegistrationStartTime);
         eventMapper.selectPage(page, lqw);
 
         return page.getRecords().stream().map(event -> {
             TableData data = new TableData();
-            data.setDate(event.getRegistrationStart());
+            data.setDate(event.getRegistrationStartTime());
             data.setName(event.getEventName());
-            data.setType(event.getDescription());
-            data.setFee(event.getRegistrationFee());
+            data.setType(event.getEventDescription());
+            data.setFee(0); // event.getRegistrationFee() removed
             return data;
         }).collect(Collectors.toList());
     }
@@ -222,9 +223,9 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
         List<Project> projects = projectMapper.selectList(projectLqw);
 
         if (!projects.isEmpty()) {
-            List<Long> projectIds = projects.stream().map(Project::getProjectId).collect(Collectors.toList());
+            List<Long> projectIds = projects.stream().map(Project::getItemId).collect(Collectors.toList());
             LambdaQueryWrapper<Registration> regLqw = new LambdaQueryWrapper<>();
-            regLqw.in(Registration::getProjectId, projectIds);
+            regLqw.in(Registration::getItemId, projectIds);
             Long count = registrationMapper.selectCount(regLqw);
             if (count > 0) {
                 throw new BusinessException("该赛事已有报名记录，无法删除");
@@ -262,12 +263,12 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
         }
 
         if (eventDTO.getName() != null) event.setEventName(eventDTO.getName());
-        if (eventDTO.getType() != null) event.setDescription(eventDTO.getType());
-        if (eventDTO.getFee() != null) event.setRegistrationFee(Integer.parseInt(eventDTO.getFee()));
+        if (eventDTO.getType() != null) event.setEventDescription(eventDTO.getType());
+        // if (eventDTO.getFee() != null) event.setRegistrationFee(Integer.parseInt(eventDTO.getFee()));
         
         if (eventDTO.getDate1() != null && eventDTO.getDate1().length >= 2) {
-             event.setRegistrationStart(stringToDate(eventDTO.getDate1()[0]));
-             event.setRegistrationDeadline(stringToDate(eventDTO.getDate1()[1]));
+             event.setRegistrationStartTime(stringToDate(eventDTO.getDate1()[0]));
+             event.setRegistrationEndTime(stringToDate(eventDTO.getDate1()[1]));
         }
 
         updateById(event);

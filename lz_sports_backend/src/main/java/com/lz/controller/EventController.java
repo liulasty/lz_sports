@@ -1,5 +1,8 @@
 package com.lz.controller;
 
+import com.lz.common.annotation.RequireRole;
+import com.lz.common.annotation.RequireEventAdmin;
+import com.lz.common.enums.UserRole;
 import com.lz.common.result.PageResult;
 import com.lz.common.result.Result;
 import com.lz.dto.EventDTO;
@@ -12,7 +15,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,7 +25,7 @@ import java.util.Map;
  * 提供赛事的增删改查及统计功能
  */
 @RestController
-@RequestMapping("/sports/event")
+@RequestMapping("/api/event")
 @RequiredArgsConstructor
 @Tag(name = "赛事管理", description = "赛事活动的增删改查与统计")
 public class EventController {
@@ -36,7 +38,7 @@ public class EventController {
      * 注意：路径保持 /EventList 是为了兼容旧版前端
      */
     @PostMapping("/EventList")
-    @PreAuthorize("hasAuthority('SCHOOL_ADMIN')")
+    @RequireRole({UserRole.SCHOOL_ADMIN, UserRole.EVENT_ADMIN})
     @Operation(summary = "发布赛事", description = "管理员发布新的赛事活动")
     public Result<String> addEvent(@RequestBody EventDTO eventDTO) {
         // 如果包含图片URL列表，映射到添加图片逻辑
@@ -88,7 +90,7 @@ public class EventController {
      * 管理员删除指定赛事
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('SCHOOL_ADMIN')")
+    @RequireRole({UserRole.SCHOOL_ADMIN})
     @Operation(summary = "删除赛事", description = "根据ID删除赛事")
     public Result<String> deleteEvent(@Parameter(description = "赛事ID") @PathVariable String id) {
         return Result.success(eventService.deleteEvent(id));
@@ -99,7 +101,7 @@ public class EventController {
      * 管理员修改赛事内容
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @RequireEventAdmin
     @Operation(summary = "更新赛事", description = "更新赛事的基本信息")
     public Result<String> updateEvent(
             @Parameter(description = "赛事ID") @PathVariable String id, 
@@ -116,7 +118,7 @@ public class EventController {
      * 如发布、结束等状态变更
      */
     @PutMapping("/{id}/status")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @RequireEventAdmin
     @Operation(summary = "修改状态", description = "更改赛事的当前状态")
     public Result<String> changeStatus(
             @Parameter(description = "赛事ID") @PathVariable Long id, 

@@ -20,6 +20,7 @@ CREATE TABLE `school_config` (
   `logo_url` varchar(255) DEFAULT NULL COMMENT 'Logo地址',
   `theme_color` varchar(20) DEFAULT '#409EFF' COMMENT '主题色',
   `contact_email` varchar(100) DEFAULT NULL COMMENT '联系邮箱',
+  `is_initialized` tinyint(1) DEFAULT 0 COMMENT '是否已初始化: 0-否, 1-是',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`)
@@ -161,5 +162,22 @@ CREATE TABLE `sportsimg` (
   `url` varchar(255) DEFAULT NULL COMMENT '图片地址',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='图片资源表';
+
+-- ----------------------------
+-- 10. Notification (System Messages)
+-- ----------------------------
+DROP TABLE IF EXISTS `notification`;
+CREATE TABLE `notification` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `user_id` bigint(20) NOT NULL COMMENT '接收用户ID',
+  `title` varchar(100) NOT NULL COMMENT '标题',
+  `content` text DEFAULT NULL COMMENT '内容',
+  `type` varchar(20) DEFAULT 'SYSTEM' COMMENT '类型: SYSTEM/EVENT/RESULT',
+  `is_read` tinyint(1) DEFAULT 0 COMMENT '是否已读: 0-未读, 1-已读',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_user_read` (`user_id`, `is_read`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统通知表';
 
 SET FOREIGN_KEY_CHECKS=1;

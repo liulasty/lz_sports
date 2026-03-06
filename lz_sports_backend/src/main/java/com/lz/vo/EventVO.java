@@ -18,5 +18,6 @@ public class EventVO implements Serializable {
     private String name;
     private String fee;
     private String type;
+    private String status;
     private List<String> imageUrls;
 }

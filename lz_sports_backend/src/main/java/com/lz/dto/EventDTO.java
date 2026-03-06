@@ -32,12 +32,48 @@ public class EventDTO implements Serializable {
     private String[] addImage;
     private String[] deleteImage;
 
+    public String getName() {
+        return name;
+    }
+
+    public String[] getDate1() {
+        return date1;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public String[] getAddImage() {
+        return addImage;
+    }
+
+    public List<Long> getAdminIds() {
+        return adminIds;
+    }
+
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
     public static class ImgDTO implements Serializable {
         private String name;
         private String ossUrl;
+
+        public String getOssUrl() {
+            return ossUrl;
+        }
+
+        public void setOssUrl(String ossUrl) {
+            this.ossUrl = ossUrl;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
     }
 
     public void mapOssUrlToAddImage() {

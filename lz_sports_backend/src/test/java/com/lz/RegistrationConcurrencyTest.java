@@ -1,6 +1,8 @@
 package com.lz;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.lz.common.enums.EventStatus;
+import com.lz.common.enums.GenderLimit;
 import com.lz.entity.Event;
 import com.lz.entity.Project;
 import com.lz.entity.Registration;
@@ -64,9 +66,9 @@ public class RegistrationConcurrencyTest {
         // 1. Create Event
         Event event = new Event();
         event.setEventName("Concurrency Test Event");
-        event.setStatus(com.lz.common.enums.EventStatus.PUBLISHED);
-        event.setRegistrationStart(new Date());
-        event.setRegistrationDeadline(new Date(System.currentTimeMillis() + 86400000)); // +1 day
+        event.setEventStatus(EventStatus.OPEN);
+        event.setRegistrationStartTime(new Date());
+        event.setRegistrationEndTime(new Date(System.currentTimeMillis() + 86400000)); // +1 day
         event.setSchoolId(1L);
         eventMapper.insert(event);
         this.eventId = event.getEventId();
@@ -77,7 +79,7 @@ public class RegistrationConcurrencyTest {
         project.setItemName("Limited Slots Race");
         project.setMaxAttendance(MAX_ATTENDANCE);
         project.setAttendance(0);
-        project.setLimitation("无限制");
+        project.setLimitation(GenderLimit.ALL);
         project.setSchoolId(1L);
         projectMapper.insert(project);
         this.projectId = project.getItemId();

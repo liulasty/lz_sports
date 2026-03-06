@@ -23,6 +23,9 @@ public interface EventMapper extends BaseMapper<Event> {
     @Select("SELECT COUNT(*) FROM event WHERE YEAR(reg_start_time) = #{year} AND MONTH(reg_start_time) = #{month}")
     int getEventNumsByMonth(int year, int month);
     
+    @Select("SELECT COUNT(*) FROM event")
+    int getEventTotal();
+
     // Complex query for stats - simplified or ported from XML
     @Select("""
         SELECT

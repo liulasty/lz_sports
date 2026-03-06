@@ -6,9 +6,11 @@ import lombok.Getter;
 
 @Getter
 public enum RegistrationStatus {
-    PENDING("审核中"),
-    APPROVED("通过"),
-    REJECTED("未通过");
+    PENDING("PENDING"),
+    APPROVED("APPROVED"),
+    REJECTED("REJECTED"),
+    CONFIRMED("CONFIRMED"),
+    CANCELLED("CANCELLED");
 
     @EnumValue
     @JsonValue

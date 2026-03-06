@@ -12,8 +12,9 @@ import com.lz.entity.Score;
 import java.util.ArrayList;
 import java.util.List;
 
-@Slf4j
 public class ScoreImportListener implements ReadListener<ScoreImportVO> {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ScoreImportListener.class);
 
     private final ScoreService scoreService;
     private final RegistrationMapper registrationMapper;
@@ -50,7 +51,7 @@ public class ScoreImportListener implements ReadListener<ScoreImportVO> {
         score.setRegistrationId(r.getRegistrationId());
         score.setEventId(r.getEventId());
         score.setItemId(r.getItemId());
-        score.setAthleteId(r.getAthleteId()); // Registration.athleteId mapped to user_id
+        score.setAthleteId(r.getAthleteId()); // Changed from setUserId to setAthleteId
         score.setScoreValue(data.getScoreValue());
         score.setScoreRank(data.getScoreRank());
         score.setIsPublished(false);

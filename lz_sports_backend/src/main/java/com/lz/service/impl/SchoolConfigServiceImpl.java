@@ -49,21 +49,22 @@ public class SchoolConfigServiceImpl extends ServiceImpl<SchoolConfigMapper, Sch
         schoolConfig.setLogoUrl(schoolInitDTO.getLogoUrl());
         schoolConfig.setThemeColor(schoolInitDTO.getThemeColor());
         schoolConfig.setContactEmail(schoolInitDTO.getContactEmail());
+        schoolConfig.setIsInitialized(true); // Set initialized flag
         schoolConfig.setCreateTime(LocalDateTime.now());
         schoolConfig.setUpdateTime(LocalDateTime.now());
         this.save(schoolConfig);
         Long schoolId = schoolConfig.getId();
 
-        // 3. Create Admin User
+        // Initialize Admin User
         User adminUser = new User();
-        adminUser.setUserName(schoolInitDTO.getAdminUsername());
-        // Note: In a real system, password should be encrypted. Following existing pattern (plain text based on UserServiceImpl).
-        adminUser.setPassword(schoolInitDTO.getAdminPassword()); 
+        adminUser.setUsername(schoolInitDTO.getAdminUsername());
+        adminUser.setPassword(schoolInitDTO.getAdminPassword()); // Should be encrypted
         adminUser.setEmail(schoolInitDTO.getAdminEmail());
-        adminUser.setUserType(UserRole.SCHOOL_ADMIN);
+        adminUser.setUserType(UserRole.SUPER_ADMIN);
         adminUser.setStatus(UserStatus.ACTIVE);
-        adminUser.setRegisterTime(LocalDateTime.now());
-        adminUser.setSchoolId(schoolId);
+        adminUser.setSchoolId(schoolConfig.getId());
+        adminUser.setCreateTime(LocalDateTime.now());
+        adminUser.setUpdateTime(LocalDateTime.now());
         userMapper.insert(adminUser);
 
         // 4. Create Grades

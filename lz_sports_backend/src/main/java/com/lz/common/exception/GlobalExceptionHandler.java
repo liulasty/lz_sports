@@ -1,6 +1,7 @@
 package com.lz.common.exception;
 
 import com.lz.common.result.Result;
+import com.lz.common.result.ResultCode;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
@@ -34,7 +36,7 @@ public class GlobalExceptionHandler {
         List<String> messages = fieldErrors.stream()
                 .map(DefaultMessageSourceResolvable::getDefaultMessage)
                 .collect(Collectors.toList());
-        return Result.error(messages.toString());
+        return Result.error(ResultCode.PARAM_ERROR, messages.toString());
     }
 
     /**
@@ -46,7 +48,7 @@ public class GlobalExceptionHandler {
         List<String> messages = fieldErrors.stream()
                 .map(DefaultMessageSourceResolvable::getDefaultMessage)
                 .collect(Collectors.toList());
-        return Result.error(messages.toString());
+        return Result.error(ResultCode.PARAM_ERROR, messages.toString());
     }
 
     /**
@@ -58,25 +60,31 @@ public class GlobalExceptionHandler {
         List<String> messages = constraintViolations.stream()
                 .map(ConstraintViolation::getMessage)
                 .collect(Collectors.toList());
-        return Result.error(messages.toString());
+        return Result.error(ResultCode.PARAM_ERROR, messages.toString());
     }
 
     @ExceptionHandler(SQLIntegrityConstraintViolationException.class)
     public Result<String> sqlIntegrityConstraintViolationException(SQLIntegrityConstraintViolationException e) {
         log.error("SQL Integrity Constraint Violation: ", e);
-        return Result.error("Database constraint violation");
+        return Result.error(ResultCode.CONFLICT, "Database constraint violation");
     }
 
     @ExceptionHandler(SQLException.class)
     public Result<String> sqlExceptionHandler(SQLException e) {
         log.error("SQL Exception: ", e);
-        return Result.error("Database error: " + e.getMessage());
+        return Result.error(ResultCode.INTERNAL_SERVER_ERROR, "Database error: " + e.getMessage());
     }
 
     @ExceptionHandler(BusinessException.class)
     public Result<String> businessExceptionHandler(BusinessException e) {
         log.warn("Business Exception: {}", e.getMessage());
-        return Result.error(e.getMessage());
+        return Result.error(e.getCode(), e.getMessage());
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public Result<String> accessDeniedException(AccessDeniedException e) {
+        log.warn("Access Denied: {}", e.getMessage());
+        return Result.error(ResultCode.FORBIDDEN, "无权限操作");
     }
 
     // 处理静态资源未找到异常（过滤 Knife4j 和 favicon 相关路径）
@@ -87,17 +95,15 @@ public class GlobalExceptionHandler {
         // 忽略 Knife4j 过时路径和 favicon.ico 错误
         if (resourcePath.contains("swagger-resources") || resourcePath.equals("favicon.ico")) {
             // 返回 404 但不打印自定义错误，避免干扰
-            return Result.error("Resource not found");
+            return Result.error(ResultCode.NOT_FOUND, "Resource not found");
         }
 
-        // 其他资源未找到异常，返回原有自定义错误
-
-        return Result.error("Internal Server Error: No static resource " + resourcePath + ".");
+        return Result.error(ResultCode.NOT_FOUND, "Internal Server Error: No static resource " + resourcePath + ".");
     }
-
+    
     @ExceptionHandler(Exception.class)
     public Result<String> exceptionHandler(Exception e) {
-        log.error("System Exception: ", e);
-        return Result.error("Internal Server Error: " + e.getMessage());
+        log.error("Global Exception: ", e);
+        return Result.error(ResultCode.INTERNAL_SERVER_ERROR, e.getMessage());
     }
 }

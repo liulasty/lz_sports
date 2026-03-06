@@ -30,16 +30,15 @@ public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public String add(AthleteDTO athleteDTO) {
-        Athlete athlete = Athlete.builder()
-                .userId(athleteDTO.getUserId())
-                .name(athleteDTO.getName())
-                .age(String.valueOf(athleteDTO.getAge()))
-                .gender(athleteDTO.getGender())
-                .contact(athleteDTO.getPhone())
-                .grade(athleteDTO.getGrade())
-                .athleteState(AthleteStatus.AUDITING)
-                .applyTime(LocalDateTime.now())
-                .build();
+        Athlete athlete = new Athlete();
+        athlete.setUserId(athleteDTO.getUserId());
+        athlete.setName(athleteDTO.getName());
+        athlete.setAge(String.valueOf(athleteDTO.getAge()));
+        athlete.setGender(athleteDTO.getGender());
+        athlete.setContact(athleteDTO.getPhone());
+        athlete.setGrade(athleteDTO.getGrade());
+        athlete.setAthleteState(AthleteStatus.AUDITING);
+        athlete.setApplyTime(LocalDateTime.now());
         
         save(athlete);
         return String.valueOf(athlete.getAthleteId());
@@ -84,7 +83,7 @@ public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> impl
         // Delete existing record
         removeById(athleteId);
 
-        // Update User Type to "Student"
+        // Update User Type to "Student" or "Athlete"
         User user = userMapper.selectById(athlete.getUserId());
         if (user != null) {
             user.setUserType(UserRole.ATHLETE);
@@ -92,16 +91,16 @@ public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> impl
         }
 
         // Create new application
-        Athlete newAthlete = Athlete.builder()
-                .userId(athlete.getUserId())
-                .name(dto.getName() != null ? dto.getName() : athlete.getName())
-                .age(dto.getAge() != null ? String.valueOf(dto.getAge()) : athlete.getAge())
-                .gender(dto.getGender() != null ? dto.getGender() : athlete.getGender())
-                .contact(dto.getContact() != null ? dto.getContact() : athlete.getContact())
-                .grade(dto.getGrade() != null ? dto.getGrade() : athlete.getGrade())
-                .athleteState(AthleteStatus.AUDITING)
-                .applyTime(LocalDateTime.now())
-                .build();
+        Athlete newAthlete = new Athlete();
+        newAthlete.setUserId(athlete.getUserId());
+        newAthlete.setName(dto.getName() != null ? dto.getName() : athlete.getName());
+        newAthlete.setAge(dto.getAge() != null ? String.valueOf(dto.getAge()) : athlete.getAge());
+        newAthlete.setGender(dto.getGender() != null ? dto.getGender() : athlete.getGender());
+        newAthlete.setContact(dto.getContact() != null ? dto.getContact() : athlete.getContact());
+        // ... set other fields
+        newAthlete.setGrade(dto.getGrade() != null ? dto.getGrade() : athlete.getGrade());
+        newAthlete.setAthleteState(AthleteStatus.AUDITING);
+        newAthlete.setApplyTime(LocalDateTime.now());
         
         save(newAthlete);
     }

@@ -6,9 +6,11 @@ import lombok.Getter;
 
 @Getter
 public enum EventStatus {
-    DRAFT("草稿"),
-    PUBLISHED("已发布"),
-    ENDED("已结束");
+    DRAFT("DRAFT"),
+    OPEN("OPEN"),
+    CLOSED("CLOSED"),
+    ONGOING("ONGOING"),
+    FINISHED("FINISHED");
 
     @EnumValue
     @JsonValue

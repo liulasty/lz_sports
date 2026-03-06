@@ -99,12 +99,25 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
 
         projectMapper.selectPage(page, lqw);
         
-        List<ProjectVO> projectVOS = page.getRecords().stream().map(p -> {
+        List<Project> records = page.getRecords();
+        List<Long> eventIds = records.stream()
+                .map(Project::getEventId)
+                .filter(id -> id != null)
+                .distinct()
+                .collect(Collectors.toList());
+
+        java.util.Map<Long, String> eventNameMap = new java.util.HashMap<>();
+        if (!eventIds.isEmpty()) {
+            List<Event> events = eventMapper.selectBatchIds(eventIds);
+            eventNameMap = events.stream().collect(Collectors.toMap(Event::getEventId, Event::getEventName));
+        }
+
+        java.util.Map<Long, String> finalEventNameMap = eventNameMap;
+        List<ProjectVO> projectVOS = records.stream().map(p -> {
             ProjectVO vo = new ProjectVO();
             BeanUtils.copyProperties(p, vo);
-            Event event = eventMapper.selectById(p.getEventId());
-            if (event != null) {
-                vo.setEventName(event.getEventName());
+            if (finalEventNameMap.containsKey(p.getEventId())) {
+                vo.setEventName(finalEventNameMap.get(p.getEventId()));
             }
             return vo;
         }).collect(Collectors.toList());

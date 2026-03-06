@@ -36,9 +36,9 @@ import java.util.Map;
  * 负责用户认证、注册、个人信息管理及后台用户管理
  */
 @RestController
-@RequestMapping("/sports/user")
+@RequestMapping("/api/auth")
 @Slf4j
-@Tag(name = "用户管理", description = "用户登录、注册、个人信息与后台管理")
+@Tag(name = "用户认证", description = "用户登录、注册、密码重置")
 public class UserController {
 
     @Autowired
@@ -66,28 +66,28 @@ public class UserController {
 
         // 检查用户状态
         if (UserStatus.ACTIVE != user.getStatus()) {
-             log.warn("用户 {} 状态为 {}, 但为了测试继续放行。", user.getUserName(), user.getStatus());
+             log.warn("用户 {} 状态为 {}, 但为了测试继续放行。", user.getUsername(), user.getStatus());
         }
 
         // 获取头像
-        String avatarImg = sportsImgService.selectImg(user.getUserId(), "avatar");
+        String avatarImg = sportsImgService.selectImg(user.getId(), "avatar");
         if (avatarImg != null && !avatarImg.startsWith("http")) {
              avatarImg = "https://" + appConfig.getBucketName() + "." + appConfig.getEndpoint() + "/" + avatarImg;
         }
 
         // 设置上下文 & 生成 Token
-        BaseContext.setCurrentId(user.getUserId());
+        BaseContext.setCurrentId(user.getId());
         Map<String, Object> claims = new HashMap<>();
-        claims.put("id", user.getUserId());
-        claims.put("username", user.getUserName());
-        claims.put("role", user.getUserType().getRole());
+        claims.put("id", user.getId());
+        claims.put("username", user.getUsername());
+        claims.put("role", user.getUserType());
         String token = JwtUtil.genToken(claims, appConfig.getJwtKey());
         
-        log.info("用户登录成功: {}, Token: {}", user.getUserName(), token);
+        log.info("用户登录成功: {}, Token: {}", user.getUsername(), token);
 
         UserLoginVO userLoginVO = UserLoginVO.builder()
-                .id(user.getUserId())
-                .userName(user.getUserName())
+                .id(user.getId())
+                .userName(user.getUsername())
                 .type(user.getUserType().getRole())
                 .token(token)
                 .avatarSrc(avatarImg)

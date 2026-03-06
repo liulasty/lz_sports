@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
  * 处理运动员的申请、查询、更新和删除等操作
  */
 @RestController
-@RequestMapping("/sports/athlete")
+@RequestMapping("/api/athlete")
 @RequiredArgsConstructor
 @Tag(name = "运动员管理", description = "运动员申请、信息查询与管理接口")
 public class AthleteController {

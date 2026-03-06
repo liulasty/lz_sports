@@ -53,11 +53,16 @@ public class SecurityConfig {
                                 "/swagger-ui/**",      // Swagger UI 备用路径
                                 "/favicon.ico"
                         ).permitAll()
-                        // 2. 放行业务接口（登录/注册/初始化）
+                        // 2. 放行业务接口（登录/注册/初始化/验证码）
                         .requestMatchers(
-                                "/sports/user/login",
-                                "/sports/user/register",
-                                "/sports/init/**"
+                                "/api/auth/login",
+                                "/api/auth/register",
+                                "/api/auth/send-code",
+                                "/api/auth/verify-code",
+                                "/api/auth/reset-password",
+                                "/api/system/init-status",
+                                "/api/system/init",
+                                "/api/public/**"
                         ).permitAll()
                         // 3. 其他所有请求需要认证
                         .anyRequest().authenticated()

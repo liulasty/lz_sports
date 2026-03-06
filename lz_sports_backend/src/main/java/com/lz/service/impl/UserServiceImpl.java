@@ -97,10 +97,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
 
         User user = new User();
-        user.setUserName(userRegisterDTO.getUsername());
+        user.setUsername(userRegisterDTO.getUsername());
         user.setPassword(userRegisterDTO.getPassword());
         user.setEmail(userRegisterDTO.getEmail());
-        user.setRegisterTime(LocalDateTime.now());
+        user.setCreateTime(LocalDateTime.now());
         user.setStatus(UserStatus.PENDING); // Set to PENDING
         user.setUserType(UserRole.ATHLETE);
         user.setSchoolId(1L); // Default School ID for single-school version
@@ -175,7 +175,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
 
         if (userUpdateDTO.getUserName() != null) {
-            user.setUserName(userUpdateDTO.getUserName());
+            user.setUsername(userUpdateDTO.getUserName());
         }
         if (userUpdateDTO.getEmail() != null) {
             user.setEmail(userUpdateDTO.getEmail());
@@ -226,7 +226,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Transactional(rollbackFor = Exception.class)
     public void examinePlayer(String id) {
         User user = new User();
-        user.setUserId(Long.valueOf(id));
+        user.setId(Long.valueOf(id));
         user.setUserType(UserRole.ATHLETE);
         userMapper.updateById(user);
 
@@ -310,18 +310,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException("用户不存在");
         }
 
-        String avatarImg = sportsImgService.selectImg(user.getUserId(), "avatar");
+        String avatarImg = sportsImgService.selectImg(user.getId(), "avatar");
         if (avatarImg != null && !avatarImg.startsWith("http")) {
             avatarImg = "https://" + appConfig.getBucketName() + "." + appConfig.getEndpoint() + "/" + avatarImg;
         }
 
         return UserDetailVO.builder()
-                .userId(user.getUserId())
-                .userName(user.getUserName())
+                .userId(user.getId())
+                .userName(user.getUsername())
                 .email(user.getEmail())
                 .userType(user.getUserType().getRole())
                 .status(user.getStatus().getStatus())
-                .registerTime(user.getRegisterTime())
+                .registerTime(user.getCreateTime())
                 .avatarSrc(avatarImg)
                 .build();
     }

@@ -11,40 +11,23 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * User Entity
+ * 用户实体类
  */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 @TableName("sys_user")
-public class User {
+public class User implements Serializable {
+
     @TableId(value = "id", type = IdType.AUTO)
-    private Long userId;
+    private Long id;
 
     @TableField("username")
-    private String userName;
+    private String username;
 
     @TableField("password")
     private String password;
-
-    @TableField("role")
-    private UserRole userType;
-
-    @TableField("status")
-    private UserStatus status;
-
-    @TableField("email")
-    private String email;
-
-    @TableField("create_time")
-    private LocalDateTime registerTime;
-
-    @TableField("school_id")
-    private Long schoolId;
 
     @TableField("name")
     private String name;
@@ -57,4 +40,128 @@ public class User {
 
     @TableField("grade_id")
     private Long gradeId;
+
+    @TableField("email")
+    private String email;
+
+    @TableField("role")
+    private UserRole userType;
+
+    @TableField("status")
+    private UserStatus status;
+
+    @TableField("school_id")
+    private Long schoolId;
+
+    @TableField("create_time")
+    private LocalDateTime createTime;
+
+    @TableField("update_time")
+    private LocalDateTime updateTime;
+
+    public User() {}
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public void setGender(String gender) {
+        this.gender = gender;
+    }
+
+    public String getStudentId() {
+        return studentId;
+    }
+
+    public void setStudentId(String studentId) {
+        this.studentId = studentId;
+    }
+
+    public Long getGradeId() {
+        return gradeId;
+    }
+
+    public void setGradeId(Long gradeId) {
+        this.gradeId = gradeId;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public UserRole getUserType() {
+        return userType;
+    }
+
+    public void setUserType(UserRole userType) {
+        this.userType = userType;
+    }
+
+    public UserStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(UserStatus status) {
+        this.status = status;
+    }
+
+    public Long getSchoolId() {
+        return schoolId;
+    }
+
+    public void setSchoolId(Long schoolId) {
+        this.schoolId = schoolId;
+    }
+
+    public LocalDateTime getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(LocalDateTime createTime) {
+        this.createTime = createTime;
+    }
+
+    public LocalDateTime getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(LocalDateTime updateTime) {
+        this.updateTime = updateTime;
+    }
 }

@@ -20,12 +20,13 @@ import org.springframework.web.bind.annotation.*;
  * 项目管理控制器
  * 负责比赛项目（如100米、跳高）的增删改查
  */
-@Slf4j
 @RestController
-@RequestMapping("sports/project")
+@RequestMapping("/api/project")
 @RequiredArgsConstructor
 @Tag(name = "项目管理", description = "具体比赛项目的管理接口")
 public class ProjectController {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ProjectController.class);
 
     private final ProjectService projectService;
     private final AthleteMapper athleteMapper;

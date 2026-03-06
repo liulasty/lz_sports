@@ -46,6 +46,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         try {
+            if (JwtUtil.isExpired(token, jwtKey)) {
+                throw new RuntimeException("Token has expired");
+            }
             Map<String, Object> claims = JwtUtil.parseToken(token, jwtKey);
             Long userId = Long.valueOf(claims.get("id").toString());
             BaseContext.setCurrentId(userId);
@@ -71,9 +74,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             // --- 安全性改进 ---
             // 不再调用 filterChain.doFilter，而是直接返回错误响应
-            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+            response.setStatus(HttpStatus.OK.value()); // 前端根据 code 判断，或者用 401 也可以，这里保持 RESTful 风格返回 200 + code 401 ? 用户要求 401 code.
+            // 用户要求：401 未登录 token 不存在或已过期。
+            // 通常 Result 结构是 JSON，HTTP Status 可以是 200。
+            // 但为了更好兼容，如果返回 JSON 含 code=401，HTTP status 也可以是 200。
+            // 不过 Axios 拦截器里写的是 `if (res.code !== 1)` (旧) -> 新逻辑需适配。
+            // 让我们保持 HTTP 200，内容 code 401。
+            response.setStatus(HttpStatus.OK.value());
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-            new ObjectMapper().writeValue(response.getWriter(), Map.of("msg", "无效的令牌"));
+            response.setCharacterEncoding("UTF-8");
+            
+            // 手动构建 JSON 字符串，或者使用 ObjectMapper 序列化 Result 对象
+            // Map.of("code", 401, "msg", "未登录", "data", null)
+            new ObjectMapper().writeValue(response.getWriter(), com.lz.common.result.Result.error(com.lz.common.result.ResultCode.UNAUTHORIZED));
             return;
             // --- 结束改进 ---
         }

@@ -2,7 +2,7 @@ import request from '@/utils/request'
 
 export function applyAthlete(data) {
   return request({
-    url: '/sports/athlete',
+    url: '/athlete',
     method: 'post',
     data
   })
@@ -10,21 +10,21 @@ export function applyAthlete(data) {
 
 export function getAthleteApply(id) {
   return request({
-    url: `/sports/athlete/apply/${id}`,
+    url: `/athlete/apply/${id}`,
     method: 'get'
   })
 }
 
 export function getAthleteInfo(id) {
   return request({
-    url: `/sports/athlete/${id}`,
+    url: `/athlete/${id}`,
     method: 'get'
   })
 }
 
 export function updateAthlete(id, data) {
   return request({
-    url: `/sports/athlete/${id}`,
+    url: `/athlete/${id}`,
     method: 'put',
     data
   })
@@ -32,7 +32,7 @@ export function updateAthlete(id, data) {
 
 export function deleteAthleteRecord(id) {
   return request({
-    url: `/sports/athlete/${id}`,
+    url: `/athlete/${id}`,
     method: 'delete'
   })
 }

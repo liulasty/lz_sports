@@ -2,7 +2,7 @@ import request from '@/utils/request'
 
 export function getEventList(params) {
   return request({
-    url: '/sports/event/page',
+    url: '/event/page',
     method: 'get',
     params
   })
@@ -10,7 +10,7 @@ export function getEventList(params) {
 
 export function addEvent(data) {
   return request({
-    url: '/sports/event/EventList',
+    url: '/event/EventList',
     method: 'post',
     data
   })
@@ -18,14 +18,14 @@ export function addEvent(data) {
 
 export function deleteEvent(id) {
   return request({
-    url: `/sports/event/${id}`,
+    url: `/event/${id}`,
     method: 'delete'
   })
 }
 
 export function updateEvent(id, data) {
   return request({
-    url: `/sports/event/${id}`,
+    url: `/event/${id}`,
     method: 'put',
     data
   })
@@ -33,7 +33,7 @@ export function updateEvent(id, data) {
 
 export function changeEventStatus(id, status) {
   return request({
-    url: `/sports/event/${id}/status`,
+    url: `/event/${id}/status`,
     method: 'put',
     params: { status }
   })
@@ -41,35 +41,35 @@ export function changeEventStatus(id, status) {
 
 export function getEventById(id) {
   return request({
-    url: `/sports/event/${id}`,
+    url: `/event/${id}`,
     method: 'get'
   })
 }
 
 export function getNewTenEvents() {
   return request({
-    url: '/sports/event/newTen',
+    url: '/event/newTen',
     method: 'get'
   })
 }
 
 export function getEventTypes() {
   return request({
-    url: '/sports/event/getEventType',
+    url: '/event/getEventType',
     method: 'get'
   })
 }
 
 export function getChartData(date) {
   return request({
-    url: `/sports/event/chart/${date}`,
+    url: `/event/chart/${date}`,
     method: 'get'
   })
 }
 
 export function getTotalEvents() {
   return request({
-    url: '/sports/event/total',
+    url: '/event/total',
     method: 'get'
   })
 }

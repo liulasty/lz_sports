@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import router from '@/router'
 import { useUserStore } from '@/stores/user'
 
@@ -7,6 +7,14 @@ const service = axios.create({
   baseURL: '/api', // Proxy target
   timeout: 5000
 })
+
+// HTTP status code mapping
+const errorCode = {
+  '401': '认证失败，无法访问系统资源',
+  '403': '当前操作没有权限',
+  '404': '访问资源不存在',
+  'default': '系统未知错误，请反馈给管理员'
+}
 
 // Request Interceptor
 service.interceptors.request.use(
@@ -26,33 +34,48 @@ service.interceptors.request.use(
 service.interceptors.response.use(
   (response) => {
     const res = response.data
-    // Assuming backend returns { code: 200, data: ..., msg: ... }
-    // Or { code: 1, data: ... } based on original Result class
-    // Let's check Result.java: code 1 is success, 0 is error.
-    
-    if (res.code !== 1) {
-      ElMessage.error(res.msg || 'Error')
-      
-      // 401 or specific code for token expiration?
-      // Original project might not have specific code for 401, but usually 0 is error.
-      // If token invalid, backend might throw 403 or 401 HTTP status?
-      // JwtAuthenticationFilter doesn't set status, just logs error and continues.
-      // Spring Security will return 403 if not authenticated.
-      return Promise.reject(new Error(res.msg || 'Error'))
-    } else {
+    // 兼容部分非 Result 结构的响应（如直接返回二进制流）
+    if (response.config.responseType === 'blob') {
       return res
     }
+
+    // 200: 成功
+    if (res.code === 200) {
+      return res
+    }
+    
+    // 处理业务错误码
+    const msg = res.msg || errorCode[res.code] || errorCode['default']
+    
+    // 401: 未登录
+    if (res.code === 401) {
+       ElMessageBox.confirm('登录状态已过期，您可以继续留在该页面，或者重新登录', '系统提示', {
+          confirmButtonText: '重新登录',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      ).then(() => {
+        const userStore = useUserStore()
+        userStore.logout()
+        router.push('/login')
+      }).catch(() => {})
+      return Promise.reject(new Error('无效的会话，或者会话已过期，请重新登录。'))
+    }
+    
+    // 500: 服务器错误; 400: 参数错误; 403: 无权限; 409: 业务冲突
+    ElMessage.error(msg)
+    return Promise.reject(new Error(msg))
   },
   (error) => {
-    if (error.response && error.response.status === 403) {
-      // Token expired or invalid
-      const userStore = useUserStore()
-      userStore.logout()
-      router.push('/login')
-      ElMessage.error('登录已过期，请重新登录')
-    } else {
-      ElMessage.error(error.message || 'Request Error')
+    let { message } = error;
+    if (message == "Network Error") {
+      message = "后端接口连接异常";
+    } else if (message.includes("timeout")) {
+      message = "系统接口请求超时";
+    } else if (message.includes("Request failed with status code")) {
+      message = "系统接口" + message.substr(message.length - 3) + "异常";
     }
+    ElMessage.error(message)
     return Promise.reject(error)
   }
 )

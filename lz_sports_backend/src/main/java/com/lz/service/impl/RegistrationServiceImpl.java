@@ -41,9 +41,10 @@ import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 
 @Service
-@Slf4j
 @RequiredArgsConstructor
 public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Registration> implements RegistrationService {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(RegistrationServiceImpl.class);
 
     private final RegistrationMapper registrationMapper;
     private final AthleteMapper athleteMapper; // Note: athleteMapper now maps to sys_user, need verification
@@ -83,13 +84,13 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
                     }
             
                     // 1. Check Event Status
-                    if (event.getStatus() != EventStatus.PUBLISHED) {
+                    if (event.getEventStatus() != EventStatus.OPEN) {
                         throw new BusinessException("赛事未发布或已结束，无法报名");
                     }
             
                     // 2. Check Registration Deadline
                     Date now = new Date();
-                    if (event.getRegistrationDeadline() != null && now.after(event.getRegistrationDeadline())) {
+                    if (event.getRegistrationEndTime() != null && now.after(event.getRegistrationEndTime())) {
                         throw new BusinessException("报名已截止");
                     }
             
@@ -163,7 +164,9 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
         RegistrationAndAthleteDTO dto = new RegistrationAndAthleteDTO();
         dto.setId(r.getRegistrationId());
         dto.setApplyTime(r.getRegistrationTime());
-        dto.setStatus(r.getRegistrationStatus().getStatus());
+        if (r.getRegistrationStatus() != null) {
+            dto.setStatus(r.getRegistrationStatus().getStatus());
+        }
 
         Athlete athlete = athleteMapper.selectById(r.getAthleteId());
         if (athlete != null) {
@@ -187,7 +190,9 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
             dto.setItemName(project.getItemName());
             dto.setNum(project.getAttendance());
             dto.setMaxNum(project.getMaxAttendance());
-            dto.setLimitation(project.getLimitation());
+            if (project.getLimitation() != null) {
+                dto.setLimitation(project.getLimitation().getLimit());
+            }
             dto.setGrade(project.getGrade());
         }
 

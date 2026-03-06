@@ -23,12 +23,13 @@ import java.util.Date;
  * 报名管理控制器
  * 处理赛事报名的申请、审核、查询及导出
  */
-@Slf4j
 @RestController
-@RequestMapping("sports/registration")
+@RequestMapping("/api/registration")
 @RequiredArgsConstructor
 @Tag(name = "报名管理", description = "赛事报名、审核与导出")
 public class RegistrationController {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(RegistrationController.class);
 
     private final RegistrationService registrationService;
     private final AthleteMapper athleteMapper;

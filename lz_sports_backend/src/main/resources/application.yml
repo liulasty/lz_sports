@@ -24,13 +24,13 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       database: ${REDIS_DB:0}
-      password: ${REDIS_PASSWORD:}
+      password: ${REDIS_PASSWORD:!Theworld1949}
 
   mail:
     host: ${MAIL_HOST:smtp.qq.com}
     port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:your-email@qq.com}
-    password: ${MAIL_PASSWORD:your-auth-code}
+    username: ${MAIL_USERNAME:2312034544@qq.com}
+    password: ${MAIL_PASSWORD:jpsvzykypsbndjae}
     protocol: smtp
     default-encoding: UTF-8
     properties:
@@ -42,17 +42,17 @@ spring:
             required: true
 
 mybatis-plus:
-  configuration:
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
-    map-underscore-to-camel-case: true
   mapper-locations: classpath:mapper/*.xml
+  type-enums-package: com.lz.common.enums
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   global-config:
     db-config:
       id-type: auto
       logic-delete-field: deleted
       logic-delete-value: 1
       logic-not-delete-value: 0
-  type-enums-package: com.lz.common.enums
 
 # Custom Config
 jwt:

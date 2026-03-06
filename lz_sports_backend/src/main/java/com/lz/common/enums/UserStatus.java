@@ -6,10 +6,10 @@ import lombok.Getter;
 
 @Getter
 public enum UserStatus {
-    ACTIVE("已激活"),
-    DISABLED("未启用"),
-    PENDING("待审核"),
-    REJECTED("已拒绝");
+    ACTIVE("ACTIVE"),
+    DISABLED("DISABLED"),
+    PENDING("PENDING"),
+    REJECTED("REJECTED");
 
     @EnumValue
     @JsonValue

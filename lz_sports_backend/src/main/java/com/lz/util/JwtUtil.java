@@ -14,7 +14,7 @@ public class JwtUtil {
     public static String genToken(Map<String, Object> claims, String key) {
         return JWT.create()
                 .withClaim("claims", claims)
-                .withExpiresAt(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 12)) // 12 hours
+                .withExpiresAt(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24 * 7)) // 7 days
                 .sign(Algorithm.HMAC256(key));
     }
 
@@ -24,5 +24,17 @@ public class JwtUtil {
                 .verify(token)
                 .getClaim("claims")
                 .asMap();
+    }
+
+    public static boolean isExpired(String token, String key) {
+        try {
+            Date expiresAt = JWT.require(Algorithm.HMAC256(key))
+                    .build()
+                    .verify(token)
+                    .getExpiresAt();
+            return expiresAt.before(new Date());
+        } catch (Exception e) {
+            return true;
+        }
     }
 }
