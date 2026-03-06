@@ -32,7 +32,9 @@ public class SchoolConfigServiceImpl extends ServiceImpl<SchoolConfigMapper, Sch
 
     @Override
     public boolean isInitialized() {
-        return this.count() > 0;
+        // 仅当存在配置且 is_initialized 为 true 时才视为已初始化
+        return this.count(new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<SchoolConfig>()
+                .eq(SchoolConfig::getIsInitialized, true)) > 0;
     }
 
     @Override
@@ -43,16 +45,26 @@ public class SchoolConfigServiceImpl extends ServiceImpl<SchoolConfigMapper, Sch
             throw new RuntimeException("系统已初始化，请勿重复操作");
         }
 
-        // 2. Save School Config
-        SchoolConfig schoolConfig = new SchoolConfig();
+        // 2. Save or Update School Config
+        SchoolConfig schoolConfig;
+        SchoolConfig existingConfig = this.getOne(new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<SchoolConfig>()
+                .last("LIMIT 1"));
+        
+        if (existingConfig != null) {
+            schoolConfig = existingConfig;
+        } else {
+            schoolConfig = new SchoolConfig();
+            schoolConfig.setCreateTime(LocalDateTime.now());
+        }
+        
         schoolConfig.setSchoolName(schoolInitDTO.getSchoolName());
         schoolConfig.setLogoUrl(schoolInitDTO.getLogoUrl());
         schoolConfig.setThemeColor(schoolInitDTO.getThemeColor());
         schoolConfig.setContactEmail(schoolInitDTO.getContactEmail());
         schoolConfig.setIsInitialized(true); // Set initialized flag
-        schoolConfig.setCreateTime(LocalDateTime.now());
         schoolConfig.setUpdateTime(LocalDateTime.now());
-        this.save(schoolConfig);
+        
+        this.saveOrUpdate(schoolConfig);
         Long schoolId = schoolConfig.getId();
 
         // Initialize Admin User

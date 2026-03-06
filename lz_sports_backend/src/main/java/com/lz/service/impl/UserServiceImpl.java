@@ -33,6 +33,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * User Service Implementation
@@ -77,7 +78,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Transactional(rollbackFor = Exception.class)
     public void register(UserRegisterDTO userRegisterDTO) {
         // Check verification code
-        String code = (String) redisUtil.get("REGISTER_CODE:" + userRegisterDTO.getEmail());
+        String key = "code:REGISTER:" + userRegisterDTO.getEmail();
+        Object codeObj = redisUtil.get(key);
+        String code = codeObj != null ? codeObj.toString() : null;
+        
         if (code == null || !code.equals(userRegisterDTO.getCode())) {
             throw new BusinessException("验证码错误或已过期");
         }
@@ -108,7 +112,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         userMapper.insert(user);
         
         // Remove code from redis
-        redisUtil.del("REGISTER_CODE:" + userRegisterDTO.getEmail());
+        redisUtil.del(key);
     }
 
     @Override
@@ -126,9 +130,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
 
         String code = MailUtils.generateCode();
-        redisUtil.set("REGISTER_CODE:" + email, code, 300); // 5 minutes
+        String key = "code:REGISTER:" + email;
+        redisUtil.set(key, code, 5, TimeUnit.MINUTES);
         
-        mailUtils.sendMail(email, "注册验证码", "您的验证码是: " + code + "，有效期5分钟。");
+        mailUtils.sendHtmlMail(email, "注册验证码", "您的验证码是: " + code + "，有效期5分钟。");
     }
 
     @Override
@@ -137,13 +142,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (user == null) {
             throw new BusinessException("用户不存在");
         }
-        
+
         if (status == 1) {
             user.setStatus(UserStatus.ACTIVE);
-            mailUtils.sendMail(user.getEmail(), "账号审核通过", "您的账号已通过审核，现在可以登录系统了。");
+            // 调用新的审核通知方法
+            mailUtils.sendAuditResultMail(user.getEmail(), true, null);
         } else {
             user.setStatus(UserStatus.REJECTED);
-            mailUtils.sendMail(user.getEmail(), "账号审核拒绝", "很遗憾，您的账号审核未通过。原因: " + reason);
+            // 调用新的审核通知方法
+            mailUtils.sendAuditResultMail(user.getEmail(), false, reason);
         }
         userMapper.updateById(user);
     }

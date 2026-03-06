@@ -2,6 +2,7 @@ package com.lz.service.impl;
 
 import com.lz.common.exception.BusinessException;
 import com.lz.service.EmailService;
+
 import com.lz.util.MailUtils;
 import com.lz.util.RedisUtil;
 import lombok.RequiredArgsConstructor;
@@ -51,7 +52,7 @@ public class EmailServiceImpl implements EmailService {
         // 3. 发送邮件
         String title = "LZ Sports 验证码";
         String content = "您的验证码是：" + code + "，有效期 " + CODE_EXPIRE_MINUTES + " 分钟。请勿泄露给他人。";
-        mailUtils.sendMail(email, title, content);
+        mailUtils.sendHtmlMail(email, title, content);
     }
 
     @Override

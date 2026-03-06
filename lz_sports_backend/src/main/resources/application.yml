@@ -2,7 +2,7 @@ server:
   port: 8080
   # 配置上下文路径
   servlet:
-    context-path: /api
+    context-path: /
 
 spring:
   application:
@@ -25,6 +25,11 @@ spring:
       port: ${REDIS_PORT:6379}
       database: ${REDIS_DB:0}
       password: ${REDIS_PASSWORD:!Theworld1949}
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:sql/lz_sports.sql
+      data-locations: classpath:sql/data.sql
 
   mail:
     host: ${MAIL_HOST:smtp.qq.com}
