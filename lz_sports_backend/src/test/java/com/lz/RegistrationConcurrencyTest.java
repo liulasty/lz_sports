@@ -1,18 +1,14 @@
 package com.lz;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.lz.common.enums.EventStatus;
 import com.lz.common.enums.GenderLimit;
 import com.lz.entity.Event;
 import com.lz.entity.Project;
-import com.lz.entity.Registration;
-import com.lz.entity.User;
 import com.lz.mapper.EventMapper;
 import com.lz.mapper.ProjectMapper;
 import com.lz.mapper.RegistrationMapper;
 import com.lz.mapper.UserMapper;
 import com.lz.service.RegistrationService;
-import com.lz.service.UserService;
 import com.lz.common.context.BaseContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,9 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -80,7 +74,6 @@ public class RegistrationConcurrencyTest {
         project.setMaxAttendance(MAX_ATTENDANCE);
         project.setAttendance(0);
         project.setLimitation(GenderLimit.ALL);
-        project.setSchoolId(1L);
         projectMapper.insert(project);
         this.projectId = project.getId();
         
