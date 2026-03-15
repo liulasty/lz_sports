@@ -48,7 +48,7 @@ public class ScoreImportListener implements ReadListener<ScoreImportVO> {
         }
 
         Score score = new Score();
-        score.setRegistrationId(r.getRegistrationId());
+        score.setRegistrationId(r.getId());
         score.setEventId(r.getEventId());
         score.setItemId(r.getItemId());
         score.setAthleteId(r.getAthleteId()); // Changed from setUserId to setAthleteId

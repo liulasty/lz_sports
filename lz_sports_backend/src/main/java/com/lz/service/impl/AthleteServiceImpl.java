@@ -41,7 +41,7 @@ public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> impl
         athlete.setApplyTime(LocalDateTime.now());
         
         save(athlete);
-        return String.valueOf(athlete.getAthleteId());
+        return String.valueOf(athlete.getId());
     }
 
     @Override

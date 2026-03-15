@@ -71,7 +71,7 @@ public class RegistrationConcurrencyTest {
         event.setRegistrationEndTime(new Date(System.currentTimeMillis() + 86400000)); // +1 day
         event.setSchoolId(1L);
         eventMapper.insert(event);
-        this.eventId = event.getEventId();
+        this.eventId = event.getId();
 
         // 2. Create Project with limited slots
         Project project = new Project();
@@ -82,7 +82,7 @@ public class RegistrationConcurrencyTest {
         project.setLimitation(GenderLimit.ALL);
         project.setSchoolId(1L);
         projectMapper.insert(project);
-        this.projectId = project.getItemId();
+        this.projectId = project.getId();
         
         // 3. Ensure enough users exist (mock users)
         // In real test, we might need to mock BaseContext or login

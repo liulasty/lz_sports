@@ -1,93 +1,47 @@
 package com.lz.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.Data;
+import lombok.*;
 
-import java.io.Serializable;
-import java.time.LocalDateTime;
-
+/**
+ * 学校配置实体类
+ */
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@Data
+@EqualsAndHashCode(callSuper = true)
 @TableName("school_config")
-public class SchoolConfig implements Serializable {
-    @TableId(value = "id", type = IdType.AUTO)
-    private Long id;
-    @TableField("name")
+public class SchoolConfig extends SchoolRelatedEntity<Long> {
+
+    /**
+     * 学校名称
+     */
+    @TableField("school_name")
     private String schoolName;
+
+    /**
+     * logo地址
+     */
+    @TableField("logo_url")
     private String logoUrl;
+
+    /**
+     * 主题色
+     */
+    @TableField("theme_color")
     private String themeColor;
+
+    /**
+     * 联系邮箱
+     */
+    @TableField("contact_email")
     private String contactEmail;
-    
+
+    /**
+     * 是否初始化
+     */
     @TableField("is_initialized")
-    private boolean isInitialized;
-    
-    private LocalDateTime createTime;
-    private LocalDateTime updateTime;
-
-    public SchoolConfig() {}
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getSchoolName() {
-        return schoolName;
-    }
-
-    public void setSchoolName(String schoolName) {
-        this.schoolName = schoolName;
-    }
-
-    public String getLogoUrl() {
-        return logoUrl;
-    }
-
-    public void setLogoUrl(String logoUrl) {
-        this.logoUrl = logoUrl;
-    }
-
-    public String getThemeColor() {
-        return themeColor;
-    }
-
-    public void setThemeColor(String themeColor) {
-        this.themeColor = themeColor;
-    }
-
-    public String getContactEmail() {
-        return contactEmail;
-    }
-
-    public void setContactEmail(String contactEmail) {
-        this.contactEmail = contactEmail;
-    }
-
-    public boolean getIsInitialized() {
-        return isInitialized;
-    }
-
-    public void setIsInitialized(boolean isInitialized) {
-        this.isInitialized = isInitialized;
-    }
-
-    public LocalDateTime getCreateTime() {
-        return createTime;
-    }
-
-    public void setCreateTime(LocalDateTime createTime) {
-        this.createTime = createTime;
-    }
-
-    public LocalDateTime getUpdateTime() {
-        return updateTime;
-    }
-
-    public void setUpdateTime(LocalDateTime updateTime) {
-        this.updateTime = updateTime;
-    }
+    private boolean initialized;
 }

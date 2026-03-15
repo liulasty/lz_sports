@@ -1,5 +1,7 @@
 package com.lz.config;
 
+import com.lz.common.exception.CustomAccessDeniedHandler;
+import com.lz.common.exception.CustomAuthenticationEntryPoint;
 import com.lz.filter.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -20,18 +22,48 @@ import java.util.Collections;
 
 /**
  * Spring Security Configuration
- * 整合所有 Security 规则，解决 Knife4j 403 问题
+ * 核心职责：仅配置框架基础规则，放行/拦截逻辑由JwtAuthenticationFilter统一处理
  */
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity
+@EnableMethodSecurity // 开启@PreAuthorize注解支持
 public class SecurityConfig {
 
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    @Autowired
+    private CustomAuthenticationEntryPoint authenticationEntryPoint;
+
+    @Autowired
+    private CustomAccessDeniedHandler accessDeniedHandler;
+
     /**
-     * 单例 SecurityFilterChain：整合所有放行规则，避免多 Bean 冲突
+     * 公开路径列表（与JwtAuthenticationFilter保持一致）
+     */
+    private static final String[] PUBLIC_PATHS = {
+            // 认证相关
+            "/api/auth/login",
+            "/api/auth/register",
+            "/api/auth/send-code",
+            "/api/auth/verify-code",
+            "/api/auth/reset-password",
+            // 系统初始化
+            "/api/system/init-status",
+            "/api/system/init",
+            // 公共接口（支持子路径）
+            "/api/public/**",
+            // Swagger/Knife4j文档
+            "/doc.html",
+            "/webjars/**",
+            "/v3/api-docs/**",
+            "/swagger-resources/**",
+            "/swagger-ui/**",
+            "/favicon.ico"
+    };
+
+    /**
+     * 单例 SecurityFilterChain：移除所有放行规则，仅保留基础配置
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -42,29 +74,18 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 // 无状态会话（JWT 认证）
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // 授权规则配置（核心：整合所有放行路径）
+                // ========== 新增：配置异常处理器 ==========
+                .exceptionHandling(exception -> exception
+                        // 认证异常处理器（401）
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        // 授权异常处理器（403）
+                        .accessDeniedHandler(accessDeniedHandler)
+                )
+                // ===== 关键修改：配置请求授权 =====
                 .authorizeHttpRequests(auth -> auth
-                        // 1. 放行 Knife4j/Swagger 所有相关路径（解决 403 关键）
-                        .requestMatchers(
-                                "/doc.html",          // Knife4j 主页面
-                                "/webjars/**",        // Knife4j 前端静态资源（CSS/JS/图片）
-                                "/v3/api-docs/**",    // OpenAPI 接口文档数据
-                                "/swagger-resources/**", // Swagger 资源配置
-                                "/swagger-ui/**",      // Swagger UI 备用路径
-                                "/favicon.ico"
-                        ).permitAll()
-                        // 2. 放行业务接口（登录/注册/初始化/验证码）
-                        .requestMatchers(
-                                "/api/auth/login",
-                                "/api/auth/register",
-                                "/api/auth/send-code",
-                                "/api/auth/verify-code",
-                                "/api/auth/reset-password",
-                                "/api/system/init-status",
-                                "/api/system/init",
-                                "/api/public/**"
-                        ).permitAll()
-                        // 3. 其他所有请求需要认证
+                        // 1. 公开路径不需要认证
+                        .requestMatchers(PUBLIC_PATHS).permitAll()
+                        // 2. 其他所有请求需要认证
                         .anyRequest().authenticated()
                 )
                 // 添加 JWT 过滤器（在用户名密码过滤器之前）
@@ -79,7 +100,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // 允许所有域名（生产环境建议指定具体域名）
+        // 允许所有域名（生产环境建议指定具体域名，如https://xxx.com）
         configuration.setAllowedOriginPatterns(Collections.singletonList("*"));
         // 允许的请求方法
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
@@ -87,6 +108,8 @@ public class SecurityConfig {
         configuration.setAllowedHeaders(Collections.singletonList("*"));
         // 允许携带凭证（Cookie）
         configuration.setAllowCredentials(true);
+        // 预检请求缓存时间（减少OPTIONS请求）
+        configuration.setMaxAge(3600L);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         // 对所有路径生效
         source.registerCorsConfiguration("/**", configuration);

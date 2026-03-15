@@ -1,6 +1,7 @@
 package com.lz.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.lz.common.enums.UserRole;
 import com.lz.common.enums.UserStatus;
 import com.lz.dto.SchoolInitDTO;
@@ -33,8 +34,8 @@ public class SchoolConfigServiceImpl extends ServiceImpl<SchoolConfigMapper, Sch
     @Override
     public boolean isInitialized() {
         // 仅当存在配置且 is_initialized 为 true 时才视为已初始化
-        return this.count(new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<SchoolConfig>()
-                .eq(SchoolConfig::getIsInitialized, true)) > 0;
+        return this.count(new LambdaQueryWrapper<SchoolConfig>()
+                .eq(SchoolConfig::isInitialized, true)) > 1;
     }
 
     @Override
@@ -47,7 +48,7 @@ public class SchoolConfigServiceImpl extends ServiceImpl<SchoolConfigMapper, Sch
 
         // 2. Save or Update School Config
         SchoolConfig schoolConfig;
-        SchoolConfig existingConfig = this.getOne(new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<SchoolConfig>()
+        SchoolConfig existingConfig = this.getOne(new LambdaQueryWrapper<SchoolConfig>()
                 .last("LIMIT 1"));
         
         if (existingConfig != null) {
@@ -61,7 +62,8 @@ public class SchoolConfigServiceImpl extends ServiceImpl<SchoolConfigMapper, Sch
         schoolConfig.setLogoUrl(schoolInitDTO.getLogoUrl());
         schoolConfig.setThemeColor(schoolInitDTO.getThemeColor());
         schoolConfig.setContactEmail(schoolInitDTO.getContactEmail());
-        schoolConfig.setIsInitialized(true); // Set initialized flag
+        // Set initialized flag
+        schoolConfig.setInitialized(true);
         schoolConfig.setUpdateTime(LocalDateTime.now());
         
         this.saveOrUpdate(schoolConfig);

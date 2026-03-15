@@ -2,6 +2,7 @@ package com.lz.common.exception;
 
 import com.lz.common.result.Result;
 import com.lz.common.result.ResultCode;
+import com.lz.util.PreAuthorizeParserUtil;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
@@ -84,7 +85,20 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public Result<String> accessDeniedException(AccessDeniedException e) {
         log.warn("Access Denied: {}", e.getMessage());
-        return Result.error(ResultCode.FORBIDDEN, "无权限操作");
+
+        // 1. 提取当前接口要求的权限
+        String requiredAuthority = PreAuthorizeParserUtil.getRequiredAuthority();
+
+        // 2. 拼接精准提示
+        String message;
+        if (requiredAuthority != null) {
+            message = String.format("无[%s]权限，无法操作", requiredAuthority);
+        } else {
+            message = "无权限操作"; // 兜底提示
+        }
+
+        // 3. 返回带权限信息的结果
+        return Result.error(ResultCode.FORBIDDEN, message);
     }
 
     // 处理静态资源未找到异常（过滤 Knife4j 和 favicon 相关路径）

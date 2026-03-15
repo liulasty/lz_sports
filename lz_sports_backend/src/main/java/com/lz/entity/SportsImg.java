@@ -1,32 +1,39 @@
 package com.lz.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 /**
- * Sports Image Entity
+ * 运动图片实体类
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode(callSuper = true)
 @TableName("sportsimg")
-public class SportsImg {
-    @TableId(value = "ImgId", type = IdType.AUTO)
-    private Long imgId;
+public class SportsImg extends BaseEntity<Long> {
 
-    @TableField("ImgType")
+    /**
+     * 图片类型
+     */
+    @TableField("img_type")
     private String imgType;
 
-    @TableField("typeId")
+    /**
+     * 类型关联ID
+     */
+    @TableField("type_id")
     private Long typeId;
 
-    @TableField("ImgSrc")
+    /**
+     * 图片路径
+     */
+    @TableField("img_src")
     private String imgSrc;
 }

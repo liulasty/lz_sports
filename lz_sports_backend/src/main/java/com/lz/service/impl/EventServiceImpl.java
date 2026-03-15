@@ -76,7 +76,7 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
             
             // Assign creator as admin automatically
             EventAdminMapping selfMapping = new EventAdminMapping();
-            selfMapping.setEventId(event.getEventId());
+            selfMapping.setEventId(event.getId());
             selfMapping.setUserId(currentUserId);
             selfMapping.setCreateTime(LocalDateTime.now());
             eventAdminMappingMapper.insert(selfMapping);
@@ -86,7 +86,7 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
                 for (String url : eventDTO.getAddImage()) {
                     SportsImg sportsImg = new SportsImg();
                     sportsImg.setImgType("event");
-                    sportsImg.setTypeId(event.getEventId());
+                    sportsImg.setTypeId(event.getId());
                     sportsImg.setImgSrc(url);
                     sportsImgService.addSrc(sportsImg);
                 }
@@ -99,7 +99,7 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
                     if (userId.equals(currentUserId)) continue;
                     
                     EventAdminMapping mapping = new EventAdminMapping();
-                    mapping.setEventId(event.getEventId());
+                    mapping.setEventId(event.getId());
                     mapping.setUserId(userId);
                     mapping.setCreateTime(LocalDateTime.now());
                     eventAdminMappingMapper.insert(mapping);
@@ -154,7 +154,7 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
                     if (eventIds.isEmpty()) {
                         return new PageResult(0, List.of());
                     }
-                    lqw.in(Event::getEventId, eventIds);
+                    lqw.in(Event::getId, eventIds);
                 } else {
                     // Athletes/Others see only PUBLISHED events
                     // Or maybe check if public endpoint allows seeing DRAFT? Assuming no.
@@ -171,9 +171,9 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
         eventMapper.selectPage(page, lqw);
 
         List<EventVO> eventVOS = page.getRecords().stream().map(event -> {
-            List<String> imageUrls = sportsImgService.selectImgs(event.getEventId(), "event");
+            List<String> imageUrls = sportsImgService.selectImgs(event.getId(), "event");
             return EventVO.builder()
-                    .id(event.getEventId())
+                    .id(event.getId())
                     .name(event.getEventName())
                     .fee("0") // .fee(String.valueOf(event.getRegistrationFee()))
                     .type(event.getEventDescription())
@@ -223,7 +223,7 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
         List<Project> projects = projectMapper.selectList(projectLqw);
 
         if (!projects.isEmpty()) {
-            List<Long> projectIds = projects.stream().map(Project::getItemId).collect(Collectors.toList());
+            List<Long> projectIds = projects.stream().map(Project::getId).collect(Collectors.toList());
             LambdaQueryWrapper<Registration> regLqw = new LambdaQueryWrapper<>();
             regLqw.in(Registration::getItemId, projectIds);
             Long count = registrationMapper.selectCount(regLqw);

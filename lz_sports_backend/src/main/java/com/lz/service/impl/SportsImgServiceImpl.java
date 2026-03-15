@@ -1,5 +1,6 @@
 package com.lz.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lz.common.exception.BusinessException;
@@ -49,9 +50,9 @@ public class SportsImgServiceImpl extends ServiceImpl<SportsImgMapper, SportsImg
 
     @Override
     public String selectImg(Long userId, String avatar) {
-        QueryWrapper<SportsImg> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("ImgType", avatar)
-                .eq("typeId", userId);
+        LambdaQueryWrapper<SportsImg> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SportsImg::getImgType, avatar)
+                .eq(SportsImg::getTypeId, userId);
         SportsImg sportsImg = sportsImgMapper.selectOne(queryWrapper);
         
         if (sportsImg == null) {

@@ -56,7 +56,7 @@ public class RegistrationController {
         if (athlete == null) {
             return Result.success(registrationService.list(currentPage, pageSize, name, status, queryDate));
         } else {
-            return Result.success(registrationService.listByAthlete(currentPage, pageSize, name, status, queryDate, athlete.getAthleteId()));
+            return Result.success(registrationService.listByAthlete(currentPage, pageSize, name, status, queryDate, athlete.getId()));
         }
     }
 
@@ -97,7 +97,7 @@ public class RegistrationController {
      * 管理员审核通过报名申请
      */
     @PutMapping("/attend/{id}")
-    @PreAuthorize("hasAuthority('SCHOOL_ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_SCHOOL_ADMIN')")
     @Operation(summary = "同意报名", description = "管理员审核通过报名申请")
     public Result<String> attend(@Parameter(description = "报名ID") @PathVariable Long id) {
         registrationService.approve(id);

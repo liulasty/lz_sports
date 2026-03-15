@@ -19,7 +19,7 @@ public class BackendApplication {
         SpringApplication.run(BackendApplication.class, args);
         //http://localhost:8080/swagger-ui/index.html 或 http://localhost:8080/doc.html (取决于具体集成方式，当前配置支持标准 Swagger UI)。
         log.info("Backend Application Started!");
-        log.info("Swagger UI: http://localhost:8080/api/swagger-ui/index.html");
-        log.info("http://localhost:8080/api/doc.html#/home");
+        log.info("Swagger UI: http://localhost:8080/swagger-ui/index.html");
+        log.info("http://localhost:8080/doc.html#/home");
     }
 }

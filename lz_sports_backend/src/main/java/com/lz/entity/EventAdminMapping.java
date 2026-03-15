@@ -1,52 +1,29 @@
 package com.lz.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.Data;
+import lombok.*;
 
-import java.io.Serializable;
-import java.time.LocalDateTime;
-
+/**
+ * 赛事管理员关联实体类
+ */
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@Data
+@EqualsAndHashCode(callSuper = true)
 @TableName("event_admin_mapping")
-public class EventAdminMapping implements Serializable {
-    @TableId(value = "id", type = IdType.AUTO)
-    private Long id;
+public class EventAdminMapping extends BaseEntity<Long> {
+
+    /**
+     * 赛事ID
+     */
+    @TableField("event_id")
     private Long eventId;
+
+    /**
+     * 用户ID
+     */
+    @TableField("user_id")
     private Long userId;
-    private LocalDateTime createTime;
-
-    public EventAdminMapping() {}
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public Long getEventId() {
-        return eventId;
-    }
-
-    public void setEventId(Long eventId) {
-        this.eventId = eventId;
-    }
-
-    public Long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
-
-    public LocalDateTime getCreateTime() {
-        return createTime;
-    }
-
-    public void setCreateTime(LocalDateTime createTime) {
-        this.createTime = createTime;
-    }
 }

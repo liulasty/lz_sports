@@ -1,144 +1,74 @@
 package com.lz.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.lz.common.enums.AthleteStatus;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
-import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * Athlete Entity
+ * 运动员实体类
  */
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(callSuper = true)
 @TableName("athlete")
-public class Athlete implements Serializable {
+public class Athlete extends BaseEntity<Long> {
 
-    @TableId(value = "AthleteID", type = IdType.AUTO)
-    private Long athleteId;
-
-    @TableField(value = "UserID")
+    /**
+     * 用户ID
+     */
+    @TableField("user_id")
     private Long userId;
 
-    @TableField(value = "Name")
+    /**
+     * 姓名
+     */
+    @TableField("name")
     private String name;
 
-    @TableField(value = "Age")
+    /**
+     * 年龄
+     */
+    @TableField("age")
     private String age;
 
-    @TableField(value = "Gender")
+    /**
+     * 性别
+     */
+    @TableField("gender")
     private String gender;
 
-    @TableField(value = "Contact")
+    /**
+     * 联系方式
+     */
+    @TableField("contact")
     private String contact;
 
-    @TableField(value = "AthleteState")
+    /**
+     * 运动员状态
+     */
+    @TableField("athlete_state")
     private AthleteStatus athleteState;
 
-    @TableField(value = "applyTime")
+    /**
+     * 申请时间
+     */
+    @TableField("apply_time")
     private LocalDateTime applyTime;
 
-    @TableField(value = "agreeTime")
+    /**
+     * 审核通过时间
+     */
+    @TableField("agree_time")
     private LocalDateTime agreeTime;
 
-    @TableField(value = "grade")
+    /**
+     * 年级
+     */
+    @TableField("grade")
     private String grade;
-
-    @TableField(value = "school_id")
-    private Long schoolId;
-
-    public Athlete() {}
-
-    public Long getAthleteId() {
-        return athleteId;
-    }
-
-    public void setAthleteId(Long athleteId) {
-        this.athleteId = athleteId;
-    }
-
-    public Long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getAge() {
-        return age;
-    }
-
-    public void setAge(String age) {
-        this.age = age;
-    }
-
-    public String getGender() {
-        return gender;
-    }
-
-    public void setGender(String gender) {
-        this.gender = gender;
-    }
-
-    public String getContact() {
-        return contact;
-    }
-
-    public void setContact(String contact) {
-        this.contact = contact;
-    }
-
-    public AthleteStatus getAthleteState() {
-        return athleteState;
-    }
-
-    public void setAthleteState(AthleteStatus athleteState) {
-        this.athleteState = athleteState;
-    }
-
-    public LocalDateTime getApplyTime() {
-        return applyTime;
-    }
-
-    public void setApplyTime(LocalDateTime applyTime) {
-        this.applyTime = applyTime;
-    }
-
-    public LocalDateTime getAgreeTime() {
-        return agreeTime;
-    }
-
-    public void setAgreeTime(LocalDateTime agreeTime) {
-        this.agreeTime = agreeTime;
-    }
-
-    public String getGrade() {
-        return grade;
-    }
-
-    public void setGrade(String grade) {
-        this.grade = grade;
-    }
-
-    public Long getSchoolId() {
-        return schoolId;
-    }
-
-    public void setSchoolId(Long schoolId) {
-        this.schoolId = schoolId;
-    }
 }

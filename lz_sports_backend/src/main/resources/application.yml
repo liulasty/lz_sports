@@ -27,7 +27,7 @@ spring:
       password: ${REDIS_PASSWORD:!Theworld1949}
   sql:
     init:
-      mode: always
+      mode: embedded
       schema-locations: classpath:sql/lz_sports.sql
       data-locations: classpath:sql/data.sql
 

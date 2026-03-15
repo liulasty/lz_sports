@@ -96,7 +96,7 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
             
                     // 3. Check Duplicate Registration
                     LambdaQueryWrapper<Registration> lqw = new LambdaQueryWrapper<>();
-                    lqw.eq(Registration::getAthleteId, athlete.getAthleteId());
+                    lqw.eq(Registration::getAthleteId, athlete.getId());
                     lqw.eq(Registration::getItemId, projectId);
                     if (count(lqw) > 0) {
                         throw new BusinessException("您已报名该项目，请勿重复报名");
@@ -116,8 +116,8 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
             
                     // Create Registration
                     Registration registration = new Registration();
-                    registration.setAthleteId(athlete.getAthleteId());
-                    registration.setEventId(event.getEventId());
+                    registration.setAthleteId(athlete.getId());
+                    registration.setEventId(event.getId());
                     registration.setItemId(projectId);
                     registration.setRegistrationTime(now);
                     registration.setRegistrationStatus(RegistrationStatus.PENDING);
@@ -162,7 +162,7 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
         if (r == null) return null;
 
         RegistrationAndAthleteDTO dto = new RegistrationAndAthleteDTO();
-        dto.setId(r.getRegistrationId());
+        dto.setId(r.getId());
         dto.setApplyTime(r.getRegistrationTime());
         if (r.getRegistrationStatus() != null) {
             dto.setStatus(r.getRegistrationStatus().getStatus());
@@ -180,13 +180,13 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
 
         Event event = eventMapper.selectById(r.getEventId());
         if (event != null) {
-            dto.setEventId(event.getEventId());
+            dto.setEventId(event.getId());
             dto.setEventName(event.getEventName());
         }
 
         Project project = projectMapper.selectById(r.getItemId());
         if (project != null) {
-            dto.setItemId(project.getItemId());
+            dto.setItemId(project.getId());
             dto.setItemName(project.getItemName());
             dto.setNum(project.getAttendance());
             dto.setMaxNum(project.getMaxAttendance());

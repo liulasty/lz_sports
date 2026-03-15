@@ -133,7 +133,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         String key = "code:REGISTER:" + email;
         redisUtil.set(key, code, 5, TimeUnit.MINUTES);
         
-        mailUtils.sendHtmlMail(email, "注册验证码", "您的验证码是: " + code + "，有效期5分钟。");
+        mailUtils.sendVerificationCodeMail(email, code);
     }
 
     @Override

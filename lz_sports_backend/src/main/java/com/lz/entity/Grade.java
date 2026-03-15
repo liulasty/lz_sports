@@ -1,18 +1,28 @@
 package com.lz.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.Data;
+import lombok.*;
 
-import java.io.Serializable;
-
+/**
+ * 年级实体类
+ */
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Data
+@EqualsAndHashCode(callSuper = true)
 @TableName("grade")
-public class Grade implements Serializable {
-    @TableId(value = "id", type = IdType.AUTO)
-    private Long id;
+public class Grade extends SchoolRelatedEntity<Long> {
+
+    /**
+     * 年级名称
+     */
     private String name;
-    private Long schoolId;
+
+    /**
+     * 排序序号
+     */
+    @TableField("sort_order")
     private Integer sortOrder;
 }

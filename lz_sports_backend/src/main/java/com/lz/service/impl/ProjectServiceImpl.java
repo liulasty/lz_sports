@@ -60,8 +60,8 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
         if (athlete != null) {
             for (ProjectVO vo : projectVOS) {
                 LambdaQueryWrapper<Registration> qw = new LambdaQueryWrapper<>();
-                qw.eq(Registration::getAthleteId, athlete.getAthleteId())
-                  .eq(Registration::getItemId, vo.getItemId());
+                qw.eq(Registration::getAthleteId, athlete.getId())
+                  .eq(Registration::getItemId, vo.getId());
                 
                 Registration registration = registrationMapper.selectOne(qw);
                 if (registration == null) {
@@ -90,7 +90,7 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
         if (listDto.getType() != null && !listDto.getType().isEmpty()) { 
             LambdaQueryWrapper<Event> eventQw = new LambdaQueryWrapper<>();
             eventQw.like(Event::getEventName, listDto.getType());
-            List<Object> eventIds = eventMapper.selectObjs(eventQw.select(Event::getEventId));
+            List<Object> eventIds = eventMapper.selectObjs(eventQw.select(Event::getId));
             if (eventIds.isEmpty()) {
                 return new PageResult(0, List.of());
             }
@@ -109,7 +109,7 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
         java.util.Map<Long, String> eventNameMap = new java.util.HashMap<>();
         if (!eventIds.isEmpty()) {
             List<Event> events = eventMapper.selectBatchIds(eventIds);
-            eventNameMap = events.stream().collect(Collectors.toMap(Event::getEventId, Event::getEventName));
+            eventNameMap = events.stream().collect(Collectors.toMap(Event::getId, Event::getEventName));
         }
 
         java.util.Map<Long, String> finalEventNameMap = eventNameMap;
@@ -151,7 +151,7 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
     public void update(ProjectDTO projectDTO, Long id) {
         Project project = new Project();
         BeanUtils.copyProperties(projectDTO, project);
-        project.setItemId(id);
+        project.setId(id);
         updateById(project);
     }
 }

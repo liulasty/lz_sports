@@ -1,7 +1,7 @@
 /*
  * LZ Sports Management System Initial Data Script
- * Version: 2.1
- * Date: 2026-03-03
+ * Version: 2.2
+ * Date: 2026-03-06
  * Description: Initial data for Grade, Event, Project, and School Config.
  */
 
@@ -12,7 +12,7 @@ SET FOREIGN_KEY_CHECKS=0;
 -- ----------------------------
 -- 1. Initial School Configuration
 -- ----------------------------
-INSERT INTO `school_config` (`id`, `name`, `logo_url`, `theme_color`, `contact_email`, `is_initialized`, `create_time`) VALUES
+INSERT INTO `school_config` (`id`, `school_name`, `logo_url`, `theme_color`, `contact_email`, `is_initialized`, `create_time`) VALUES
 (1, 'LZ Sports University', NULL, '#409EFF', 'admin@lzsports.com', 0, NOW());
 
 -- ----------------------------
