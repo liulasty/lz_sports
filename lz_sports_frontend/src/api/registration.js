@@ -28,3 +28,10 @@ export function applyProject(projectId) {
     method: 'post'
   })
 }
+
+export function cancelRegistration(id) {
+  return request({
+    url: `/registration/${id}`,
+    method: 'delete'
+  })
+}

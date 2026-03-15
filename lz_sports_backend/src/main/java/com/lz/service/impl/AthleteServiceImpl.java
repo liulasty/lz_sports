@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lz.common.enums.AthleteStatus;
 import com.lz.common.enums.UserRole;
 import com.lz.common.exception.BusinessException;
+import com.lz.common.enums.NotificationType;
 import com.lz.dto.AthleteDTO;
 import com.lz.dto.AthleteUpdateDTO;
 import com.lz.entity.Athlete;
@@ -12,6 +13,7 @@ import com.lz.entity.User;
 import com.lz.mapper.AthleteMapper;
 import com.lz.mapper.UserMapper;
 import com.lz.service.AthleteService;
+import com.lz.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,12 +28,25 @@ import java.time.LocalDateTime;
 public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> implements AthleteService {
 
     private final UserMapper userMapper;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public String add(AthleteDTO athleteDTO) {
+        Long userId = athleteDTO.getUserId();
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        if (user.getUserType() == UserRole.SUPER_ADMIN || user.getUserType() == UserRole.EVENT_ADMIN) {
+            throw new BusinessException("当前角色不可申请运动员", 403);
+        }
+        Athlete exists = baseMapper.selectByUserId(userId);
+        if (exists != null && exists.getAthleteState() == AthleteStatus.AUDITING) {
+            throw new BusinessException("已有待审核申请，请勿重复提交");
+        }
         Athlete athlete = new Athlete();
-        athlete.setUserId(athleteDTO.getUserId());
+        athlete.setUserId(userId);
         athlete.setName(athleteDTO.getName());
         athlete.setAge(String.valueOf(athleteDTO.getAge()));
         athlete.setGender(athleteDTO.getGender());
@@ -58,6 +73,7 @@ public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> impl
     @Override
     public void refusePlayer(Long userId) {
         baseMapper.refusePlayer(userId);
+        notificationService.create(userId, "运动员审核结果", "您的运动员申请已被拒绝", NotificationType.ATHLETE_REJECTED);
     }
 
     @Override

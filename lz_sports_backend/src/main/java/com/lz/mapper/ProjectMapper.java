@@ -20,4 +20,7 @@ public interface ProjectMapper extends BaseMapper<Project> {
 
     @Update("UPDATE event_item SET current_count = current_count + 1 WHERE id = #{projectId} AND current_count < #{maxAttendance}")
     int incrementAttendance(Long projectId, Integer maxAttendance);
+
+    @Update("UPDATE event_item SET current_count = current_count - 1 WHERE id = #{projectId} AND current_count > 0")
+    int decrementAttendance(Long projectId);
 }

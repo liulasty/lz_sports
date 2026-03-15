@@ -8,6 +8,7 @@ import com.lz.dto.ProjectDTO;
 import com.lz.entity.Athlete;
 import com.lz.mapper.AthleteMapper;
 import com.lz.service.ProjectService;
+import com.lz.vo.ProjectVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 /**
  * 项目管理控制器
@@ -83,6 +85,12 @@ public class ProjectController {
         return Result.success(projectService.getProject(id));
     }
 
+    @GetMapping("/event/{eventId}")
+    @Operation(summary = "赛事项目列表", description = "根据赛事ID获取项目列表")
+    public Result<List<ProjectVO>> getByEvent(@Parameter(description = "赛事ID") @PathVariable Long eventId) {
+        return Result.success(projectService.listByEventId(eventId));
+    }
+
     /**
      * 删除项目
      * 管理员删除指定的比赛项目
@@ -100,7 +108,7 @@ public class ProjectController {
      * 管理员修改项目配置
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_SCHOOL_ADMIN')")
     @Operation(summary = "更新项目", description = "更新比赛项目信息")
     public Result<String> update(
             @Parameter(description = "项目ID") @PathVariable Long id, 

@@ -16,19 +16,18 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class EventDTO implements Serializable {
-    private String[] date1; // [startDate, endDate]
+    private String[] date1;
     private String name;
     private String fee;
-    private String type; // Eligibility
-    
-    // Admin user IDs
+    private String type;
+    private Integer maxItemsPerAthlete;
+    private String registrationStartTime;
+    private String registrationEndTime;
+    private String eventStartTime;
+    private String eventEndTime;
     private List<Long> adminIds;
-
-    // For compatibility with frontend sending image objects
-    // In new backend, we might simplify this, but let's keep it close to old structure for now
     private ImgDTO[] imageUrls; 
     private ImgDTO[] deleteImagesUrls;
-
     private String[] addImage;
     private String[] deleteImage;
 
@@ -42,6 +41,46 @@ public class EventDTO implements Serializable {
 
     public String getType() {
         return type;
+    }
+
+    public String getRegistrationStartTime() {
+        if (registrationStartTime != null && !registrationStartTime.isEmpty()) {
+            return registrationStartTime;
+        }
+        if (date1 != null && date1.length > 0) {
+            return date1[0];
+        }
+        return null;
+    }
+
+    public String getRegistrationEndTime() {
+        if (registrationEndTime != null && !registrationEndTime.isEmpty()) {
+            return registrationEndTime;
+        }
+        if (date1 != null && date1.length > 1) {
+            return date1[1];
+        }
+        return null;
+    }
+
+    public String getEventStartTime() {
+        if (eventStartTime != null && !eventStartTime.isEmpty()) {
+            return eventStartTime;
+        }
+        if (date1 != null && date1.length > 2) {
+            return date1[2];
+        }
+        return null;
+    }
+
+    public String getEventEndTime() {
+        if (eventEndTime != null && !eventEndTime.isEmpty()) {
+            return eventEndTime;
+        }
+        if (date1 != null && date1.length > 3) {
+            return date1[3];
+        }
+        return null;
     }
 
     public String[] getAddImage() {

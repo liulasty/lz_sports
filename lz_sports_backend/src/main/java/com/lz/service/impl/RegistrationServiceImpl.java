@@ -6,6 +6,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lz.common.context.BaseContext;
 import com.lz.common.enums.RegistrationStatus;
+import com.lz.common.enums.NotificationType;
+import com.lz.common.enums.UserRole;
+import com.lz.common.enums.UserStatus;
 import com.lz.common.exception.BusinessException;
 import com.lz.common.result.PageResult;
 import com.lz.dto.RegistrationAndAthleteDTO;
@@ -14,10 +17,13 @@ import com.lz.entity.Athlete;
 import com.lz.entity.Event;
 import com.lz.entity.Project;
 import com.lz.entity.Registration;
+import com.lz.entity.User;
 import com.lz.mapper.AthleteMapper;
 import com.lz.mapper.EventMapper;
 import com.lz.mapper.ProjectMapper;
 import com.lz.mapper.RegistrationMapper;
+import com.lz.mapper.UserMapper;
+import com.lz.service.NotificationService;
 import com.lz.service.RegistrationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +56,8 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
     private final AthleteMapper athleteMapper; // Note: athleteMapper now maps to sys_user, need verification
     private final EventMapper eventMapper;
     private final ProjectMapper projectMapper;
+    private final UserMapper userMapper;
+    private final NotificationService notificationService;
     private final RedissonClient redissonClient; // Requires Redisson dependency
 
     @Override
@@ -64,13 +72,23 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
             if (lock.tryLock(5, 10, TimeUnit.SECONDS)) {
                 try {
                     Long userId = BaseContext.getCurrentId();
-                    // ... (rest of logic)
-                    // We need to fetch User (Athlete) info. Assuming AthleteMapper is adjusted or we use UserMapper.
-                    // For now keeping existing logic but wrapping in lock.
+                    User user = userMapper.selectById(userId);
+                    if (user == null) {
+                        throw new BusinessException("用户不存在");
+                    }
+                    if (user.getStatus() == UserStatus.DISABLED) {
+                        throw new BusinessException("账号已被禁用");
+                    }
+                    if (user.getUserType() == UserRole.SUPER_ADMIN || user.getUserType() == UserRole.EVENT_ADMIN) {
+                        throw new BusinessException("管理员角色不可申请", 403);
+                    }
                     
                     Athlete athlete = athleteMapper.selectByUserId(userId);
                     if (athlete == null) {
                         throw new BusinessException("请先完善运动员信息");
+                    }
+                    if (athlete.getAthleteState() == null || !athlete.getAthleteState().name().equals("SUCCESS")) {
+                        throw new BusinessException("请先申请并通过运动员资格审核");
                     }
             
                     Project project = projectMapper.selectById(projectId);
@@ -85,38 +103,52 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
             
                     // 1. Check Event Status
                     if (event.getEventStatus() != EventStatus.OPEN) {
-                        throw new BusinessException("赛事未发布或已结束，无法报名");
+                        throw new BusinessException("赛事状态不是 OPEN");
                     }
             
-                    // 2. Check Registration Deadline
                     Date now = new Date();
+                    if (event.getRegistrationStartTime() != null && now.before(event.getRegistrationStartTime())) {
+                        throw new BusinessException("不在报名时间范围内");
+                    }
                     if (event.getRegistrationEndTime() != null && now.after(event.getRegistrationEndTime())) {
-                        throw new BusinessException("报名已截止");
+                        throw new BusinessException("不在报名时间范围内");
                     }
             
-                    // 3. Check Duplicate Registration
                     LambdaQueryWrapper<Registration> lqw = new LambdaQueryWrapper<>();
-                    lqw.eq(Registration::getAthleteId, athlete.getId());
+                    lqw.eq(Registration::getAthleteId, userId);
                     lqw.eq(Registration::getItemId, projectId);
+                    lqw.ne(Registration::getRegistrationStatus, RegistrationStatus.CANCELLED);
                     if (count(lqw) > 0) {
                         throw new BusinessException("您已报名该项目，请勿重复报名");
                     }
+
+                    int registeredCount = registrationMapper.countActiveByUserAndEvent(userId, event.getId());
+                    int maxItemsPerAthlete = event.getMaxItemsPerAthlete() == null ? 1 : event.getMaxItemsPerAthlete();
+                    if (registeredCount >= maxItemsPerAthlete) {
+                        throw new BusinessException("已达到本赛事最多报名" + maxItemsPerAthlete + "个项目的限制");
+                    }
+
+                    if (project.getStartTime() != null && project.getEndTime() != null) {
+                        String conflictItemName = registrationMapper.findConflictItemName(userId, event.getId(), project.getStartTime(), project.getEndTime());
+                        if (conflictItemName != null && !conflictItemName.isEmpty()) {
+                            throw new BusinessException("与您已报名的[" + conflictItemName + "]时间冲突");
+                        }
+                    }
             
-                    // 4. Check Gender Limit
-                    if (project.getLimitation() != null && !project.getLimitation().equals("无限制")) {
-                        if (!project.getLimitation().equals(athlete.getGender())) {
+                    if (project.getLimitation() != null && project.getLimitation() != com.lz.common.enums.GenderLimit.ALL) {
+                        boolean maleProject = project.getLimitation() == com.lz.common.enums.GenderLimit.MALE;
+                        boolean femaleProject = project.getLimitation() == com.lz.common.enums.GenderLimit.FEMALE;
+                        if ((maleProject && !"男".equals(athlete.getGender())) || (femaleProject && !"女".equals(athlete.getGender()))) {
                             throw new BusinessException("性别不符合项目要求");
                         }
                     }
             
-                    // 6. Check Max Attendance
                     if (project.getAttendance() >= project.getMaxAttendance()) {
-                        throw new BusinessException("项目报名人数已满");
+                        throw new BusinessException("该项目报名人数已满");
                     }
             
-                    // Create Registration
                     Registration registration = new Registration();
-                    registration.setAthleteId(athlete.getId());
+                    registration.setAthleteId(userId);
                     registration.setEventId(event.getId());
                     registration.setItemId(projectId);
                     registration.setRegistrationTime(now);
@@ -125,11 +157,11 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
                     
                     save(registration);
             
-                    // Update Project Attendance
                     int updated = projectMapper.incrementAttendance(projectId, project.getMaxAttendance());
                     if (updated == 0) {
-                        throw new BusinessException("报名失败，名额已满");
+                        throw new BusinessException("该项目报名人数已满");
                     }
+                    syncAthleteProfileToUser(athlete, user);
                 } finally {
                     lock.unlock();
                 }
@@ -203,47 +235,86 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
     @Transactional(rollbackFor = Exception.class)
     public void approve(Long id) {
         Registration r = getById(id);
-        if (r == null) throw new BusinessException("Registration not found");
-        
-        // Check capacity
-        Project project = projectMapper.selectById(r.getItemId());
-        if (project != null) {
-            if (project.getAttendance() >= project.getMaxAttendance()) {
-                throw new BusinessException("Project is full");
-            }
-            // Increment attendance
-            project.setAttendance(project.getAttendance() + 1);
-            projectMapper.updateById(project);
+        if (r == null) throw new BusinessException("报名记录不存在");
+        if (r.getRegistrationStatus() != RegistrationStatus.PENDING) {
+            throw new BusinessException("已审核的申请不可重复审核");
         }
-        
         r.setRegistrationStatus(RegistrationStatus.APPROVED);
         updateById(r);
+        notificationService.create(r.getAthleteId(), "报名审核通过", "您的报名已审核通过", NotificationType.SYSTEM);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void refuse(Long id) {
         Registration r = getById(id);
-        if (r == null) throw new BusinessException("Registration not found");
+        if (r == null) throw new BusinessException("报名记录不存在");
+        if (r.getRegistrationStatus() != RegistrationStatus.PENDING) {
+            throw new BusinessException("已审核的申请不可重复审核");
+        }
         r.setRegistrationStatus(RegistrationStatus.REJECTED);
         updateById(r);
+        notificationService.create(r.getAthleteId(), "报名审核拒绝", "您的报名已被拒绝", NotificationType.SYSTEM);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void delete(Long id) {
-        Registration r = getById(id);
-        if (r != null && RegistrationStatus.APPROVED.equals(r.getRegistrationStatus())) {
-             // If approved, decrement attendance
-             Project project = projectMapper.selectById(r.getItemId());
-             if (project != null && project.getAttendance() > 0) {
-                 project.setAttendance(project.getAttendance() - 1);
-                 projectMapper.updateById(project);
-             }
-        }
-        removeById(id);
+        cancel(id);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void cancel(Long id) {
+        Registration r = getById(id);
+        if (r == null) {
+            throw new BusinessException("报名记录不存在");
+        }
+        Long currentUserId = BaseContext.getCurrentId();
+        if (!r.getAthleteId().equals(currentUserId)) {
+            throw new BusinessException("只能取消自己的报名", 403);
+        }
+        Event event = eventMapper.selectById(r.getEventId());
+        if (event != null && event.getRegistrationEndTime() != null && new Date().after(event.getRegistrationEndTime())) {
+            throw new BusinessException("报名截止后不可取消");
+        }
+        if (r.getRegistrationStatus() == RegistrationStatus.CANCELLED) {
+            return;
+        }
+        r.setRegistrationStatus(RegistrationStatus.CANCELLED);
+        updateById(r);
+        int updated = projectMapper.decrementAttendance(r.getItemId());
+        if (updated == 0) {
+            throw new BusinessException("取消失败，请稍后重试");
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String batchAudit(List<Long> ids, boolean approve) {
+        if (ids == null || ids.isEmpty()) {
+            return "未提供审核ID";
+        }
+        int success = 0;
+        int skipped = 0;
+        for (Long id : ids) {
+            Registration registration = getById(id);
+            if (registration == null || registration.getRegistrationStatus() != RegistrationStatus.PENDING) {
+                skipped++;
+                continue;
+            }
+            if (approve) {
+                registration.setRegistrationStatus(RegistrationStatus.APPROVED);
+                notificationService.create(registration.getAthleteId(), "报名审核通过", "您的报名已审核通过", NotificationType.SYSTEM);
+            } else {
+                registration.setRegistrationStatus(RegistrationStatus.REJECTED);
+                notificationService.create(registration.getAthleteId(), "报名审核拒绝", "您的报名已被拒绝", NotificationType.SYSTEM);
+            }
+            updateById(registration);
+            success++;
+        }
+        return "已处理" + success + "条，跳过" + skipped + "条";
+    }
 
 
     @Override
@@ -282,6 +353,25 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
         } catch (Exception e) {
             log.error("Export failed", e);
             throw new BusinessException("导出失败");
+        }
+    }
+
+    private void syncAthleteProfileToUser(Athlete athlete, User user) {
+        boolean changed = false;
+        if (athlete.getName() != null && !athlete.getName().isEmpty() && !athlete.getName().equals(user.getName())) {
+            user.setName(athlete.getName());
+            changed = true;
+        }
+        if (athlete.getGrade() != null && !athlete.getGrade().isEmpty()) {
+            user.setClassName(athlete.getGrade());
+            changed = true;
+        }
+        if (athlete.getContact() != null && !athlete.getContact().isEmpty() && !athlete.getContact().equals(user.getStudentId())) {
+            user.setStudentId(athlete.getContact());
+            changed = true;
+        }
+        if (changed) {
+            userMapper.updateById(user);
         }
     }
 }

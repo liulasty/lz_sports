@@ -36,8 +36,9 @@
               </el-button>
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item @click="handleStatus(scope.row, 'PUBLISHED')" v-if="scope.row.status === 'DRAFT'">发布赛事</el-dropdown-item>
-                  <el-dropdown-item @click="handleStatus(scope.row, 'ENDED')" v-if="scope.row.status === 'PUBLISHED'">结束赛事</el-dropdown-item>
+                  <el-dropdown-item @click="handleStatus(scope.row, 'OPEN')" v-if="scope.row.status === 'DRAFT'">发布赛事</el-dropdown-item>
+                  <el-dropdown-item @click="handleStatus(scope.row, 'DRAFT')" v-if="scope.row.status === 'OPEN'">撤回赛事</el-dropdown-item>
+                  <el-dropdown-item @click="handleStatus(scope.row, 'FINISHED')" v-if="scope.row.status === 'ONGOING'">结束赛事</el-dropdown-item>
                   <el-dropdown-item @click="handleExport(scope.row)">导出名单</el-dropdown-item>
                   <el-dropdown-item @click="handleImportClick(scope.row)">导入成绩</el-dropdown-item>
                   <el-dropdown-item @click="handlePublishScore(scope.row)">发布成绩</el-dropdown-item>
@@ -104,6 +105,18 @@
             end-placeholder="结束时间"
           />
         </el-form-item>
+        <el-form-item label="比赛时间">
+          <el-date-picker
+            v-model="form.eventTimeRange"
+            type="datetimerange"
+            range-separator="至"
+            start-placeholder="开始时间"
+            end-placeholder="结束时间"
+          />
+        </el-form-item>
+        <el-form-item label="报名上限">
+          <el-input-number v-model="form.maxItemsPerAthlete" :min="1" :max="20" />
+        </el-form-item>
         <el-form-item label="图片链接">
            <el-input v-model="form.imageUrlInput" type="textarea" :rows="3" placeholder="请输入图片URL，每行一个" />
         </el-form-item>
@@ -146,18 +159,22 @@ const form = reactive({
   type: '',
   fee: '0',
   dateRange: [], // [start, end]
+  eventTimeRange: [],
+  maxItemsPerAthlete: 3,
   imageUrlInput: ''
 })
 
 const getStatusType = (status) => {
-  if (status === 'PUBLISHED') return 'success'
-  if (status === 'ENDED') return 'info'
+  if (status === 'OPEN' || status === 'ONGOING') return 'success'
+  if (status === 'FINISHED') return 'info'
   return 'warning'
 }
 
 const getStatusLabel = (status) => {
-  if (status === 'PUBLISHED') return '已发布'
-  if (status === 'ENDED') return '已结束'
+  if (status === 'OPEN') return '报名中'
+  if (status === 'CLOSED') return '报名结束'
+  if (status === 'ONGOING') return '进行中'
+  if (status === 'FINISHED') return '已结束'
   return '草稿'
 }
 
@@ -165,7 +182,7 @@ const getList = async () => {
   loading.value = true
   try {
     const res = await getEventList(queryParams)
-    if (res.code === 1) {
+    if (res.code === 200) {
       eventList.value = res.data.records
       total.value = res.data.total
     }
@@ -184,11 +201,11 @@ const handleStatus = (row, status) => {
   }).then(async () => {
     try {
       const res = await changeEventStatus(row.id, status)
-      if (res.code === 1) {
+      if (res.code === 200) {
         ElMessage.success('操作成功')
         getList()
       } else {
-        ElMessage.error(res.msg || '操作失败')
+      ElMessage.error(error?.response?.data?.msg || error?.message || '操作失败')
       }
     } catch (error) {
       console.error(error)
@@ -222,7 +239,7 @@ const uploadFile = async (param) => {
   const file = param.file
   try {
     const res = await importScores(currentEventId.value, file)
-    if (res.code === 1) {
+      if (res.code === 200) {
       ElMessage.success('导入成功')
       importVisible.value = false
     } else {
@@ -242,7 +259,7 @@ const handlePublishScore = (row) => {
   }).then(async () => {
     try {
       const res = await publishScores(row.id)
-      if (res.code === 1) {
+      if (res.code === 200) {
         ElMessage.success('发布成功')
       } else {
         ElMessage.error(res.msg || '发布失败')
@@ -276,6 +293,8 @@ const handleAdd = () => {
   form.type = ''
   form.fee = '0'
   form.dateRange = []
+  form.eventTimeRange = []
+  form.maxItemsPerAthlete = 3
   form.imageUrlInput = ''
   dialogVisible.value = true
 }
@@ -287,10 +306,9 @@ const handleEdit = (row) => {
   form.name = row.name
   form.type = row.type
   form.fee = row.fee
-  // Backend returns date and end strings. 
-  // Need to ensure format matches date picker or is compatible.
-  // row.date is "YYYY-MM-DD HH:mm:ss" usually from VO.
   form.dateRange = [row.date, row.end]
+  form.eventTimeRange = [row.eventStartTime, row.eventEndTime]
+  form.maxItemsPerAthlete = row.maxItemsPerAthlete || 3
   
   // Image URLs handling
   if (row.imageUrls && row.imageUrls.length > 0) {
@@ -310,7 +328,7 @@ const handleDelete = (row) => {
   }).then(async () => {
     try {
       const res = await deleteEvent(row.id)
-      if (res.code === 1) {
+      if (res.code === 200) {
         ElMessage.success('删除成功')
         getList()
       }
@@ -321,12 +339,19 @@ const handleDelete = (row) => {
 }
 
 const submitForm = async () => {
-  // Construct DTO
+  if (!form.dateRange || form.dateRange.length !== 2 || !form.eventTimeRange || form.eventTimeRange.length !== 2) {
+    ElMessage.error('请完整填写报名时间和比赛时间')
+    return
+  }
   const data = {
       name: form.name,
       type: form.type,
       fee: form.fee,
-      date1: form.dateRange,
+      registrationStartTime: form.dateRange[0],
+      registrationEndTime: form.dateRange[1],
+      eventStartTime: form.eventTimeRange[0],
+      eventEndTime: form.eventTimeRange[1],
+      maxItemsPerAthlete: form.maxItemsPerAthlete,
       addImage: form.imageUrlInput ? form.imageUrlInput.split('\n').filter(s => s.trim()) : []
   }
 
@@ -338,13 +363,13 @@ const submitForm = async () => {
       res = await addEvent(data)
     }
     
-    if (res.code === 1) {
+    if (res.code === 200) {
       ElMessage.success(isEdit.value ? '更新成功' : '添加成功')
       dialogVisible.value = false
       getList()
     }
   } catch (error) {
-    console.error(error)
+    ElMessage.error(error?.response?.data?.msg || error?.message || '操作失败')
   }
 }
 

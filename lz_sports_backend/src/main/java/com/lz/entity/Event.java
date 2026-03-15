@@ -60,6 +60,9 @@ public class Event extends SchoolRelatedEntity<Long> {
     @TableField("status")
     private EventStatus eventStatus;
 
+    @TableField("max_items_per_athlete")
+    private Integer maxItemsPerAthlete;
+
     /**
      * 图片地址
      */

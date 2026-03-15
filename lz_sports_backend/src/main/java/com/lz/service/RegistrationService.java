@@ -6,6 +6,7 @@ import com.lz.dto.RegistrationAndAthleteDTO;
 import com.lz.entity.Registration;
 
 import java.util.Date;
+import java.util.List;
 
 /**
  * 报名服务接口
@@ -41,6 +42,10 @@ public interface RegistrationService extends IService<Registration> {
      * 删除报名记录
      */
     void delete(Long id);
+
+    void cancel(Long id);
+
+    String batchAudit(List<Long> ids, boolean approve);
 
     /**
      * 提交报名

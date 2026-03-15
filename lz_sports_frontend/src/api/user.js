@@ -54,6 +54,8 @@ export function updateUser(data) {
   })
 }
 
+export const updateUserInfo = updateUser
+
 export function getUserList(data) {
   return request({
     url: '/auth/list',

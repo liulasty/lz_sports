@@ -34,4 +34,24 @@ public interface RegistrationMapper extends BaseMapper<Registration> {
      * 查询报名列表 (导出用)
      */
     List<RegistrationDTO> selectRegistrationList(@Param("eventId") Long eventId);
+
+    @Select("SELECT COUNT(*) FROM registration WHERE user_id = #{userId} AND event_id = #{eventId} AND status <> 'CANCELLED'")
+    int countActiveByUserAndEvent(@Param("userId") Long userId, @Param("eventId") Long eventId);
+
+    @Select("""
+        SELECT p.name FROM registration r
+        JOIN event_item p ON r.item_id = p.id
+        WHERE r.user_id = #{userId}
+          AND r.event_id = #{eventId}
+          AND r.status <> 'CANCELLED'
+          AND p.start_time IS NOT NULL
+          AND p.end_time IS NOT NULL
+          AND p.start_time < #{newEnd}
+          AND p.end_time > #{newStart}
+        LIMIT 1
+    """)
+    String findConflictItemName(@Param("userId") Long userId,
+                                @Param("eventId") Long eventId,
+                                @Param("newStart") Date newStart,
+                                @Param("newEnd") Date newEnd);
 }

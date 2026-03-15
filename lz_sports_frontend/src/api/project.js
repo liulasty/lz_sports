@@ -37,3 +37,10 @@ export function getProjectById(id) {
     method: 'get'
   })
 }
+
+export function getProjectsByEventId(eventId) {
+  return request({
+    url: `/project/event/${eventId}`,
+    method: 'get'
+  })
+}

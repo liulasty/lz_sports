@@ -3,6 +3,7 @@ package com.lz.entity;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.lz.common.enums.GenderLimit;
+import com.lz.common.enums.ProjectCategory;
 import lombok.*;
 
 import java.util.Date;
@@ -53,4 +54,13 @@ public class Project extends BaseEntity<Long> {
      */
     @TableField("current_count")
     private Integer attendance;
+
+    @TableField("category")
+    private ProjectCategory category;
+
+    @TableField("start_time")
+    private Date startTime;
+
+    @TableField("end_time")
+    private Date endTime;
 }

@@ -34,7 +34,6 @@ public class EventListDTO {
             SimpleDateFormat formatter = new SimpleDateFormat(pattern);
             return formatter.parse(s);
         } catch (ParseException e) {
-            e.printStackTrace();
             return null;
         }
     }

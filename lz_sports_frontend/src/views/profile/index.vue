@@ -214,7 +214,7 @@ const checkApplication = async () => {
     }
   } catch (error) {
     // Usually throws 500 if not found based on backend logic, or returns null
-    console.log("No application found or error checking application")
+    
   }
 }
 

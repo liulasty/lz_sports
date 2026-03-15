@@ -66,8 +66,9 @@ const queryParams = reactive({
 const getList = async () => {
   try {
     const res = await getEventList(queryParams)
-    if (res.code === 1) {
-      eventList.value = res.data.records || res.data.rows
+    if (res.code === 200) {
+      const records = res.data.records || res.data.rows || []
+      eventList.value = records.filter(item => item.status !== 'DRAFT')
       total.value = res.data.total
     }
   } catch (error) {
@@ -101,17 +102,16 @@ const formatDate = (dateStr) => {
 }
 
 const getStatus = (item) => {
-  const now = new Date()
-  const start = new Date(item.date)
-  const end = new Date(item.end)
-  if (now < start) return '未开始'
-  if (now > end) return '已结束'
-  return '进行中'
+  if (item.status === 'OPEN') return '报名中'
+  if (item.status === 'CLOSED') return '报名结束'
+  if (item.status === 'ONGOING') return '进行中'
+  if (item.status === 'FINISHED') return '已结束'
+  return '草稿'
 }
 
 const getStatusType = (item) => {
   const status = getStatus(item)
-  if (status === '进行中') return 'success'
+  if (status === '报名中' || status === '进行中') return 'success'
   if (status === '已结束') return 'info'
   return 'warning'
 }

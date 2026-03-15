@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lz.common.context.BaseContext;
 import com.lz.common.enums.EventStatus;
+import com.lz.common.enums.NotificationType;
 import com.lz.common.enums.UserRole;
 import com.lz.common.exception.BusinessException;
 import com.lz.common.result.PageResult;
@@ -14,6 +15,7 @@ import com.lz.dto.EventListDTO;
 import com.lz.entity.*;
 import com.lz.mapper.*;
 import com.lz.service.EventService;
+import com.lz.service.NotificationService;
 import com.lz.service.SportsImgService;
 import com.lz.vo.EventVO;
 import com.lz.vo.chart.TableData;
@@ -30,6 +32,7 @@ import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -48,101 +51,89 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
     private final ProjectMapper projectMapper;
     private final RegistrationMapper registrationMapper;
     private final ImageUtils imageUtils;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public String addEvent(EventDTO eventDTO) {
         Long currentUserId = BaseContext.getCurrentId();
-        
-        // Check for duplicate name
+        if (currentUserId == null) {
+            throw new BusinessException("未登录");
+        }
         LambdaQueryWrapper<Event> lqw = new LambdaQueryWrapper<>();
-        lqw.eq(eventDTO.getName() != null && !eventDTO.getName().isEmpty(), Event::getEventName, eventDTO.getName());
+        lqw.eq(Event::getEventName, eventDTO.getName());
         if (eventMapper.selectCount(lqw) > 0) {
             throw new BusinessException("名字重复");
         }
-
-        try {
-            Date startDate = stringToDate(eventDTO.getDate1()[0]);
-            Date endDate = stringToDate(eventDTO.getDate1()[1]);
-
-            // Apply fallback logic for event image if needed (though Event entity stores it in imageUrls, 
-            // usually images are stored in SportsImg table separately, but Event has a field too.
-            // Let's use the first image from addImage as main image, or fallback if none.)
-            
-            // Note: In original code, Event entity has imageUrls field but it wasn't being set from eventDTO.getAddImage().
-            // And sportsImgService was used to save images.
-            // If we want a cover image on the Event entity itself, we should set it.
-            // If eventDTO.getAddImage() is empty, we generate a fallback one.
-            
-            String coverImage = null;
-            if (eventDTO.getAddImage() != null && eventDTO.getAddImage().length < 1) {
-                coverImage = eventDTO.getAddImage()[0];
-            } else {
-                coverImage = imageUtils.getRandomFallbackUrl();
-                // If we generated a fallback, should we add it to the SportsImg table too? 
-                // Usually yes, so it appears in the gallery.
-                // But let's first set it on the Event entity if that's what's displayed in lists.
-            }
-
-            Event event = Event.builder()
-                    .eventName(eventDTO.getName())
-                    .eventDescription(eventDTO.getType()) 
-                    .registrationStartTime(startDate)
-                    .registrationEndTime(endDate)
-                    .eventStatus(EventStatus.DRAFT)
-                    .imageUrls(coverImage) // Set the cover image (fallback or uploaded)
-                    .build();
-
-            save(event);
-            
-            // Assign creator as admin automatically
-            EventAdminMapping selfMapping = new EventAdminMapping();
-            selfMapping.setEventId(event.getId());
-            selfMapping.setUserId(currentUserId);
-            selfMapping.setCreateTime(LocalDateTime.now());
-            eventAdminMappingMapper.insert(selfMapping);
-
-            // Add images to SportsImg table
-            if (eventDTO.getAddImage() != null && eventDTO.getAddImage().length < 1) {
-                for (String url : eventDTO.getAddImage()) {
-                    SportsImg sportsImg = new SportsImg();
-                    sportsImg.setImgType("event");
-                    sportsImg.setTypeId(event.getId());
-                    sportsImg.setImgSrc(url);
-                    sportsImgService.addSrc(sportsImg);
-                }
-            } else {
-                // If no images uploaded, save the fallback as a SportsImg too
-                if (coverImage != null) {
-                    SportsImg sportsImg = new SportsImg();
-                    sportsImg.setImgType("event");
-                    sportsImg.setTypeId(event.getId());
-                    sportsImg.setImgSrc(coverImage);
-                    sportsImgService.addSrc(sportsImg);
-                }
-            }
-
-            // Add Event Admins
-            if (eventDTO.getAdminIds() != null && !eventDTO.getAdminIds().isEmpty()) {
-                for (Long userId : eventDTO.getAdminIds()) {
-                    // Skip if already added (self)
-                    if (userId.equals(currentUserId)) continue;
-                    
-                    EventAdminMapping mapping = new EventAdminMapping();
-                    mapping.setEventId(event.getId());
-                    mapping.setUserId(userId);
-                    mapping.setCreateTime(LocalDateTime.now());
-                    eventAdminMappingMapper.insert(mapping);
-                }
-            }
-
-            return "添加成功";
-        } catch (NumberFormatException e) {
-            throw new BusinessException("费用格式错误");
-        } catch (Exception e) {
-            log.error("添加事件失败", e);
-            throw new BusinessException("添加事件失败: " + e.getMessage());
+        Date regStart = stringToDate(eventDTO.getRegistrationStartTime());
+        Date regEnd = stringToDate(eventDTO.getRegistrationEndTime());
+        Date eventStart = stringToDate(eventDTO.getEventStartTime());
+        Date eventEnd = stringToDate(eventDTO.getEventEndTime());
+        if (regStart == null || regEnd == null || eventStart == null || eventEnd == null) {
+            throw new BusinessException("赛事时间参数不完整");
         }
+        if (!(regStart.before(regEnd) && regEnd.before(eventStart) && eventStart.before(eventEnd))) {
+            throw new BusinessException("时间必须满足 regStart < regEnd < eventStart < eventEnd");
+        }
+        if (eventDTO.getMaxItemsPerAthlete() == null
+                || eventDTO.getMaxItemsPerAthlete() < 1
+                || eventDTO.getMaxItemsPerAthlete() > 20) {
+            throw new BusinessException("maxItemsPerAthlete 必须在1-20之间");
+        }
+
+        String coverImage = imageUtils.getRandomFallbackUrl();
+        if (eventDTO.getAddImage() != null && eventDTO.getAddImage().length > 0) {
+            coverImage = eventDTO.getAddImage()[0];
+        }
+
+        Event event = Event.builder()
+                .eventName(eventDTO.getName())
+                .eventDescription(eventDTO.getType())
+                .registrationStartTime(regStart)
+                .registrationEndTime(regEnd)
+                .eventStartTime(eventStart)
+                .eventEndTime(eventEnd)
+                .maxItemsPerAthlete(eventDTO.getMaxItemsPerAthlete())
+                .eventStatus(EventStatus.DRAFT)
+                .imageUrls(coverImage)
+                .build();
+        save(event);
+
+        EventAdminMapping selfMapping = new EventAdminMapping();
+        selfMapping.setEventId(event.getId());
+        selfMapping.setUserId(currentUserId);
+        selfMapping.initTime();
+        eventAdminMappingMapper.insert(selfMapping);
+
+        if (eventDTO.getAdminIds() != null && !eventDTO.getAdminIds().isEmpty()) {
+            for (Long userId : eventDTO.getAdminIds()) {
+                if (Objects.equals(userId, currentUserId)) {
+                    continue;
+                }
+                EventAdminMapping mapping = new EventAdminMapping();
+                mapping.setEventId(event.getId());
+                mapping.setUserId(userId);
+                mapping.initTime();
+                eventAdminMappingMapper.insert(mapping);
+            }
+        }
+
+        if (eventDTO.getAddImage() != null && eventDTO.getAddImage().length > 0) {
+            for (String url : eventDTO.getAddImage()) {
+                SportsImg sportsImg = new SportsImg();
+                sportsImg.setImgType("event");
+                sportsImg.setTypeId(event.getId());
+                sportsImg.setImgSrc(url);
+                sportsImgService.addSrc(sportsImg);
+            }
+        } else {
+            SportsImg sportsImg = new SportsImg();
+            sportsImg.setImgType("event");
+            sportsImg.setTypeId(event.getId());
+            sportsImg.setImgSrc(coverImage);
+            sportsImgService.addSrc(sportsImg);
+        }
+        return "添加成功";
     }
 
     @Override
@@ -152,13 +143,42 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
             throw new BusinessException("赛事不存在");
         }
         
+        EventStatus targetStatus;
         try {
-            EventStatus eventStatus = EventStatus.valueOf(status);
-            event.setEventStatus(eventStatus);
-            updateById(event);
+            targetStatus = EventStatus.valueOf(status);
         } catch (IllegalArgumentException e) {
             throw new BusinessException("无效的状态: " + status);
         }
+        if (targetStatus == EventStatus.OPEN) {
+            if (event.getEventStatus() != EventStatus.DRAFT) {
+                throw new BusinessException("仅草稿赛事可发布");
+            }
+            long itemCount = projectMapper.selectCount(new LambdaQueryWrapper<Project>().eq(Project::getEventId, eventId));
+            if (itemCount == 0) {
+                throw new BusinessException("发布失败：至少需要一个赛事项目");
+            }
+            long adminCount = eventAdminMappingMapper.selectCount(new LambdaQueryWrapper<EventAdminMapping>().eq(EventAdminMapping::getEventId, eventId));
+            if (adminCount == 0) {
+                throw new BusinessException("发布失败：至少需要一个赛事管理员");
+            }
+            event.setEventStatus(EventStatus.OPEN);
+            updateById(event);
+            publishEventNotification(event);
+            return;
+        }
+        if (targetStatus == EventStatus.DRAFT) {
+            if (event.getEventStatus() != EventStatus.OPEN) {
+                throw new BusinessException("仅OPEN状态支持撤回");
+            }
+            if (event.getRegistrationStartTime() != null && new Date().after(event.getRegistrationStartTime())) {
+                throw new BusinessException("仅报名开始前可撤回");
+            }
+            event.setEventStatus(EventStatus.DRAFT);
+            updateById(event);
+            return;
+        }
+        event.setEventStatus(targetStatus);
+        updateById(event);
     }
 
     @Override
@@ -173,31 +193,22 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
         if (userId != null) {
             User user = userMapper.selectById(userId);
             if (user != null) {
-                if (user.getUserType() == UserRole.SUPER_ADMIN) {
-                    // School Admin sees all events
+                if (user.getUserType() == UserRole.SUPER_ADMIN || user.getUserType() == UserRole.SCHOOL_ADMIN) {
                 } else if (user.getUserType() == UserRole.EVENT_ADMIN) {
-                    // Event Admin sees only assigned events
                     List<Long> eventIds = eventAdminMappingMapper.selectList(new LambdaQueryWrapper<EventAdminMapping>()
                             .eq(EventAdminMapping::getUserId, userId))
                             .stream().map(EventAdminMapping::getEventId).collect(Collectors.toList());
-                    
                     if (eventIds.isEmpty()) {
                         return new PageResult(0, List.of());
                     }
                     lqw.in(Event::getId, eventIds);
                 } else {
-                    // Athletes/Others see only PUBLISHED events
-                    // Or maybe check if public endpoint allows seeing DRAFT? Assuming no.
-                    // For now, let's assume they see PUBLISHED.
-                    // lqw.eq(Event::getStatus, EventStatus.PUBLISHED);
-                    // However, current requirement seems to focus on admin backend list.
-                    // If this is used by frontend, we should be careful.
-                    // Given the context of "fixing bugs", sticking to existing logic + permissions is key.
-                    // If no role logic was present, adding it now makes it safer.
+                    lqw.ne(Event::getEventStatus, EventStatus.DRAFT);
                 }
             }
+        } else {
+            lqw.ne(Event::getEventStatus, EventStatus.DRAFT);
         }
-        
         eventMapper.selectPage(page, lqw);
 
         List<EventVO> eventVOS = page.getRecords().stream().map(event -> {
@@ -209,8 +220,13 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
                     .type(event.getEventDescription())
                     .date(event.getRegistrationStartTime() != null ? event.getRegistrationStartTime().toString() : "")
                     .end(event.getRegistrationEndTime() != null ? event.getRegistrationEndTime().toString() : "")
-                    .status(event.getEventStatus().name()) // Convert Enum to String for VO if needed, or update VO
+                    .status(event.getEventStatus().name())
                     .imageUrls(imageUrls)
+                    .regStartTime(event.getRegistrationStartTime() != null ? event.getRegistrationStartTime().toString() : "")
+                    .regEndTime(event.getRegistrationEndTime() != null ? event.getRegistrationEndTime().toString() : "")
+                    .eventStartTime(event.getEventStartTime() != null ? event.getEventStartTime().toString() : "")
+                    .eventEndTime(event.getEventEndTime() != null ? event.getEventEndTime().toString() : "")
+                    .maxItemsPerAthlete(event.getMaxItemsPerAthlete())
                     .build();
         }).collect(Collectors.toList());
 
@@ -236,18 +252,41 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
 
     @Override
     public Event getEventId(Long eventId) {
-        return getById(eventId);
+        Event event = getById(eventId);
+        if (event == null) {
+            return null;
+        }
+        if (event.getEventStatus() == EventStatus.DRAFT) {
+            Long userId = BaseContext.getCurrentId();
+            if (userId == null) {
+                throw new BusinessException("资源不存在", 404);
+            }
+            User user = userMapper.selectById(userId);
+            if (user == null || (user.getUserType() != UserRole.SUPER_ADMIN && user.getUserType() != UserRole.SCHOOL_ADMIN)) {
+                long mappingCount = eventAdminMappingMapper.selectCount(new LambdaQueryWrapper<EventAdminMapping>()
+                        .eq(EventAdminMapping::getEventId, eventId)
+                        .eq(EventAdminMapping::getUserId, userId));
+                if (mappingCount == 0) {
+                    throw new BusinessException("资源不存在", 404);
+                }
+            }
+        }
+        return event;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public String deleteEvent(String eventId) {
         long id = Long.parseLong(eventId);
-        
-        // Check permission
         checkEventPermission(id);
+        Event event = getById(id);
+        if (event == null) {
+            throw new BusinessException("赛事不存在");
+        }
+        if (event.getEventStatus() != EventStatus.DRAFT) {
+            throw new BusinessException("仅DRAFT状态赛事允许删除");
+        }
 
-        // Check for existing projects and registrations
         LambdaQueryWrapper<Project> projectLqw = new LambdaQueryWrapper<>();
         projectLqw.eq(Project::getEventId, id);
         List<Project> projects = projectMapper.selectList(projectLqw);
@@ -260,7 +299,6 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
             if (count > 0) {
                 throw new BusinessException("该赛事已有报名记录，无法删除");
             }
-            // Delete projects if no registrations
             projectMapper.deleteBatchIds(projectIds);
         }
 
@@ -283,27 +321,39 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
     @Transactional(rollbackFor = Exception.class)
     public void update(String eventId, EventDTO eventDTO) {
         long id = Long.parseLong(eventId);
-        
-        // Check permission
         checkEventPermission(id);
-        
         Event event = getById(id);
         if (event == null) {
             throw new BusinessException("事件不存在");
         }
-
         if (eventDTO.getName() != null) event.setEventName(eventDTO.getName());
         if (eventDTO.getType() != null) event.setEventDescription(eventDTO.getType());
-        // if (eventDTO.getFee() != null) event.setRegistrationFee(Integer.parseInt(eventDTO.getFee()));
-        
-        if (eventDTO.getDate1() != null && eventDTO.getDate1().length >= 2) {
-             event.setRegistrationStartTime(stringToDate(eventDTO.getDate1()[0]));
-             event.setRegistrationEndTime(stringToDate(eventDTO.getDate1()[1]));
+        if (eventDTO.getMaxItemsPerAthlete() != null) {
+            if (eventDTO.getMaxItemsPerAthlete() < 1 || eventDTO.getMaxItemsPerAthlete() > 20) {
+                throw new BusinessException("maxItemsPerAthlete 必须在1-20之间");
+            }
+            event.setMaxItemsPerAthlete(eventDTO.getMaxItemsPerAthlete());
         }
-
+        Date regStart = stringToDateNullable(eventDTO.getRegistrationStartTime());
+        Date regEnd = stringToDateNullable(eventDTO.getRegistrationEndTime());
+        Date eventStart = stringToDateNullable(eventDTO.getEventStartTime());
+        Date eventEnd = stringToDateNullable(eventDTO.getEventEndTime());
+        if (regStart != null) event.setRegistrationStartTime(regStart);
+        if (regEnd != null) event.setRegistrationEndTime(regEnd);
+        if (eventStart != null) event.setEventStartTime(eventStart);
+        if (eventEnd != null) event.setEventEndTime(eventEnd);
+        if (event.getRegistrationStartTime() != null
+                && event.getRegistrationEndTime() != null
+                && event.getEventStartTime() != null
+                && event.getEventEndTime() != null) {
+            if (!(event.getRegistrationStartTime().before(event.getRegistrationEndTime())
+                    && event.getRegistrationEndTime().before(event.getEventStartTime())
+                    && event.getEventStartTime().before(event.getEventEndTime()))) {
+                throw new BusinessException("时间必须满足 regStart < regEnd < eventStart < eventEnd");
+            }
+        }
         updateById(event);
 
-        // Handle Add Images
         if (eventDTO.getAddImage() != null) {
             for (String url : eventDTO.getAddImage()) {
                 SportsImg img = new SportsImg();
@@ -313,8 +363,6 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
                 sportsImgService.addSrc(img);
             }
         }
-
-        // Handle Delete Images
         if (eventDTO.getDeleteImage() != null) {
             for (String url : eventDTO.getDeleteImage()) {
                 LambdaQueryWrapper<SportsImg> imgLqw = new LambdaQueryWrapper<>();
@@ -371,15 +419,39 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
     }
 
     private Date stringToDate(String s) {
-        if (s == null) return null;
-        // Adjust pattern to match frontend input
-        String pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
-        SimpleDateFormat formatter = new SimpleDateFormat(pattern);
+        if (s == null || s.isEmpty()) return null;
+        Date d = parseWithPattern(s, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        if (d != null) return d;
+        d = parseWithPattern(s, "yyyy-MM-dd HH:mm:ss");
+        if (d != null) return d;
+        d = parseWithPattern(s, "yyyy-MM-dd'T'HH:mm:ss");
+        if (d != null) return d;
+        throw new BusinessException("日期格式错误");
+    }
+
+    private Date stringToDateNullable(String s) {
+        if (s == null || s.isEmpty()) return null;
+        return stringToDate(s);
+    }
+
+    private Date parseWithPattern(String value, String pattern) {
         try {
-            return formatter.parse(s);
+            return new SimpleDateFormat(pattern).parse(value);
         } catch (ParseException e) {
-            log.error("Date parse error: {}", s, e);
-            throw new BusinessException("日期格式错误");
+            return null;
+        }
+    }
+
+    private void publishEventNotification(Event event) {
+        List<User> users = userMapper.selectList(new LambdaQueryWrapper<User>()
+                .eq(User::getStatus, com.lz.common.enums.UserStatus.ACTIVE));
+        for (User user : users) {
+            notificationService.create(
+                    user.getId(),
+                    "新赛事已发布",
+                    "赛事《" + event.getEventName() + "》已开放报名",
+                    NotificationType.EVENT_PUBLISHED
+            );
         }
     }
 }

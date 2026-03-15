@@ -18,10 +18,13 @@ public class ProjectDTO implements Serializable {
     private String name;
     private Long event; // Event ID
     private String limitation;
+    private String category;
     private String grade;
     private Integer maxAttendance;
     private Integer attendance;
-    private String[] date; // [start, end]
+    private String[] date;
+    private String startTime;
+    private String endTime;
     
     // Image handling
     private ImgDTO[] imageUrls;
@@ -41,13 +44,29 @@ public class ProjectDTO implements Serializable {
         if (imageUrls != null) {
             addImage = new String[imageUrls.length];
             for (int i = 0; i < imageUrls.length; i++) {
-                // Extract filename or keep full URL depending on logic. 
-                // Old code did substring, but new backend might just store URL.
-                // Sticking to old logic: substring last part
                 String url = imageUrls[i].getOssUrl();
-                addImage[i] = url; // Store full URL for simplicity in new backend
+                addImage[i] = url;
             }
         }
-        // Similar for delete
+    }
+
+    public String getStartTime() {
+        if (startTime != null && !startTime.isEmpty()) {
+            return startTime;
+        }
+        if (date != null && date.length > 0) {
+            return date[0];
+        }
+        return null;
+    }
+
+    public String getEndTime() {
+        if (endTime != null && !endTime.isEmpty()) {
+            return endTime;
+        }
+        if (date != null && date.length > 1) {
+            return date[1];
+        }
+        return null;
     }
 }

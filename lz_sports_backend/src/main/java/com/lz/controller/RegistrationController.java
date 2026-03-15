@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 
 /**
  * 报名管理控制器
@@ -77,8 +78,8 @@ public class RegistrationController {
     @DeleteMapping("/{id}")
     @Operation(summary = "删除报名", description = "删除或取消报名记录")
     public Result<String> delete(@Parameter(description = "报名ID") @PathVariable Long id) {
-        registrationService.delete(id);
-        return Result.success("删除成功");
+        registrationService.cancel(id);
+        return Result.success("取消成功");
     }
 
     /**
@@ -109,11 +110,18 @@ public class RegistrationController {
      * 管理员拒绝报名申请
      */
     @PutMapping("/refuse/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_SCHOOL_ADMIN')")
     @Operation(summary = "拒绝报名", description = "管理员拒绝报名申请")
     public Result<String> refuse(@Parameter(description = "报名ID") @PathVariable Long id) {
         registrationService.refuse(id);
         return Result.success("已拒绝报名");
+    }
+
+    @PutMapping("/batch-audit")
+    @PreAuthorize("hasAuthority('ROLE_SCHOOL_ADMIN')")
+    @Operation(summary = "批量审核", description = "仅处理PENDING状态，已审核记录自动跳过")
+    public Result<String> batchAudit(@RequestBody List<Long> ids, @RequestParam boolean approve) {
+        return Result.success(registrationService.batchAudit(ids, approve));
     }
 
     /**
@@ -121,7 +129,7 @@ public class RegistrationController {
      * 导出指定赛事的报名人员名单Excel
      */
     @GetMapping("/export/{eventId}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_SCHOOL_ADMIN')")
     @Operation(summary = "导出名单", description = "导出指定赛事的报名名单Excel")
     public void export(
             @Parameter(description = "赛事ID") @PathVariable Long eventId, 

@@ -15,9 +15,9 @@
       <el-table :data="projectList" style="width: 100%" v-loading="loading">
         <el-table-column prop="itemName" label="项目名称" />
         <el-table-column prop="eventName" label="所属赛事" />
-        <el-table-column prop="projectStart" label="开始时间" width="180">
+        <el-table-column prop="startTime" label="开始时间" width="180">
            <template #default="scope">
-             {{ formatDate(scope.row.projectStart) }}
+             {{ formatDate(scope.row.startTime) }}
            </template>
         </el-table-column>
         <el-table-column prop="grade" label="地点" />
@@ -77,7 +77,17 @@
           <el-input v-model="form.grade" placeholder="输入地点" />
         </el-form-item>
         <el-form-item label="限制要求">
-          <el-input v-model="form.limitation" placeholder="例如：仅限大二" />
+          <el-select v-model="form.limitation" placeholder="性别限制">
+            <el-option label="不限" value="ALL" />
+            <el-option label="男" value="MALE" />
+            <el-option label="女" value="FEMALE" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="项目类别">
+          <el-select v-model="form.category" placeholder="项目类别">
+            <el-option label="自定义" value="CUSTOM" />
+            <el-option label="标准项目" value="STANDARD" />
+          </el-select>
         </el-form-item>
         <el-form-item label="最大人数">
           <el-input-number v-model="form.maxAttendance" :min="1" />
@@ -122,6 +132,7 @@ const form = reactive({
   event: '', // eventId
   grade: '',
   limitation: '',
+  category: 'CUSTOM',
   maxAttendance: 50,
   dateRange: [],
   imageUrlInput: ''
@@ -131,7 +142,7 @@ const getList = async () => {
   loading.value = true
   try {
     const res = await getProjectList(queryParams)
-    if (res.code === 1) {
+    if (res.code === 200) {
       projectList.value = res.data.records
       total.value = res.data.total
     }
@@ -145,7 +156,7 @@ const getList = async () => {
 const getEventOptions = async () => {
   try {
     const res = await getEventTypes()
-    if (res.code === 1) {
+    if (res.code === 200) {
       // Backend returns List<Map<Long, String>>. 
       // Need to handle potential key variations (EventID vs eventId).
       eventTypes.value = res.data
@@ -178,6 +189,7 @@ const handleAdd = () => {
   form.event = ''
   form.grade = ''
   form.limitation = ''
+  form.category = 'CUSTOM'
   form.maxAttendance = 50
   form.dateRange = []
   form.imageUrlInput = ''
@@ -187,13 +199,14 @@ const handleAdd = () => {
 const handleEdit = (row) => {
   dialogTitle.value = '编辑项目'
   isEdit.value = true
-  form.id = row.itemId
+  form.id = row.id
   form.name = row.itemName
   form.event = row.eventId
   form.grade = row.grade
   form.limitation = row.limitation
+  form.category = row.category || 'CUSTOM'
   form.maxAttendance = row.maxAttendance
-  form.dateRange = [row.projectStart, row.projectEnd]
+  form.dateRange = [row.startTime, row.endTime]
   
   // Image handling omitted for simplicity or if row doesn't have image list readily available
   // Assuming row might have it or we fetch detail. 
@@ -212,8 +225,8 @@ const handleDelete = (row) => {
     type: 'warning'
   }).then(async () => {
     try {
-      const res = await deleteProject(row.itemId)
-      if (res.code === 1) {
+      const res = await deleteProject(row.id)
+      if (res.code === 200) {
         ElMessage.success('删除成功')
         getList()
       }
@@ -229,6 +242,7 @@ const submitForm = async () => {
       event: form.event,
       grade: form.grade,
       limitation: form.limitation,
+      category: form.category,
       maxAttendance: form.maxAttendance,
       date: form.dateRange,
       addImage: form.imageUrlInput ? form.imageUrlInput.split('\n').filter(s => s.trim()) : []
@@ -242,7 +256,7 @@ const submitForm = async () => {
       res = await addProject(data)
     }
     
-    if (res.code === 1) {
+    if (res.code === 200) {
       ElMessage.success(isEdit.value ? '更新成功' : '添加成功')
       dialogVisible.value = false
       getList()

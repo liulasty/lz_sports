@@ -6,6 +6,7 @@ import com.lz.dto.EventListDTO;
 import com.lz.dto.ProjectDTO;
 import com.lz.entity.Project;
 import com.lz.vo.ProjectVO;
+import java.util.List;
 
 /**
  * Project Service Interface
@@ -41,4 +42,6 @@ public interface ProjectService extends IService<Project> {
      * Get Project DTO
      */
     ProjectDTO getProject(Long id);
+
+    List<ProjectVO> listByEventId(Long eventId);
 }

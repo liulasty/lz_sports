@@ -19,6 +19,7 @@ import com.lz.mapper.ProjectMapper;
 import com.lz.mapper.RegistrationMapper;
 import com.lz.service.SportsImgService;
 import com.lz.service.UserService;
+import com.lz.service.NotificationService;
 import com.lz.config.AppConfig;
 import com.lz.dto.UserUpdateDTO;
 import com.lz.vo.UserDetailVO;
@@ -41,6 +42,7 @@ import java.util.stream.Collectors;
  */
 import com.lz.common.enums.UserRole;
 import com.lz.common.enums.UserStatus;
+import com.lz.common.enums.NotificationType;
 import com.lz.util.MailUtils;
 import com.lz.util.RedisUtil;
 import com.lz.util.StringUtils;
@@ -75,6 +77,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Autowired
     private AppConfig appConfig;
+
+    @Autowired
+    private NotificationService notificationService;
 
 
     @Override
@@ -262,6 +267,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void examinePlayer(String id) {
+        Athlete current = athleteMapper.selectOne(new LambdaQueryWrapper<Athlete>().eq(Athlete::getUserId, Long.valueOf(id)));
+        if (current == null) {
+            throw new BusinessException("运动员申请不存在");
+        }
+        if (current.getAthleteState() != AthleteStatus.AUDITING) {
+            throw new BusinessException("已审核的申请不可重复审核");
+        }
         User user = new User();
         user.setId(Long.valueOf(id));
         user.setUserType(UserRole.ATHLETE);
@@ -275,6 +287,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         LambdaQueryWrapper<Athlete> updateWrapper = new LambdaQueryWrapper<>();
         updateWrapper.eq(Athlete::getUserId, Long.valueOf(id));
         athleteMapper.update(athlete, updateWrapper);
+        notificationService.create(Long.valueOf(id), "运动员审核结果", "您的运动员申请已审核通过", NotificationType.ATHLETE_APPROVED);
     }
 
     @Override
