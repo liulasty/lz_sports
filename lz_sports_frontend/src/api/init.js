@@ -14,3 +14,10 @@ export function initSystem(data) {
     data
   })
 }
+
+export function getSchoolConfig() {
+  return request({
+    url: '/system/school-config',
+    method: 'get'
+  })
+}

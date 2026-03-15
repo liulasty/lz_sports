@@ -11,6 +11,7 @@
         <el-step title="学校信息" />
         <el-step title="管理员设置" />
         <el-step title="基础数据" />
+        <el-step title="完成" />
       </el-steps>
 
       <div class="step-content">
@@ -70,12 +71,27 @@
             + New Grade
           </el-button>
         </div>
+
+        <!-- Step 4: Finish -->
+        <div v-if="active === 3" style="text-align: center;">
+          <el-result
+            icon="info"
+            title="确认初始化"
+            sub-title="请确认以上信息无误，点击下方按钮开始初始化系统。"
+          >
+          </el-result>
+          <el-descriptions title="配置摘要" :column="1" border style="width: 80%; margin: 0 auto; text-align: left;">
+            <el-descriptions-item label="学校名称">{{ form.schoolName }}</el-descriptions-item>
+            <el-descriptions-item label="管理员账号">{{ form.adminUsername }}</el-descriptions-item>
+            <el-descriptions-item label="年级数量">{{ form.grades.length }}</el-descriptions-item>
+          </el-descriptions>
+        </div>
       </div>
 
       <div class="step-footer">
         <el-button style="margin-top: 12px" @click="prev" v-if="active > 0">上一步</el-button>
-        <el-button style="margin-top: 12px" @click="next" v-if="active < 2">下一步</el-button>
-        <el-button type="primary" style="margin-top: 12px" @click="submit" v-if="active === 2">完成初始化</el-button>
+        <el-button style="margin-top: 12px" @click="next" v-if="active < 3">下一步</el-button>
+        <el-button type="primary" style="margin-top: 12px" @click="submit" v-if="active === 3" :loading="loading">完成初始化</el-button>
       </div>
     </el-card>
   </div>
@@ -91,6 +107,7 @@ const router = useRouter()
 const active = ref(0)
 const step1Form = ref(null)
 const step2Form = ref(null)
+const loading = ref(false)
 
 const form = reactive({
   schoolName: '',
@@ -125,6 +142,8 @@ const next = async () => {
     await step2Form.value.validate((valid) => {
       if (valid) active.value++
     })
+  } else if (active.value === 2) {
+    active.value++
   }
 }
 
@@ -153,10 +172,15 @@ const handleInputConfirm = () => {
 }
 
 const submit = () => {
+  loading.value = true
   initSystem(form).then(res => {
     ElMessage.success('初始化成功！')
     localStorage.setItem('isInitialized', 'true')
-    router.push('/login')
+    setTimeout(() => {
+      router.push('/login')
+    }, 1500)
+  }).finally(() => {
+    loading.value = false
   })
 }
 </script>
@@ -167,7 +191,7 @@ const submit = () => {
   justify-content: center;
   align-items: center;
   height: 100vh;
-  background-color: #f0f2f5;
+  background-color: var(--main-bg-color);
 }
 .box-card {
   width: 800px;

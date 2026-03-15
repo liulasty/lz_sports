@@ -51,6 +51,7 @@ public class SecurityConfig {
             // 系统初始化
             "/api/system/init-status",
             "/api/system/init",
+            "/api/system/school-config",
             // 公共接口（支持子路径）
             "/api/public/**",
             // Swagger/Knife4j文档
@@ -100,18 +101,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // 允许所有域名（生产环境建议指定具体域名，如https://xxx.com）
         configuration.setAllowedOriginPatterns(Collections.singletonList("*"));
-        // 允许的请求方法
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        // 允许的请求头
         configuration.setAllowedHeaders(Collections.singletonList("*"));
-        // 允许携带凭证（Cookie）
         configuration.setAllowCredentials(true);
-        // 预检请求缓存时间（减少OPTIONS请求）
-        configuration.setMaxAge(3600L);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        // 对所有路径生效
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }

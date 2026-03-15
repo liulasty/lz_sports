@@ -1,0 +1,20 @@
+/* Global SCSS Variables */
+:root {
+  --el-color-primary: #409EFF;
+  --el-color-success: #67C23A;
+  --el-color-warning: #E6A23C;
+  --el-color-danger: #F56C6C;
+  --el-color-info: #909399;
+  
+  --el-border-radius-base: 4px;
+  --el-border-radius-small: 2px;
+  --el-border-radius-round: 20px;
+  
+  --el-font-size-base: 14px;
+  --el-font-size-large: 16px;
+  --el-font-size-small: 12px;
+  
+  --main-bg-color: #f0f2f5;
+  --content-bg-color: #ffffff;
+  --sidebar-width: 210px;
+}

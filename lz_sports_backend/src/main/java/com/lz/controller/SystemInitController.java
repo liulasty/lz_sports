@@ -2,6 +2,7 @@ package com.lz.controller;
 
 import com.lz.common.result.Result;
 import com.lz.dto.SchoolInitDTO;
+import com.lz.entity.SchoolConfig;
 import com.lz.service.SchoolConfigService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,6 +31,16 @@ public class SystemInitController {
     @Operation(summary = "检查初始化状态", description = "检查系统是否已经完成首次初始化配置")
     public Result<Boolean> checkInit() {
         return Result.success(schoolConfigService.isInitialized());
+    }
+
+    /**
+     * 获取学校配置信息（公开）
+     * 用于登录页展示学校Logo和名称
+     */
+    @GetMapping("/school-config")
+    @Operation(summary = "获取学校配置", description = "获取学校的基本配置信息（无需登录）")
+    public Result<SchoolConfig> getSchoolConfig() {
+        return Result.success(schoolConfigService.getOne(null));
     }
 
     /**

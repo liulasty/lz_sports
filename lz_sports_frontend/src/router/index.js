@@ -21,6 +21,12 @@ const routes = [
     component: () => import('@/views/register/index.vue')
   },
   {
+    path: '/reset-password',
+    name: 'ResetPassword',
+    component: () => import('@/views/login/ResetPassword.vue'),
+    meta: { requiresAuth: true, title: '修改初始密码' }
+  },
+  {
     path: '/',
     component: Layout,
     redirect: '/dashboard',
@@ -140,17 +146,17 @@ router.beforeEach(async (to, from, next) => {
     }
   }
 
-  console.log('Router Guard:', { to: to.path, from: from.path, token: userStore.token })
   if (to.meta.requiresAuth && !userStore.token) {
-    console.log('Redirecting to login: No token')
     next('/login')
+  } else if (userStore.token && userStore.userInfo.isFirstLogin && to.path !== '/reset-password') {
+    // Force reset password if first login
+    next('/reset-password')
   } else if (to.meta.roles && to.meta.roles.length > 0) {
     // Check role permission
     if (userStore.userInfo && to.meta.roles.includes(userStore.userInfo.type)) {
       next()
     } else {
-      console.log('Redirecting to dashboard: No permission')
-      next('/dashboard') // No permission, redirect to dashboard or 403
+      next('/dashboard') // No permission
     }
   } else {
     next()

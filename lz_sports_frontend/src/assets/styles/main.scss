@@ -1,6 +1,27 @@
+@import './variables.scss';
+@import './theme/default.scss';
+
 html, body, #app {
   margin: 0;
   padding: 0;
   height: 100%;
   font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
+  background-color: var(--main-bg-color);
+  color: #333;
+}
+
+/* Global Transitions */
+.fade-transform-leave-active,
+.fade-transform-enter-active {
+  transition: all 0.5s;
+}
+
+.fade-transform-enter-from {
+  opacity: 0;
+  transform: translateX(-30px);
+}
+
+.fade-transform-leave-to {
+  opacity: 0;
+  transform: translateX(30px);
 }
