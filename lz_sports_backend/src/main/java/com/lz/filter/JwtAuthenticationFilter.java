@@ -5,6 +5,7 @@ import com.lz.common.context.BaseContext;
 import com.lz.common.result.Result;
 import com.lz.common.result.ResultCode;
 import com.lz.util.JwtUtil;
+import com.lz.util.RedisUtil;
 import lombok.NonNull;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -38,6 +39,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Value("${jwt.key:lz_sports_secret_key}")
     private String jwtKey;
 
+    @jakarta.annotation.Resource
+    private RedisUtil redisUtil;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     // 统一维护公开路径（无需token），覆盖所有需要放行的场景
@@ -51,6 +55,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // 系统初始化
             "/api/system/init-status",
             "/api/system/init",
+            "/api/system/school-config",
             // 公共接口（支持子路径）
             "/api/public/",
             // Swagger/Knife4j文档
@@ -80,7 +85,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             // 2. 检查token是否存在
-            String token = request.getHeader("token");
+            String token = extractToken(request);
             if (!StringUtils.hasText(token)) {
                 log.warn("[JWT过滤器] 无token拦截 - IP: {}, 方法: {}, URI: {}", clientIp, requestMethod, requestURI);
                 writeResponse(response, HttpServletResponse.SC_UNAUTHORIZED,
@@ -117,6 +122,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // 解析token
         Map<String, Object> claims = JwtUtil.parseToken(token, jwtKey);
         Long userId = Long.valueOf(claims.get("id").toString());
+        Object latestTokenObj = redisUtil.get("auth:token:" + userId);
+        if (latestTokenObj == null || !token.equals(latestTokenObj.toString())) {
+            throw new RuntimeException("Token已失效");
+        }
 
         // 设置用户上下文
         BaseContext.setCurrentId(userId);
@@ -182,6 +191,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
             return false;
         });
+    }
+
+    private String extractToken(HttpServletRequest request) {
+        String token = request.getHeader("token");
+        if (StringUtils.hasText(token)) {
+            return token;
+        }
+        String authHeader = request.getHeader("Authorization");
+        if (StringUtils.hasText(authHeader) && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
+        return null;
     }
 
     /**

@@ -1,0 +1,29 @@
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      database: ${REDIS_DB:0}
+      password: ${REDIS_PASSWORD:}
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+
+jwt:
+  key: ${JWT_SECRET}
+
+aliyun:
+  oss:
+    endpoint: ${OSS_ENDPOINT}
+    accessKeyId: ${OSS_ACCESS_KEY_ID}
+    accessKeySecret: ${OSS_ACCESS_KEY_SECRET}
+    bucketName: ${OSS_BUCKET_NAME}
+
+app:
+  upload-dir: ${APP_UPLOAD_DIR}

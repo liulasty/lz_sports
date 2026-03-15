@@ -12,6 +12,7 @@ import com.lz.vo.ProjectVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -67,7 +68,7 @@ public class ProjectController {
     @PostMapping
     @PreAuthorize("hasAuthority('ROLE_SCHOOL_ADMIN')")
     @Operation(summary = "添加项目", description = "管理员添加新的比赛项目")
-    public Result<String> addProject(@RequestBody ProjectDTO projectDTO) {
+    public Result<String> addProject(@Valid @RequestBody ProjectDTO projectDTO) {
         if (projectDTO.getImageUrls() != null) {
             projectDTO.mapOssUrlToAddImage();
         }
@@ -112,7 +113,7 @@ public class ProjectController {
     @Operation(summary = "更新项目", description = "更新比赛项目信息")
     public Result<String> update(
             @Parameter(description = "项目ID") @PathVariable Long id, 
-            @RequestBody ProjectDTO projectDTO) {
+            @Valid @RequestBody ProjectDTO projectDTO) {
         if (projectDTO.getImageUrls() != null) {
             projectDTO.mapOssUrlToAddImage();
         }

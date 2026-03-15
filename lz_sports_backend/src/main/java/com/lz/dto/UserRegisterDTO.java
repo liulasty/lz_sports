@@ -2,6 +2,7 @@ package com.lz.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 /**
@@ -24,21 +25,25 @@ public class UserRegisterDTO {
      * 密码
      * 用于用户身份验证，不能为空
      */
-    @NotBlank(message = "Password cannot be empty")
+    @NotBlank(message = "密码不能为空")
+    @Pattern(
+            regexp = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{8,20}$",
+            message = "密码需为8-20位且包含字母和数字"
+    )
     private String password;
 
     /**
      * 电子邮箱地址
      * 用于接收验证码和用户联系，必须满足邮箱格式且不能为空
      */
-    @Email(message = "Invalid email format")
-    @NotBlank(message = "Email cannot be empty")
+    @Email(message = "邮箱格式不正确")
+    @NotBlank(message = "邮箱不能为空")
     private String email;
 
     /**
-     * 验证码
-     * 用于验证用户操作的合法性，不能为空
+     * 验证令牌
+     * 验证码校验通过后返回，一次性使用，不能为空
      */
-    @NotBlank(message = "Verification code cannot be empty")
-    private String code;
+    @NotBlank(message = "请先完成验证码校验")
+    private String verifyToken;
 }

@@ -24,7 +24,9 @@ public interface UserService extends IService<User> {
     /**
      * Send verification code
      */
-    void sendCode(String email);
+    void sendCode(String email, String scene);
+
+    String verifyCode(String email, String code, String scene);
 
     /**
      * Approve or reject user
@@ -50,4 +52,8 @@ public interface UserService extends IService<User> {
     int[] getNums();
 
     User selectUserInfo();
+
+    long getUnreadCount(Long userId);
+
+    void saveLoginToken(Long userId, String token);
 }

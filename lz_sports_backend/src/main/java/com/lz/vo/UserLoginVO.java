@@ -15,7 +15,10 @@ import lombok.NoArgsConstructor;
 public class UserLoginVO {
     private Long id;
     private String userName;
+    private String role;
     private String type;
+    private Boolean isFirstLogin;
+    private Long unreadCount;
     private String avatarSrc;
     private String token;
 }

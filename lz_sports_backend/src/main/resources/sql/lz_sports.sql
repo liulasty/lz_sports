@@ -205,6 +205,7 @@ CREATE TABLE `sys_user` (
                             `grade_id` bigint DEFAULT NULL COMMENT '所属年级ID',
                             `email` varchar(50) NOT NULL COMMENT '邮箱',
                             `user_type` varchar(20) NOT NULL COMMENT '用户类型：SCHOOL_ADMIN/EVENT_ADMIN/ATHLETE',
+                            `is_first_login` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否首次登录：0否1是',
                             `status` varchar(20) NOT NULL DEFAULT 'PENDING' COMMENT '状态：PENDING/ACTIVE/REJECTED',
                             `school_id` bigint DEFAULT '1' COMMENT '学校ID',
                             `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间',

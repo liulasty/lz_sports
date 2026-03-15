@@ -1,3 +1,36 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lz-sports-backend-config
+data:
+  SPRING_PROFILES_ACTIVE: "prod"
+  DB_URL: "jdbc:mysql://host.docker.internal:3306/lz_sports?serverTimezone=GMT%2B8&characterEncoding=utf-8&useSSL=false"
+  REDIS_HOST: "host.docker.internal"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  APP_UPLOAD_DIR: "/app/uploads"
+  OSS_ENDPOINT: "oss-cn-hangzhou.aliyuncs.com"
+  OSS_BUCKET_NAME: "lz-sports"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: lz-sports-backend-secret
+type: Opaque
+stringData:
+  DB_USERNAME: "root"
+  DB_PASSWORD: "1234"
+  REDIS_PASSWORD: "!Theworld1949"
+  JWT_SECRET: "lz_sports_7f8e9d2c-4b1a-3e5f-8c7d-9a2b4e6f1d8a"
+  MAIL_HOST: ""
+  MAIL_PORT: "587"
+  MAIL_USERNAME: ""
+  MAIL_PASSWORD: ""
+  OSS_ACCESS_KEY_ID: "your-access-key-id"
+  OSS_ACCESS_KEY_SECRET: "your-access-key-secret"
+  SECURITY_USER_NAME: "admin"
+  SECURITY_USER_PASSWORD: "admin123"
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -15,13 +48,19 @@ spec:
       containers:
         - name: lz-sports-backend
           image: lz-sports-backend:latest
+          imagePullPolicy: Never
           ports:
             - containerPort: 8080
-          env:
-            - name: SPRING_DATASOURCE_URL
-              value: "jdbc:mysql://host.docker.internal:3306/lz_sports?serverTimezone=GMT%2B8&characterEncoding=utf-8&useSSL=false"
-            - name: SPRING_DATA_REDIS_HOST
-              value: "host.docker.internal"
-            - name: SPRING_DATA_REDIS_PORT
-              value: "6379"
-          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: lz-sports-backend-config
+            - secretRef:
+                name: lz-sports-backend-secret
+          volumeMounts:
+            - name: upload-storage
+              mountPath: /app/uploads
+      volumes:
+        - name: upload-storage
+          hostPath:
+            path: /data/lz-sports/uploads
+            type: DirectoryOrCreate

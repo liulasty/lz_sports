@@ -18,13 +18,13 @@
 
 ## ⚙️ 项目配置
 
-- [ ] application.yml 数据库连接使用占位符（不硬编码账号密码）
-- [ ] application-dev.yml 和 application-prod.yml 分别存在
+- [x] application.yml 数据库连接使用占位符（不硬编码账号密码）
+- [x] application-dev.yml 和 application-prod.yml 分别存在
 - [x] Redis 连接已配置
 - [x] 跨域配置已开启（允许前端开发端口）
 - [x] 异步线程池已配置（@EnableAsync）
 - [x] 定时任务已开启（@EnableScheduling）
-- [ ] 文件上传目录已配置，静态资源可通过 URL 访问
+- [x] 文件上传目录已配置，静态资源可通过 URL 访问
 
 ---
 
@@ -33,7 +33,7 @@
 - [x] JwtUtil 有 generateToken / parseToken / isExpired 三个方法
 - [x] token 有效期已设置（7天），不是永不过期
 - [x] JwtAuthFilter 正确从 Header 取 token 并注入 SecurityContext
-- [ ] 以下路径已放行（无需登录）：
+- [x] 以下路径已放行（无需登录）：
   - [x] POST /api/system/init-status
   - [x] POST /api/system/init
   - [x] POST /api/auth/send-code
@@ -42,7 +42,7 @@
   - [x] POST /api/auth/login
   - [x] POST /api/auth/reset-password
   - [x] GET /api/public/**
-- [ ] 其余路径未登录访问返回 401（不是 403，不是重定向）
+- [x] 其余路径未登录访问返回 401（不是 403，不是重定向）
 - [x] @RequireRole 注解 + 切面已实现，角色不符返回 403
 - [x] @RequireEventAdmin 注解 + 切面已实现，越权返回 403
 
@@ -73,15 +73,15 @@
 
 ## 👤 用户注册与登录
 
-- [ ] 注册接口校验 verifyToken 有效性
-- [ ] 同一邮箱重复注册返回 409
-- [ ] 注册成功后账号直接 ACTIVE，无需审核
-- [ ] 密码符合强度要求（8-20位，含字母和数字）
-- [ ] 登录接口密码错误统一提示「邮箱或密码错误」（不区分是邮箱不存在还是密码错）
-- [ ] 账号 DISABLED 时登录返回具体提示
-- [ ] 登录成功返回 token、role、isFirstLogin、unreadCount
-- [ ] 超管首次登录 isFirstLogin = true，前端跳转强制改密码页
-- [ ] 改密码成功后 is_first_login 置为 0，当前 token 失效
+- [x] 注册接口校验 verifyToken 有效性
+- [x] 同一邮箱重复注册返回 409
+- [x] 注册成功后账号直接 ACTIVE，无需审核
+- [x] 密码符合强度要求（8-20位，含字母和数字）
+- [x] 登录接口密码错误统一提示「邮箱或密码错误」（不区分是邮箱不存在还是密码错）
+- [x] 账号 DISABLED 时登录返回具体提示
+- [x] 登录成功返回 token、role、isFirstLogin、unreadCount
+- [x] 超管首次登录 isFirstLogin = true，前端跳转强制改密码页
+- [x] 改密码成功后 is_first_login 置为 0，当前 token 失效
 
 ---
 
@@ -116,4 +116,4 @@
 - [ ] 无遗留 console.log
 - [ ] 无空 catch 块
 - [ ] 无硬编码密码或密钥
-- [ ] 所有 Controller 入参有 @Valid 注解
+- [x] 所有 Controller 入参有 @Valid 注解

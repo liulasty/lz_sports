@@ -362,10 +362,6 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
             user.setName(athlete.getName());
             changed = true;
         }
-        if (athlete.getGrade() != null && !athlete.getGrade().isEmpty()) {
-            user.setClassName(athlete.getGrade());
-            changed = true;
-        }
         if (athlete.getContact() != null && !athlete.getContact().isEmpty() && !athlete.getContact().equals(user.getStudentId())) {
             user.setStudentId(athlete.getContact());
             changed = true;

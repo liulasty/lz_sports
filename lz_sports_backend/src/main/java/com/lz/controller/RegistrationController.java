@@ -10,6 +10,7 @@ import com.lz.service.RegistrationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -120,7 +121,7 @@ public class RegistrationController {
     @PutMapping("/batch-audit")
     @PreAuthorize("hasAuthority('ROLE_SCHOOL_ADMIN')")
     @Operation(summary = "批量审核", description = "仅处理PENDING状态，已审核记录自动跳过")
-    public Result<String> batchAudit(@RequestBody List<Long> ids, @RequestParam boolean approve) {
+    public Result<String> batchAudit(@Valid @RequestBody List<Long> ids, @RequestParam boolean approve) {
         return Result.success(registrationService.batchAudit(ids, approve));
     }
 

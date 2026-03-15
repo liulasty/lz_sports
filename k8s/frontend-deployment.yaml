@@ -15,6 +15,6 @@ spec:
       containers:
         - name: lz-sports-frontend
           image: lz-sports-frontend:latest
+          imagePullPolicy: Never
           ports:
             - containerPort: 80
-          imagePullPolicy: IfNotPresent

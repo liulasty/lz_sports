@@ -1,7 +1,6 @@
 package com.lz.controller;
 
 import com.lz.common.context.BaseContext;
-import com.lz.common.enums.UserStatus;
 import com.lz.common.result.PageResult;
 import com.lz.common.result.Result;
 import com.lz.config.AppConfig;
@@ -23,10 +22,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.validation.annotation.Validated;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,35 +58,28 @@ public class UserController {
     @PostMapping("/login")
     @Operation(summary = "用户登录", description = "用户凭证验证并返回Token")
     public Result<UserLoginVO> login(
-            @Validated @RequestBody UserLoginDTO userLoginDTO, 
-            HttpServletRequest request) {
+            @Valid @RequestBody UserLoginDTO userLoginDTO) {
         User user = userService.login(userLoginDTO);
-
-        // 检查用户状态
-        if (UserStatus.ACTIVE != user.getStatus()) {
-             log.warn("用户 {} 状态为 {}, 但为了测试继续放行。", user.getUsername(), user.getStatus());
-        }
-
-        // 获取头像
         String avatarImg = sportsImgService.selectImg(user.getId(), "avatar");
         if (avatarImg != null && !avatarImg.startsWith("http")) {
              avatarImg = "https://" + appConfig.getBucketName() + "." + appConfig.getEndpoint() + "/" + avatarImg;
         }
 
-        // 设置上下文 & 生成 Token
         BaseContext.setCurrentId(user.getId());
         Map<String, Object> claims = new HashMap<>();
         claims.put("id", user.getId());
         claims.put("username", user.getUsername());
         claims.put("role", user.getUserType());
         String token = JwtUtil.genToken(claims, appConfig.getJwtKey());
-        
-        log.info("用户登录成功: {}, Token: {}", user.getUsername(), token);
+        userService.saveLoginToken(user.getId(), token);
 
         UserLoginVO userLoginVO = UserLoginVO.builder()
                 .id(user.getId())
                 .userName(user.getUsername())
+                .role(user.getUserType().getRole())
                 .type(user.getUserType().getRole())
+                .isFirstLogin(Boolean.TRUE.equals(user.getIsFirstLogin()))
+                .unreadCount(userService.getUnreadCount(user.getId()))
                 .token(token)
                 .avatarSrc(avatarImg)
                 .build();
@@ -102,9 +93,18 @@ public class UserController {
      */
     @PostMapping("/send-code")
     @Operation(summary = "发送验证码", description = "向用户邮箱发送验证码")
-    public Result<String> sendCode(@Parameter(description = "邮箱地址") @RequestParam String email) {
-        userService.sendCode(email);
+    public Result<String> sendCode(@Parameter(description = "邮箱地址") @RequestParam String email,
+                                   @Parameter(description = "场景，默认REGISTER") @RequestParam(required = false) String scene) {
+        userService.sendCode(email, scene);
         return Result.success("验证码已发送");
+    }
+
+    @PostMapping("/verify-code")
+    @Operation(summary = "校验验证码", description = "验证码校验成功后返回verifyToken")
+    public Result<String> verifyCode(@RequestParam String email,
+                                     @RequestParam String code,
+                                     @RequestParam(required = false) String scene) {
+        return Result.success(userService.verifyCode(email, code, scene));
     }
 
     /**
@@ -113,9 +113,9 @@ public class UserController {
      */
     @PostMapping("/register")
     @Operation(summary = "用户注册", description = "新用户注册申请")
-    public Result<String> register(@Validated @RequestBody UserRegisterDTO userRegisterDTO) {
+    public Result<String> register(@Valid @RequestBody UserRegisterDTO userRegisterDTO) {
         userService.register(userRegisterDTO);
-        return Result.success("注册申请已提交，请等待管理员审核");
+        return Result.success("注册成功");
     }
 
     /**
@@ -150,9 +150,9 @@ public class UserController {
      */
     @PostMapping("/update")
     @Operation(summary = "更新信息", description = "更新当前用户的个人资料")
-    public Result<String> update(@RequestBody UserUpdateDTO userUpdateDTO) {
+    public Result<String> update(@Valid @RequestBody UserUpdateDTO userUpdateDTO) {
         userService.updateUser(userUpdateDTO);
-        return Result.success("更新成功");
+        return Result.success("更新成功，请重新登录");
     }
 
     /**
@@ -162,7 +162,7 @@ public class UserController {
     @PostMapping("/list")
     @PreAuthorize("hasAuthority('ROLE_SCHOOL_ADMIN')")
     @Operation(summary = "用户列表", description = "管理员分页查询用户列表")
-    public Result<PageResult> list(@RequestBody(required = false) EventListDTO listDto) {
+    public Result<PageResult> list(@Valid @RequestBody(required = false) EventListDTO listDto) {
         if (listDto == null) {
             listDto = new EventListDTO();
         }

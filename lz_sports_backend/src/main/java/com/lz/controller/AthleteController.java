@@ -8,6 +8,7 @@ import com.lz.service.AthleteService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,7 +30,7 @@ public class AthleteController {
      */
     @PostMapping
     @Operation(summary = "提交申请", description = "提交成为运动员的申请信息")
-    public Result<String> add(@RequestBody AthleteDTO athleteDTO) {
+    public Result<String> add(@Valid @RequestBody AthleteDTO athleteDTO) {
         athleteService.add(athleteDTO);
         return Result.success("申请已提交");
     }
@@ -71,7 +72,7 @@ public class AthleteController {
     @Operation(summary = "更新信息", description = "更新运动员申请信息")
     public Result<String> updateAthlete(
             @Parameter(description = "运动员ID") @PathVariable Long id, 
-            @RequestBody AthleteUpdateDTO athleteUpdateDTO) {
+            @Valid @RequestBody AthleteUpdateDTO athleteUpdateDTO) {
         athleteService.update(id, athleteUpdateDTO);
         return Result.success("更新成功");
     }

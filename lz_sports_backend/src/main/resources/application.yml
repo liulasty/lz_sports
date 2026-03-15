@@ -7,24 +7,26 @@ server:
 spring:
   application:
     name: lz-sports-backend
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   security:
     user:
-      name: ${SECURITY_USER_NAME:admin}
-      password: ${SECURITY_USER_PASSWORD:admin123}
+      name: ${SECURITY_USER_NAME:}
+      password: ${SECURITY_USER_PASSWORD:}
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: ${DB_URL:jdbc:mysql://localhost:3306/lz_sports?serverTimezone=GMT%2B8&characterEncoding=utf-8&useSSL=false}
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:1234}
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     type: com.zaxxer.hikari.HikariDataSource
   data:
     redis:
       repositories:
         enabled: false
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      database: ${REDIS_DB:0}
-      password: ${REDIS_PASSWORD:!Theworld1949}
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      database: ${REDIS_DB}
+      password: ${REDIS_PASSWORD:}
   sql:
     init:
       mode: embedded
@@ -32,10 +34,10 @@ spring:
       data-locations: classpath:sql/data.sql
 
   mail:
-    host: ${MAIL_HOST:smtp.qq.com}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:2312034544@qq.com}
-    password: ${MAIL_PASSWORD:jpsvzykypsbndjae}
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     protocol: smtp
     default-encoding: UTF-8
     properties:
@@ -72,15 +74,18 @@ mybatis-plus:
 
 # Custom Config
 jwt:
-  key: ${JWT_SECRET:lz_sports_7f8e9d2c-4b1a-3e5f-8c7d-9a2b4e6f1d8a}
+  key: ${JWT_SECRET}
   expiration: 43200000 # 12 hours
 
 aliyun:
   oss:
-    endpoint: ${OSS_ENDPOINT:oss-cn-hangzhou.aliyuncs.com}
-    accessKeyId: ${OSS_ACCESS_KEY_ID:your-access-key-id}
-    accessKeySecret: ${OSS_ACCESS_KEY_SECRET:your-access-key-secret}
-    bucketName: ${OSS_BUCKET_NAME:lz-sports}
+    endpoint: ${OSS_ENDPOINT}
+    accessKeyId: ${OSS_ACCESS_KEY_ID}
+    accessKeySecret: ${OSS_ACCESS_KEY_SECRET}
+    bucketName: ${OSS_BUCKET_NAME}
+
+app:
+  upload-dir: ${APP_UPLOAD_DIR:uploads}
 
 logging:
   file:

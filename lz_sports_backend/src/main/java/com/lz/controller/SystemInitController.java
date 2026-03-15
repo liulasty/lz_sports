@@ -6,6 +6,7 @@ import com.lz.entity.SchoolConfig;
 import com.lz.service.SchoolConfigService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -49,7 +50,7 @@ public class SystemInitController {
      */
     @PostMapping("/init")
     @Operation(summary = "执行初始化", description = "提交学校信息及管理员资料进行系统初始化")
-    public Result<String> initSystem(@RequestBody SchoolInitDTO schoolInitDTO) {
+    public Result<String> initSystem(@Valid @RequestBody SchoolInitDTO schoolInitDTO) {
         log.info("初始化系统: {}", schoolInitDTO.getSchoolName());
         schoolConfigService.initSystem(schoolInitDTO);
         return Result.success("系统初始化成功");

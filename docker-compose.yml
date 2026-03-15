@@ -1,30 +1,35 @@
-version: '3.8'  # Docker Compose 文件版本
-
 services:
-  backend:  # 后端服务定义
-    build:   # 构建配置
-      context: ./lz_sports_backend  # 构建上下文路径（后端代码目录）
-      dockerfile: Dockerfile        # Dockerfile 文件名
-    image: lz-sports-backend:latest  # 构建的镜像名称和标签
-    container_name: lz-sports-backend  # 容器名称
+  backend:
+    build:
+      context: ./lz_sports_backend
+      dockerfile: Dockerfile
+      args:
+        JAR_FILE: target/lz_sports_backend-0.0.1-SNAPSHOT.jar
+    image: lz-sports-backend:latest
+    container_name: lz-sports-backend
     ports:
-      - "8080:8080"  # 端口映射：主机8080端口映射到容器8080端口
-    environment:  # 环境变量配置
-      - SPRING_DATASOURCE_URL=jdbc:mysql://host.docker.internal:3306/lz_sports?serverTimezone=GMT%2B8&characterEncoding=utf-8&useSSL=false  # MySQL数据库连接配置（连接宿主机）
-      - SPRING_DATA_REDIS_HOST=host.docker.internal  # Redis主机地址（连接宿主机）
-      - SPRING_DATA_REDIS_PORT=6379  # Redis端口
-    extra_hosts:  # 额外主机映射配置
-      - "host.docker.internal:host-gateway"  # 允许容器访问宿主机（Windows/macOS Docker Desktop专用）
-    restart: always  # 容器退出时自动重启
+      - "8080:8080"
+    env_file:
+      - ./lz_sports_backend/.env
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      DB_URL: ${DB_URL_DOCKER:-jdbc:mysql://host.docker.internal:3306/lz_sports?serverTimezone=GMT%2B8&characterEncoding=utf-8&useSSL=false}
+      REDIS_HOST: ${REDIS_HOST_DOCKER:-host.docker.internal}
+      APP_UPLOAD_DIR: /app/uploads
+    volumes:
+      - ./data/uploads:/app/uploads
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: always
 
-  frontend:  # 前端服务定义
-    build:   # 构建配置
-      context: ./lz_sports_frontend  # 构建上下文路径（前端代码目录）
-      dockerfile: Dockerfile        # Dockerfile 文件名
-    image: lz-sports-frontend:latest  # 构建的镜像名称和标签
-    container_name: lz-sports-frontend  # 容器名称
+  frontend:
+    build:
+      context: ./lz_sports_frontend
+      dockerfile: Dockerfile
+    image: lz-sports-frontend:latest
+    container_name: lz-sports-frontend
     ports:
-      - "80:80"  # 端口映射：主机80端口映射到容器80端口
-    depends_on:  # 依赖关系
-      - backend  # 前端服务依赖于后端服务（先启动后端）
-    restart: always  # 容器退出时自动重启
+      - "80:80"
+    depends_on:
+      - backend
+    restart: always

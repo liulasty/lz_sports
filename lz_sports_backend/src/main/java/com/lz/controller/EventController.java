@@ -14,6 +14,7 @@ import com.lz.vo.chart.TypeData;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -40,7 +41,7 @@ public class EventController {
     @PostMapping("/EventList")
     @RequireRole({UserRole.SCHOOL_ADMIN, UserRole.EVENT_ADMIN})
     @Operation(summary = "发布赛事", description = "管理员发布新的赛事活动")
-    public Result<String> addEvent(@RequestBody EventDTO eventDTO) {
+    public Result<String> addEvent(@Valid @RequestBody EventDTO eventDTO) {
         // 如果包含图片URL列表，映射到添加图片逻辑
         if (eventDTO.getImageUrls() != null) {
             eventDTO.mapOssUrlToAddImage();
@@ -105,7 +106,7 @@ public class EventController {
     @Operation(summary = "更新赛事", description = "更新赛事的基本信息")
     public Result<String> updateEvent(
             @Parameter(description = "赛事ID") @PathVariable String id, 
-            @RequestBody EventDTO eventDTO) {
+            @Valid @RequestBody EventDTO eventDTO) {
         if (eventDTO.getImageUrls() != null) {
             eventDTO.mapOssUrlToAddImage();
         }

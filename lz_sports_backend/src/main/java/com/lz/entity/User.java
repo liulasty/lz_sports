@@ -68,6 +68,9 @@ public class User extends SchoolRelatedEntity<Long> {
     @TableField("user_type")
     private UserRole userType;
 
+    @TableField("is_first_login")
+    private Boolean isFirstLogin;
+
     /**
      * 用户状态
      */

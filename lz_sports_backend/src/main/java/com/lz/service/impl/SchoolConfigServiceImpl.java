@@ -15,6 +15,7 @@ import com.lz.service.SchoolConfigService;
 import com.lz.util.ImageUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,12 +33,13 @@ public class SchoolConfigServiceImpl extends ServiceImpl<SchoolConfigMapper, Sch
     private final UserMapper userMapper;
     private final GradeMapper gradeMapper;
     private final ImageUtils imageUtils;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public boolean isInitialized() {
         // 仅当存在配置且 is_initialized 为 true 时才视为已初始化
         return this.count(new LambdaQueryWrapper<SchoolConfig>()
-                .eq(SchoolConfig::isInitialized, true)) > 1;
+                .eq(SchoolConfig::isInitialized, true)) > 0;
     }
 
     @Override
@@ -78,9 +80,10 @@ public class SchoolConfigServiceImpl extends ServiceImpl<SchoolConfigMapper, Sch
         // Initialize Admin User
         User adminUser = new User();
         adminUser.setUsername(schoolInitDTO.getAdminUsername());
-        adminUser.setPassword(schoolInitDTO.getAdminPassword()); // Should be encrypted
+        adminUser.setPassword(passwordEncoder.encode(schoolInitDTO.getAdminPassword()));
         adminUser.setEmail(schoolInitDTO.getAdminEmail());
         adminUser.setUserType(UserRole.SUPER_ADMIN);
+        adminUser.setIsFirstLogin(true);
         adminUser.setStatus(UserStatus.ACTIVE);
         adminUser.setSchoolId(schoolConfig.getId());
         adminUser.setCreateTime(LocalDateTime.now());
