@@ -46,6 +46,17 @@ spring:
             enable: true
             required: true
 
+# 兜底图片配置
+fallback:
+  images:
+    urls:
+      - https://picui.ogmua.cn/s1/2026/03/15/69b673bcddc3e.webp
+      - https://picui.ogmua.cn/s1/2026/03/15/69b673bd3d497.webp
+      - https://picui.ogmua.cn/s1/2026/03/15/69b673bd596e8.webp
+      - https://picui.ogmua.cn/s1/2026/03/15/69b673bd767bf.webp
+      - https://picui.ogmua.cn/s1/2026/03/15/69b673bd895ee.webp
+      - https://picui.ogmua.cn/s1/2026/03/15/69b673c56c550.webp
+
 mybatis-plus:
   mapper-locations: classpath:mapper/*.xml
   type-enums-package: com.lz.common.enums

@@ -170,4 +170,16 @@ public final class StringUtils {
         // 通用脱敏
         return concat(str.substring(0, start), "****", str.substring(str.length() - end));
     }
+
+    public static boolean hasText(String name) {
+        if (name != null && !name.isEmpty()) {
+            for (int i = 0; i < name.length(); i++) {
+                char c = name.charAt(i);
+                if (!Character.isWhitespace(c)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 }

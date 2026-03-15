@@ -94,7 +94,8 @@ public class GlobalExceptionHandler {
         if (requiredAuthority != null) {
             message = String.format("无[%s]权限，无法操作", requiredAuthority);
         } else {
-            message = "无权限操作"; // 兜底提示
+            // 兜底提示
+            message = "无权限操作";
         }
 
         // 3. 返回带权限信息的结果

@@ -12,6 +12,7 @@ import com.lz.mapper.GradeMapper;
 import com.lz.mapper.SchoolConfigMapper;
 import com.lz.mapper.UserMapper;
 import com.lz.service.SchoolConfigService;
+import com.lz.util.ImageUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,7 @@ public class SchoolConfigServiceImpl extends ServiceImpl<SchoolConfigMapper, Sch
 
     private final UserMapper userMapper;
     private final GradeMapper gradeMapper;
+    private final ImageUtils imageUtils;
 
     @Override
     public boolean isInitialized() {
@@ -59,7 +61,11 @@ public class SchoolConfigServiceImpl extends ServiceImpl<SchoolConfigMapper, Sch
         }
         
         schoolConfig.setSchoolName(schoolInitDTO.getSchoolName());
-        schoolConfig.setLogoUrl(schoolInitDTO.getLogoUrl());
+        
+        // Use fallback if logo URL is missing
+        String logoUrl = imageUtils.getUrlOrDefault(schoolInitDTO.getLogoUrl());
+        schoolConfig.setLogoUrl(logoUrl);
+        
         schoolConfig.setThemeColor(schoolInitDTO.getThemeColor());
         schoolConfig.setContactEmail(schoolInitDTO.getContactEmail());
         // Set initialized flag

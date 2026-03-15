@@ -7,6 +7,7 @@ import com.lz.common.exception.BusinessException;
 import com.lz.entity.SportsImg;
 import com.lz.mapper.SportsImgMapper;
 import com.lz.service.SportsImgService;
+import com.lz.util.ImageUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,9 @@ public class SportsImgServiceImpl extends ServiceImpl<SportsImgMapper, SportsImg
 
     @Autowired
     private SportsImgMapper sportsImgMapper;
+
+    @Autowired
+    private ImageUtils imageUtils;
 
     @Override
     public List<String> selectImgs(Long id, String type) {
@@ -57,7 +61,7 @@ public class SportsImgServiceImpl extends ServiceImpl<SportsImgMapper, SportsImg
         
         if (sportsImg == null) {
             // 默认头像
-            return "https://image-upload-and-management.oss-cn-beijing.aliyuncs.com/avatar/00d11ae2-133e-4025-aada-41274452aca8.png";
+            return imageUtils.getRandomFallbackUrl();
         }
         return sportsImg.getImgSrc();
     }

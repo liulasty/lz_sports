@@ -4,11 +4,14 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.lz.common.enums.UserRole;
 import com.lz.common.enums.UserStatus;
+import com.lz.vo.UserVO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+
+import java.util.Date;
 
 /**
  * 用户实体类
@@ -69,4 +72,21 @@ public class User extends SchoolRelatedEntity<Long> {
      * 用户状态
      */
     private UserStatus status;
+
+    /**
+     * 将 User 实体转换为 UserVO 视图对象
+     * 
+     * @return UserVO 用户视图对象
+     */
+    public UserVO toUserVO() {
+        return UserVO.builder()
+                .id(this.getId())
+                .registerTime(this.getCreateTime() != null ? Date.from(this.getCreateTime().atZone(java.time.ZoneId.systemDefault()).toInstant()) : null)
+                .name(this.getName())
+                .state(this.getStatus() != null ? this.getStatus().getStatus() : null)
+                .type(this.getUserType() != null ? this.getUserType().getRole() : null)
+                .applyState(null)
+                .applyTime(null)
+                .build();
+    }
 }

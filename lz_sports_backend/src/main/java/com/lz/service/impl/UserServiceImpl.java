@@ -34,6 +34,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * User Service Implementation
@@ -42,6 +43,8 @@ import com.lz.common.enums.UserRole;
 import com.lz.common.enums.UserStatus;
 import com.lz.util.MailUtils;
 import com.lz.util.RedisUtil;
+import com.lz.util.StringUtils;
+
 
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
@@ -208,7 +211,34 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             listDto.setCurrentPage((currentPage - 1) * listDto.getPageSize());
         }
 
-        List<UserVO> list = userMapper.selectAllAndState(listDto);
+        // 1. 创建 LambdaQueryWrapper
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+
+        // 2. 添加查询条件
+        // 用户名模糊查询
+        if (StringUtils.hasText(listDto.getName())) {
+            wrapper.like(User::getUsername, listDto.getName());
+        }
+
+
+        if (listDto.getType() != null && StringUtils.hasText(listDto.getType())) {
+            // 如果数据库字段是 role
+            wrapper.eq(User::getUserType, listDto.getType());
+
+            // 如果数据库字段是 userType
+            // wrapper.eq(SysUser::getUserType, listDto.getType());
+        }
+
+        // 时间查询
+        if (listDto.getDate() != null) {
+            wrapper.gt(User::getCreateTime, listDto.getDate());
+        }
+
+        wrapper.orderByDesc(User::getCreateTime);
+        List<User> users = baseMapper.selectList(wrapper);
+        List<UserVO> list = users.stream()
+                .map(User::toUserVO)
+                .collect(Collectors.toList());
         int total = userMapper.getTotalUserCount(listDto);
         return new PageResult(total, list);
     }

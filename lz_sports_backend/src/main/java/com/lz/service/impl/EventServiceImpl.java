@@ -18,6 +18,7 @@ import com.lz.service.SportsImgService;
 import com.lz.vo.EventVO;
 import com.lz.vo.chart.TableData;
 import com.lz.vo.chart.TypeData;
+import com.lz.util.ImageUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -46,6 +47,7 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
     private final UserMapper userMapper;
     private final ProjectMapper projectMapper;
     private final RegistrationMapper registrationMapper;
+    private final ImageUtils imageUtils;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -63,13 +65,32 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
             Date startDate = stringToDate(eventDTO.getDate1()[0]);
             Date endDate = stringToDate(eventDTO.getDate1()[1]);
 
+            // Apply fallback logic for event image if needed (though Event entity stores it in imageUrls, 
+            // usually images are stored in SportsImg table separately, but Event has a field too.
+            // Let's use the first image from addImage as main image, or fallback if none.)
+            
+            // Note: In original code, Event entity has imageUrls field but it wasn't being set from eventDTO.getAddImage().
+            // And sportsImgService was used to save images.
+            // If we want a cover image on the Event entity itself, we should set it.
+            // If eventDTO.getAddImage() is empty, we generate a fallback one.
+            
+            String coverImage = null;
+            if (eventDTO.getAddImage() != null && eventDTO.getAddImage().length < 1) {
+                coverImage = eventDTO.getAddImage()[0];
+            } else {
+                coverImage = imageUtils.getRandomFallbackUrl();
+                // If we generated a fallback, should we add it to the SportsImg table too? 
+                // Usually yes, so it appears in the gallery.
+                // But let's first set it on the Event entity if that's what's displayed in lists.
+            }
+
             Event event = Event.builder()
                     .eventName(eventDTO.getName())
-                    .eventDescription(eventDTO.getType()) // Using description for type/eligibility placeholder
-                    // .registrationFee(Integer.parseInt(eventDTO.getFee())) // Removed field in new entity
+                    .eventDescription(eventDTO.getType()) 
                     .registrationStartTime(startDate)
                     .registrationEndTime(endDate)
-                    .eventStatus(EventStatus.DRAFT) // Default to DRAFT
+                    .eventStatus(EventStatus.DRAFT)
+                    .imageUrls(coverImage) // Set the cover image (fallback or uploaded)
                     .build();
 
             save(event);
@@ -81,13 +102,22 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
             selfMapping.setCreateTime(LocalDateTime.now());
             eventAdminMappingMapper.insert(selfMapping);
 
-            // Add images
-            if (eventDTO.getAddImage() != null) {
+            // Add images to SportsImg table
+            if (eventDTO.getAddImage() != null && eventDTO.getAddImage().length < 1) {
                 for (String url : eventDTO.getAddImage()) {
                     SportsImg sportsImg = new SportsImg();
                     sportsImg.setImgType("event");
                     sportsImg.setTypeId(event.getId());
                     sportsImg.setImgSrc(url);
+                    sportsImgService.addSrc(sportsImg);
+                }
+            } else {
+                // If no images uploaded, save the fallback as a SportsImg too
+                if (coverImage != null) {
+                    SportsImg sportsImg = new SportsImg();
+                    sportsImg.setImgType("event");
+                    sportsImg.setTypeId(event.getId());
+                    sportsImg.setImgSrc(coverImage);
                     sportsImgService.addSrc(sportsImg);
                 }
             }
