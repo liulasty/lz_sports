@@ -2,7 +2,23 @@ import request from '@/utils/request'
 
 export function exportRegistration(eventId) {
   return request({
-    url: `/registration/export/${eventId}`,
+    url: `/score/export-registration/${eventId}`,
+    method: 'get',
+    responseType: 'blob'
+  })
+}
+
+export function exportScore(eventId) {
+  return request({
+    url: `/score/export/${eventId}`,
+    method: 'get',
+    responseType: 'blob'
+  })
+}
+
+export function downloadScoreTemplate(eventId) {
+  return request({
+    url: `/score/template/${eventId}`,
     method: 'get',
     responseType: 'blob'
   })
@@ -23,5 +39,21 @@ export function publishScores(eventId) {
   return request({
     url: `/score/publish/${eventId}`,
     method: 'put'
+  })
+}
+
+export function getScorePage(params) {
+  return request({
+    url: '/score/page',
+    method: 'get',
+    params
+  })
+}
+
+export function getMyScores(params) {
+  return request({
+    url: '/score/my',
+    method: 'get',
+    params
   })
 }

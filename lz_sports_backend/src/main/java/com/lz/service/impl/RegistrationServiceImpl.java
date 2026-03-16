@@ -9,6 +9,7 @@ import com.lz.common.enums.RegistrationStatus;
 import com.lz.common.enums.NotificationType;
 import com.lz.common.enums.UserRole;
 import com.lz.common.enums.UserStatus;
+import com.lz.common.enums.AthleteStatus;
 import com.lz.common.exception.BusinessException;
 import com.lz.common.result.PageResult;
 import com.lz.dto.RegistrationAndAthleteDTO;
@@ -63,12 +64,12 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void add(Long projectId) {
-        // Use Distributed Lock to prevent overselling
         String lockKey = "lock:registration:project:" + projectId;
         RLock lock = redissonClient.getLock(lockKey);
-        
+        User syncUser = null;
+        Athlete syncAthlete = null;
+
         try {
-            // Try to acquire lock for 5 seconds, hold for 10 seconds
             if (lock.tryLock(5, 10, TimeUnit.SECONDS)) {
                 try {
                     Long userId = BaseContext.getCurrentId();
@@ -87,7 +88,7 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
                     if (athlete == null) {
                         throw new BusinessException("请先完善运动员信息");
                     }
-                    if (athlete.getAthleteState() == null || !athlete.getAthleteState().name().equals("SUCCESS")) {
+                    if (athlete.getAthleteState() != AthleteStatus.SUCCESS) {
                         throw new BusinessException("请先申请并通过运动员资格审核");
                     }
             
@@ -101,7 +102,6 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
                         throw new BusinessException("赛事不存在");
                     }
             
-                    // 1. Check Event Status
                     if (event.getEventStatus() != EventStatus.OPEN) {
                         throw new BusinessException("赛事状态不是 OPEN");
                     }
@@ -143,10 +143,6 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
                         }
                     }
             
-                    if (project.getAttendance() >= project.getMaxAttendance()) {
-                        throw new BusinessException("该项目报名人数已满");
-                    }
-            
                     Registration registration = new Registration();
                     registration.setAthleteId(userId);
                     registration.setEventId(event.getId());
@@ -154,20 +150,21 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
                     registration.setRegistrationTime(now);
                     registration.setRegistrationStatus(RegistrationStatus.PENDING);
                     registration.setSchoolId(event.getSchoolId());
-                    
-                    save(registration);
-            
+
                     int updated = projectMapper.incrementAttendance(projectId, project.getMaxAttendance());
                     if (updated == 0) {
                         throw new BusinessException("该项目报名人数已满");
                     }
-                    syncAthleteProfileToUser(athlete, user);
+                    save(registration);
+                    syncAthlete = athlete;
+                    syncUser = user;
                 } finally {
                     lock.unlock();
                 }
             } else {
                 throw new BusinessException("系统繁忙，请稍后再试");
             }
+            syncAthleteProfileToUser(syncAthlete, syncUser);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new BusinessException("系统中断");
@@ -254,7 +251,8 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
         }
         r.setRegistrationStatus(RegistrationStatus.REJECTED);
         updateById(r);
-        notificationService.create(r.getAthleteId(), "报名审核拒绝", "您的报名已被拒绝", NotificationType.SYSTEM);
+        String reason = r.getRejectReason() == null || r.getRejectReason().isBlank() ? "无" : r.getRejectReason();
+        notificationService.create(r.getAthleteId(), "报名审核拒绝", "您的报名已被拒绝，原因：" + reason, NotificationType.SYSTEM);
     }
 
     @Override
@@ -308,7 +306,8 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
                 notificationService.create(registration.getAthleteId(), "报名审核通过", "您的报名已审核通过", NotificationType.SYSTEM);
             } else {
                 registration.setRegistrationStatus(RegistrationStatus.REJECTED);
-                notificationService.create(registration.getAthleteId(), "报名审核拒绝", "您的报名已被拒绝", NotificationType.SYSTEM);
+                String reason = registration.getRejectReason() == null || registration.getRejectReason().isBlank() ? "无" : registration.getRejectReason();
+                notificationService.create(registration.getAthleteId(), "报名审核拒绝", "您的报名已被拒绝，原因：" + reason, NotificationType.SYSTEM);
             }
             updateById(registration);
             success++;

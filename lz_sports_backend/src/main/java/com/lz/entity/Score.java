@@ -3,6 +3,7 @@ package com.lz.entity;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.*;
+import java.time.LocalDateTime;
 
 /**
  * 成绩实体类
@@ -56,4 +57,10 @@ public class Score extends BaseEntity<Long> {
      */
     @TableField("is_published")
     private Boolean isPublished;
+
+    @TableField("published_at")
+    private LocalDateTime publishedAt;
+
+    @TableField("remark")
+    private String remark;
 }

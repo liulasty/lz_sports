@@ -31,6 +31,7 @@
       <el-menu-item index="/event-manage">赛事管理</el-menu-item>
       <el-menu-item index="/project-manage">项目管理</el-menu-item>
       <el-menu-item index="/registration-audit">报名审批</el-menu-item>
+      <el-menu-item index="/score-manage">成绩管理</el-menu-item>
     </el-sub-menu>
   </el-menu>
 </template>

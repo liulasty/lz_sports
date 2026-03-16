@@ -63,7 +63,7 @@ const routes = [
       },
       {
         path: 'score',
-        name: 'ScoreList',
+        name: 'MyScore',
         component: () => import('@/views/score/index.vue'),
         meta: { requiresAuth: true }
       },
@@ -95,6 +95,12 @@ const routes = [
         path: 'user-audit',
         name: 'UserAudit',
         component: () => import('@/views/admin/UserAudit.vue'),
+        meta: { requiresAuth: true, roles: ['管理员'] }
+      },
+      {
+        path: 'score-manage',
+        name: 'ScoreManage',
+        component: () => import('@/views/admin/ScoreManage.vue'),
         meta: { requiresAuth: true, roles: ['管理员'] }
       }
     ]

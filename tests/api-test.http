@@ -1,0 +1,135 @@
+### Global Variables
+@host = http://localhost:8080
+@contentType = application/json
+@admin_token = <REPLACE_WITH_ADMIN_TOKEN>
+@user_token = <REPLACE_WITH_USER_TOKEN>
+
+### ==========================================
+### Phase 1: User & Authentication
+### ==========================================
+
+### 1.1 Login (Admin)
+POST {{host}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "username": "admin",
+  "password": "password"
+}
+
+### 1.1 Login (Student)
+POST {{host}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "username": "student1",
+  "password": "password"
+}
+
+### 1.5 Get User Info
+GET {{host}}/api/user/info
+Authorization: Bearer {{admin_token}}
+
+### ==========================================
+### Phase 2: Event Core
+### ==========================================
+
+### 2.1 List Events
+GET {{host}}/api/event/page?currentPage=1&pageSize=10
+Authorization: Bearer {{admin_token}}
+
+### 2.2 Create Event (Admin)
+POST {{host}}/api/event/EventList
+Authorization: Bearer {{admin_token}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Spring Sports 2026",
+  "description": "Annual Spring Sports Event",
+  "registrationStartTime": "2026-03-01 00:00:00",
+  "registrationEndTime": "2026-03-20 00:00:00",
+  "eventStartTime": "2026-04-01 09:00:00",
+  "eventEndTime": "2026-04-03 17:00:00",
+  "status": "DRAFT",
+  "maxItemsPerAthlete": 3
+}
+
+### 2.3 Update Event Status (Publish)
+PUT {{host}}/api/event/1/status?status=OPEN
+Authorization: Bearer {{admin_token}}
+
+### 2.4 Create Project
+POST {{host}}/api/project
+Authorization: Bearer {{admin_token}}
+Content-Type: {{contentType}}
+
+{
+  "eventId": 1,
+  "itemName": "100m Dash",
+  "grade": "All",
+  "limitation": "MALE",
+  "maxAttendance": 50,
+  "category": "TRACK",
+  "startTime": "2026-04-01 10:00:00",
+  "endTime": "2026-04-01 11:00:00"
+}
+
+### 2.5 List Projects
+GET {{host}}/api/project/event/1
+Authorization: Bearer {{admin_token}}
+
+### 2.8 Register Project (Student)
+POST {{host}}/api/registration
+Authorization: Bearer {{user_token}}
+Content-Type: {{contentType}}
+
+{
+  "eventId": 1,
+  "itemId": 1
+}
+
+### ==========================================
+### Phase 3: Score & Notification
+### ==========================================
+
+### 3.1 Import Scores (Multipart - Requires Tool Support, Mocking Header here)
+# Note: This request is illustrative. In IntelliJ HTTP Client, you can use 'multipart/form-data'.
+POST {{host}}/api/score/import/1
+Authorization: Bearer {{admin_token}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="file"; filename="scores.xlsx"
+Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+
+< ./scores.xlsx
+--WebAppBoundary--
+
+### 3.2 List Scores (Admin - All)
+GET {{host}}/api/score/page?eventName=Spring
+Authorization: Bearer {{admin_token}}
+
+### 3.3 Publish Scores
+PUT {{host}}/api/score/publish/1
+Authorization: Bearer {{admin_token}}
+
+### 3.4 List Scores (Public - Published Only)
+GET {{host}}/api/score/page?eventName=Spring
+Authorization: Bearer {{user_token}}
+
+### 3.6 Get Notifications
+GET {{host}}/api/notification/page?currentPage=1&pageSize=10
+Authorization: Bearer {{user_token}}
+
+### 3.7 Get Unread Count
+GET {{host}}/api/notification/unread-count
+Authorization: Bearer {{user_token}}
+
+### 3.8 Mark Read
+PUT {{host}}/api/notification/read/1
+Authorization: Bearer {{user_token}}
+
+### 3.9 Mark All Read
+PUT {{host}}/api/notification/read-all
+Authorization: Bearer {{user_token}}
+

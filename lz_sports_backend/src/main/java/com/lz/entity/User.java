@@ -71,6 +71,9 @@ public class User extends SchoolRelatedEntity<Long> {
     @TableField("is_first_login")
     private Boolean isFirstLogin;
 
+    @TableField("unread_count")
+    private Integer unreadCount;
+
     /**
      * 用户状态
      */

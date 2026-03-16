@@ -25,4 +25,7 @@ public class ScoreImportVO {
 
     @ExcelProperty("名次")
     private Integer scoreRank;
+
+    @ExcelProperty("备注")
+    private String remark;
 }
