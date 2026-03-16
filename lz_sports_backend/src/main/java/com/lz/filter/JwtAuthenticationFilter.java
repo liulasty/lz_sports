@@ -6,6 +6,7 @@ import com.lz.common.result.Result;
 import com.lz.common.result.ResultCode;
 import com.lz.util.JwtUtil;
 import com.lz.util.RedisUtil;
+import jakarta.annotation.Resource;
 import lombok.NonNull;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -39,7 +40,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Value("${jwt.key:lz_sports_secret_key}")
     private String jwtKey;
 
-    @jakarta.annotation.Resource
+    @Resource
     private RedisUtil redisUtil;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -61,7 +62,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // Swagger/Knife4j文档
             "/doc.html",
             "/webjars/",
-            "/v3/api-docs/",
+            "/v3/api-docs",
             "/swagger-resources/",
             "/swagger-ui/",
             "/favicon.ico"

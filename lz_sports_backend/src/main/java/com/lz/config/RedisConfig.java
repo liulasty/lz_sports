@@ -27,7 +27,7 @@ public class RedisConfig {
     @Value("${spring.data.redis.database:0}")
     private int database;
 
-    @Bean
+    @Bean(destroyMethod = "shutdown") // 关键：指定销毁方法为 shutdown
     public RedissonClient redissonClient() {
         Config config = new Config();
         // 统一使用 application.yml 中的配置
