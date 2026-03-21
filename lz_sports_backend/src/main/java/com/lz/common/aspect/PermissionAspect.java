@@ -75,7 +75,7 @@ public class PermissionAspect {
         }
 
         // 超级管理员直接放行
-        if (user.getUserType() == UserRole.SCHOOL_ADMIN) {
+        if (user.getUserType() == UserRole.SCHOOL_ADMIN || user.getUserType() == UserRole.SUPER_ADMIN) {
             return;
         }
 
@@ -101,28 +101,31 @@ public class PermissionAspect {
     }
 
     private Long resolveEventId(JoinPoint joinPoint) {
-        // 1. 尝试从参数中获取 Long 类型的 eventId
         Object[] args = joinPoint.getArgs();
         for (Object arg : args) {
             if (arg instanceof Long) {
-                // 假设第一个 Long 类型参数是 eventId
                 return (Long) arg;
             }
-            // 扩展解析 DTO 对象中的 getEventId()
+            if (arg instanceof String str && str.matches("\\d+")) {
+                return Long.valueOf(str);
+            }
             if (arg != null) {
-                try {
-                    java.lang.reflect.Method method = arg.getClass().getMethod("getEventId");
-                    Object result = method.invoke(arg);
-                    if (result instanceof Long) {
-                        return (Long) result;
+                for (String methodName : List.of("getEventId", "getEvent", "getId")) {
+                    try {
+                        java.lang.reflect.Method method = arg.getClass().getMethod(methodName);
+                        Object result = method.invoke(arg);
+                        if (result instanceof Long) {
+                            return (Long) result;
+                        }
+                        if (result instanceof String value && value.matches("\\d+")) {
+                            return Long.valueOf(value);
+                        }
+                    } catch (Exception ignored) {
                     }
-                } catch (Exception e) {
-                    // ignore if method not found
                 }
             }
         }
-        
-        // 2. 尝试从 Request 中获取
+
         try {
             ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             if (attributes != null) {
@@ -131,14 +134,13 @@ public class PermissionAspect {
                 if (eventIdStr == null) {
                     eventIdStr = request.getParameter("id");
                 }
-                if (eventIdStr != null) {
+                if (eventIdStr != null && eventIdStr.matches("\\d+")) {
                     return Long.valueOf(eventIdStr);
                 }
             }
-        } catch (Exception e) {
-            // ignore
+        } catch (Exception ignored) {
         }
-        
+
         return null;
     }
 }

@@ -30,9 +30,10 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -98,25 +99,7 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
                 .imageUrls(coverImage)
                 .build();
         save(event);
-
-        EventAdminMapping selfMapping = new EventAdminMapping();
-        selfMapping.setEventId(event.getId());
-        selfMapping.setUserId(currentUserId);
-        selfMapping.initTime();
-        eventAdminMappingMapper.insert(selfMapping);
-
-        if (eventDTO.getAdminIds() != null && !eventDTO.getAdminIds().isEmpty()) {
-            for (Long userId : eventDTO.getAdminIds()) {
-                if (Objects.equals(userId, currentUserId)) {
-                    continue;
-                }
-                EventAdminMapping mapping = new EventAdminMapping();
-                mapping.setEventId(event.getId());
-                mapping.setUserId(userId);
-                mapping.initTime();
-                eventAdminMappingMapper.insert(mapping);
-            }
-        }
+        bindEventAdmins(event.getId(), currentUserId, eventDTO.getAdminIds());
 
         if (eventDTO.getAddImage() != null && eventDTO.getAddImage().length > 0) {
             for (String url : eventDTO.getAddImage()) {
@@ -353,6 +336,11 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
             }
         }
         updateById(event);
+        if (eventDTO.getAdminIds() != null) {
+            eventAdminMappingMapper.delete(new LambdaQueryWrapper<EventAdminMapping>()
+                    .eq(EventAdminMapping::getEventId, id));
+            bindEventAdmins(id, BaseContext.getCurrentId(), eventDTO.getAdminIds());
+        }
 
         if (eventDTO.getAddImage() != null) {
             for (String url : eventDTO.getAddImage()) {
@@ -386,7 +374,7 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
         }
 
         // School Admin has full access
-        if (user.getUserType() == UserRole.SCHOOL_ADMIN) {
+        if (user.getUserType() == UserRole.SCHOOL_ADMIN || user.getUserType() == UserRole.SUPER_ADMIN) {
             return;
         }
 
@@ -452,6 +440,59 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
                     "赛事《" + event.getEventName() + "》已开放报名",
                     NotificationType.EVENT_PUBLISHED
             );
+        }
+    }
+
+    private void bindEventAdmins(Long eventId, Long currentUserId, List<Long> adminIds) {
+        User operator = userMapper.selectById(currentUserId);
+        if (operator == null) {
+            throw new BusinessException("当前操作用户不存在", 401);
+        }
+        boolean operatorCanManageAdmins = operator.getUserType() == UserRole.SCHOOL_ADMIN
+                || operator.getUserType() == UserRole.SUPER_ADMIN;
+        if (!operatorCanManageAdmins && adminIds != null && !adminIds.isEmpty()) {
+            throw new BusinessException("仅学校管理员可分配赛事管理员", 403);
+        }
+
+        Set<Long> adminUserIds = new HashSet<>();
+        adminUserIds.add(currentUserId);
+        if (adminIds != null) {
+            adminUserIds.addAll(adminIds);
+        }
+
+        for (Long adminUserId : adminUserIds) {
+            if (adminUserId == null) {
+                continue;
+            }
+            User adminUser = userMapper.selectById(adminUserId);
+            if (adminUser == null) {
+                throw new BusinessException("赛事管理员不存在: " + adminUserId);
+            }
+            if (adminUser.getUserType() != UserRole.SCHOOL_ADMIN
+                    && adminUser.getUserType() != UserRole.SUPER_ADMIN
+                    && adminUser.getUserType() != UserRole.EVENT_ADMIN) {
+                if (!operatorCanManageAdmins) {
+                    throw new BusinessException("仅学校管理员可授予赛事管理员角色", 403);
+                }
+                User updateRoleUser = new User();
+                updateRoleUser.setId(adminUserId);
+                updateRoleUser.setUserType(UserRole.EVENT_ADMIN);
+                updateRoleUser.setUpdateTime(LocalDateTime.now());
+                userMapper.updateById(updateRoleUser);
+            }
+
+            long mappingCount = eventAdminMappingMapper.selectCount(new LambdaQueryWrapper<EventAdminMapping>()
+                    .eq(EventAdminMapping::getEventId, eventId)
+                    .eq(EventAdminMapping::getUserId, adminUserId));
+            if (mappingCount > 0) {
+                continue;
+            }
+
+            EventAdminMapping mapping = new EventAdminMapping();
+            mapping.setEventId(eventId);
+            mapping.setUserId(adminUserId);
+            mapping.initTime();
+            eventAdminMappingMapper.insert(mapping);
         }
     }
 }

@@ -10,7 +10,7 @@
     </select>
 
     <select id="selectAllAndState" resultType="com.lz.vo.UserVO">
-        SELECT u.id as id, u.create_time as registerTime, u.username as name, u.status as state, u.role as type,
+        SELECT u.id as id, u.create_time as registerTime, u.username as name, u.status as state, u.user_type as type,
                '通过' as applyState, u.create_time as applyTime
         FROM sys_user u
         <where>
@@ -18,7 +18,7 @@
                 AND u.username like CONCAT('%', #{listDto.name}, '%')
             </if>
             <if test="listDto.type != null and listDto.type != ''">
-                AND u.role = #{listDto.type}
+                AND u.user_type = #{listDto.type}
             </if>
             <if test="listDto.date != null">
                 AND u.create_time > #{listDto.date}
@@ -36,7 +36,7 @@
                 AND username like CONCAT('%', #{listDto.name}, '%')
             </if>
             <if test="listDto.type != null and listDto.type != ''">
-                AND role = #{listDto.type}
+                AND user_type = #{listDto.type}
             </if>
             <if test="listDto.date != null">
                 AND create_time >= #{listDto.date}
@@ -46,7 +46,7 @@
 
     <select id="getUserNumsByMonth" resultType="java.lang.Integer">
         SELECT count(*) FROM sys_user
-        WHERE DATE_FORMAT(create_time, '%Y%m') = #{month} and role != 'SCHOOL_ADMIN'
+        WHERE DATE_FORMAT(create_time, '%Y%m') = #{month} and user_type != 'SCHOOL_ADMIN'
     </select>
 
 </mapper>

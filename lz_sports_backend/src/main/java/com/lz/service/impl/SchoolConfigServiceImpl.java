@@ -82,7 +82,7 @@ public class SchoolConfigServiceImpl extends ServiceImpl<SchoolConfigMapper, Sch
         adminUser.setUsername(schoolInitDTO.getAdminUsername());
         adminUser.setPassword(passwordEncoder.encode(schoolInitDTO.getAdminPassword()));
         adminUser.setEmail(schoolInitDTO.getAdminEmail());
-        adminUser.setUserType(UserRole.SUPER_ADMIN);
+        adminUser.setUserType(UserRole.SCHOOL_ADMIN);
         adminUser.setIsFirstLogin(true);
         adminUser.setStatus(UserStatus.ACTIVE);
         adminUser.setSchoolId(schoolConfig.getId());

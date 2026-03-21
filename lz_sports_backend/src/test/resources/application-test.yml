@@ -68,7 +68,7 @@ aliyun:
 
 logging:
   file:
-    path: logs-test
+    path: D:/logs/lz-sports
   level:
     com.lz.mapper: info
     com.lz.service: debug

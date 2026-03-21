@@ -101,8 +101,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
 
         } catch (Exception e) {
-            log.error("[JWT过滤器] Token验证失败 - IP: {}, URI: {}, 错误: {}",
-                    clientIp, requestURI, e.getMessage(), e); // 打印完整异常栈
+            log.error("[JWT过滤器] Token验证失败 - IP: {}, URI: {}, 错误: {}", clientIp, requestURI, e.getMessage(), e);
             writeResponse(response, HttpServletResponse.SC_UNAUTHORIZED,
                     Result.error(ResultCode.UNAUTHORIZED, "登录已过期，请重新登录"));
         } finally {
@@ -155,18 +154,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // 添加角色权限（如果有）
         Object roleObj = claims.get("role");
         if (roleObj != null) {
-            String role = roleObj.toString();
-            switch (role) {
-                case "管理员":
-                    authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
-                    break;
-                case "运动员":
+            String role = roleObj.toString().trim();
+            if (!role.isEmpty()) {
+                String normalizedRole = role.toUpperCase();
+                authorities.add(new SimpleGrantedAuthority("ROLE_" + normalizedRole));
+                if ("SUPER_ADMIN".equals(normalizedRole)) {
+                    authorities.add(new SimpleGrantedAuthority("ROLE_SCHOOL_ADMIN"));
+                } else if ("管理员".equals(role)) {
+                    authorities.add(new SimpleGrantedAuthority("ROLE_SCHOOL_ADMIN"));
+                } else if ("运动员".equals(role)) {
                     authorities.add(new SimpleGrantedAuthority("ROLE_ATHLETE"));
-                    break;
-                default:
-                    // 避免空值或非法角色导致异常
-                    String validRole = role.trim().isEmpty() ? "UNKNOWN" : role.toUpperCase();
-                    authorities.add(new SimpleGrantedAuthority("ROLE_" + validRole));
+                }
             }
         }
 

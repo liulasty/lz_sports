@@ -1,53 +1,52 @@
-# API Regression Test Cases (Phase 1-3)
+# API 回归测试用例（阶段 1-3）
 
-## Overview
-This document outlines the API test cases for verifying the functionality of Phase 1 (User/Auth), Phase 2 (Event/Core), and Phase 3 (Score/Notification).
+## 概述
+本文档整理了阶段 1（用户/认证）、阶段 2（赛事/核心）、阶段 3（成绩/通知）的接口测试用例，用于验证对应功能模块的正确性。
 
-## Phase 1: User & Authentication
+## 阶段 1：用户与认证
 
-| ID | Test Case | Method | Endpoint | Description | Expected Result |
+| ID | 测试用例 | 请求方式 | 接口地址 | 说明 | 预期结果 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **1.1** | **User Login** | `POST` | `/api/auth/login` | Login with valid credentials (admin/student). | `200 OK`, returns Token & User Info. |
-| **1.2** | **Send Code** | `POST` | `/api/auth/send-code` | Send verification code to email. | `200 OK`, "验证码已发送". |
-| **1.3** | **Verify Code** | `POST` | `/api/auth/verify-code` | Verify email code. | `200 OK`, returns verifyToken. |
-| **1.4** | **User Register** | `POST` | `/api/auth/register` | Register new user with verifyToken. | `200 OK`, "注册成功". |
-| **1.5** | **Get User Info** | `GET` | `/api/user/info` | Get current user profile. | `200 OK`, returns user details. |
-| **1.6** | **Update Password** | `PUT` | `/api/user/password` | Update user password. | `200 OK`, "密码修改成功". |
+| **1.1** | **用户登录** | `POST` | `/api/auth/login` | 使用有效账号密码登录（管理员/学生）。 | `200 OK`，返回 Token 和用户信息。 |
+| **1.2** | **发送验证码** | `POST` | `/api/auth/send-code` | 向邮箱发送验证码。 | `200 OK`，提示“验证码已发送”。 |
+| **1.3** | **校验验证码** | `POST` | `/api/auth/verify-code` | 校验邮箱验证码。 | `200 OK`，返回校验凭证 verifyToken。 |
+| **1.4** | **用户注册** | `POST` | `/api/auth/register` | 携带校验凭证注册新用户。 | `200 OK`，提示“注册成功”。 |
+| **1.5** | **获取用户信息** | `GET` | `/api/user/info` | 获取当前登录用户信息。 | `200 OK`，返回用户详情。 |
+| **1.6** | **修改密码** | `PUT` | `/api/user/password` | 修改当前用户密码。 | `200 OK`，提示“密码修改成功”。 |
 
-## Phase 2: Event Core & Registration
+## 阶段 2：赛事核心与报名
 
-| ID | Test Case | Method | Endpoint | Description | Expected Result |
+| ID | 测试用例 | 请求方式 | 接口地址 | 说明 | 预期结果 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **2.1** | **Create Event** | `POST` | `/api/event/EventList` | Admin creates a new event. | `200 OK`, "发布成功". |
-| **2.2** | **List Events** | `GET` | `/api/event/page` | List events with pagination. | `200 OK`, returns event list. |
-| **2.3** | **Update Event Status** | `PUT` | `/api/event/{id}/status` | Change event status (DRAFT -> OPEN). | `200 OK`, "操作成功". |
-| **2.4** | **Create Project** | `POST` | `/api/project` | Add a project to an event. | `200 OK`, "添加成功". |
-| **2.5** | **List Projects** | `GET` | `/api/project/event/{eventId}` | List projects for a specific event. | `200 OK`, returns project list. |
-| **2.6** | **Apply Athlete** | `POST` | `/api/athlete` | User applies for athlete qualification. | `200 OK`, "申请提交成功". |
-| **2.7** | **Audit Athlete** | `PUT` | `/api/athlete/audit/{id}` | Admin approves athlete application. | `200 OK`, "审核通过". |
-| **2.8** | **Register Project** | `POST` | `/api/registration` | Athlete registers for a project. | `200 OK`, "报名成功". |
-| **2.9** | **My Registrations** | `GET` | `/api/registration/my` | Get current user's registrations. | `200 OK`, returns list. |
-| **2.10** | **Audit Registration** | `PUT` | `/api/registration/audit` | Admin audits registration (batch). | `200 OK`, "操作成功". |
+| **2.1** | **创建赛事** | `POST` | `/api/event/EventList` | 管理员创建新赛事。 | `200 OK`，提示“发布成功”。 |
+| **2.2** | **赛事分页列表** | `GET` | `/api/event/page` | 分页查询赛事列表。 | `200 OK`，返回赛事列表数据。 |
+| **2.3** | **修改赛事状态** | `PUT` | `/api/event/{id}/status` | 修改赛事状态（草稿 → 开启报名等）。 | `200 OK`，提示“操作成功”。 |
+| **2.4** | **创建项目** | `POST` | `/api/project` | 为赛事添加比赛项目。 | `200 OK`，提示“添加成功”。 |
+| **2.5** | **查询赛事项目** | `GET` | `/api/project/event/{eventId}` | 查询指定赛事下的所有项目。 | `200 OK`，返回项目列表。 |
+| **2.6** | **运动员申请** | `POST` | `/api/athlete` | 用户提交运动员资格申请。 | `200 OK`，提示“申请提交成功”。 |
+| **2.7** | **运动员审核** | `PUT` | `/api/athlete/audit/{id}` | 管理员审核运动员申请。 | `200 OK`，提示“审核通过”。 |
+| **2.8** | **项目报名** | `POST` | `/api/registration` | 运动员报名指定项目。 | `200 OK`，提示“报名成功”。 |
+| **2.9** | **我的报名记录** | `GET` | `/api/registration/my` | 查询当前用户的所有报名信息。 | `200 OK`，返回报名列表。 |
+| **2.10** | **报名审核** | `PUT` | `/api/registration/audit` | 管理员批量审核报名信息。 | `200 OK`，提示“操作成功”。 |
 
-## Phase 3: Score & Notification
+## 阶段 3：成绩与通知
 
-| ID | Test Case | Method | Endpoint | Description | Expected Result |
+| ID | 测试用例 | 请求方式 | 接口地址 | 说明 | 预期结果 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **3.1** | **Import Scores** | `POST` | `/api/score/import/{eventId}` | Admin imports scores via Excel. | `200 OK`, returns success/fail count. |
-| **3.2** | **List Scores (Admin)** | `GET` | `/api/score/page` | Admin views all scores (including drafts). | `200 OK`, returns score list. |
-| **3.3** | **Publish Scores** | `PUT` | `/api/score/publish/{eventId}` | Admin publishes scores for event. | `200 OK`, "发布成功". |
-| **3.4** | **List Scores (Public)** | `GET` | `/api/score/page` | Public/Athlete views published scores. | `200 OK`, returns published scores only. |
-| **3.5** | **Export Registration** | `GET` | `/api/registration/export/{eventId}` | Admin exports registration list. | `200 OK`, returns Excel file. |
-| **3.6** | **Get Notifications** | `GET` | `/api/notification/page` | Get user notifications. | `200 OK`, returns list. |
-| **3.7** | **Unread Count** | `GET` | `/api/notification/unread-count` | Get unread notification count. | `200 OK`, returns count integer. |
-| **3.8** | **Mark Read** | `PUT` | `/api/notification/read/{id}` | Mark single notification as read. | `200 OK`, "操作成功". |
-| **3.9** | **Mark All Read** | `PUT` | `/api/notification/read-all` | Mark all notifications as read. | `200 OK`, "操作成功". |
+| **3.1** | **导入成绩** | `POST` | `/api/score/import/{eventId}` | 管理员通过 Excel 导入赛事成绩。 | `200 OK`，返回成功/失败条数。 |
+| **3.2** | **成绩列表（管理员）** | `GET` | `/api/score/page` | 管理员查看所有成绩（含未发布）。 | `200 OK`，返回成绩列表。 |
+| **3.3** | **发布成绩** | `PUT` | `/api/score/publish/{eventId}` | 管理员发布赛事成绩。 | `200 OK`，提示“发布成功”。 |
+| **3.4** | **成绩列表（公开）** | `GET` | `/api/score/page` | 普通用户/运动员查看已发布成绩。 | `200 OK`，仅返回已发布成绩。 |
+| **3.5** | **导出报名名单** | `GET` | `/api/registration/export/{eventId}` | 管理员导出赛事报名名单。 | `200 OK`，返回 Excel 文件。 |
+| **3.6** | **获取通知列表** | `GET` | `/api/notification/page` | 获取当前用户的站内通知。 | `200 OK`，返回通知列表。 |
+| **3.7** | **未读通知数量** | `GET` | `/api/notification/unread-count` | 查询未读通知总数。 | `200 OK`，返回数字类型数量。 |
+| **3.8** | **标记单条已读** | `PUT` | `/api/notification/read/{id}` | 将单条通知标记为已读。 | `200 OK`，提示“操作成功”。 |
+| **3.9** | **标记全部已读** | `PUT` | `/api/notification/read-all` | 将所有通知标记为已读。 | `200 OK`，提示“操作成功”。 |
 
-## Execution Guide
+## 执行说明
 
-1.  **Environment**: Ensure Backend is running on `http://localhost:8080`.
-2.  **Tool**: Use IntelliJ HTTP Client, Postman, or VS Code REST Client.
-3.  **Auth**: Most endpoints require `Authorization: Bearer <token>` header.
-    *   Login first to get the token.
-    *   Replace `{{auth_token}}` in your requests.
-
+1.  **环境**：确保后端服务运行在 `http://localhost:8080`。
+2.  **工具**：可使用 IntelliJ HTTP Client、Postman 或 VS Code REST Client。
+3.  **权限**：大部分接口需要携带请求头 `Authorization: Bearer <token>`。
+    * 先执行登录接口获取 token。
+    * 在请求中替换 `{{auth_token}}` 为实际令牌。
