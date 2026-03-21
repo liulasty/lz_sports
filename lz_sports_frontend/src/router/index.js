@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import Layout from '@/layout/index.vue'
 import { checkInit } from '@/api/init'
+import { setupInterceptors } from '@/utils/request'
 
 const routes = [
   {
@@ -25,6 +26,30 @@ const routes = [
     name: 'ResetPassword',
     component: () => import('@/views/login/ResetPassword.vue'),
     meta: { requiresAuth: true, title: '修改初始密码' }
+  },
+  {
+    path: '/401',
+    name: 'Error401',
+    component: () => import('@/views/error/401.vue'),
+    meta: { title: '未授权', requiresAuth: false }
+  },
+  {
+    path: '/403',
+    name: 'Error403',
+    component: () => import('@/views/error/403.vue'),
+    meta: { title: '禁止访问', requiresAuth: false }
+  },
+  {
+    path: '/500',
+    name: 'Error500',
+    component: () => import('@/views/error/500.vue'),
+    meta: { title: '服务器错误', requiresAuth: false }
+  },
+  {
+    path: '/404',
+    name: 'Error404',
+    component: () => import('@/views/error/404.vue'),
+    meta: { title: '页面不存在', requiresAuth: false }
   },
   {
     path: '/',
@@ -62,7 +87,25 @@ const routes = [
         meta: { requiresAuth: true }
       },
       {
-        path: 'score',
+        path: 'my-registrations',
+        name: 'MyRegistrations',
+        component: () => import('@/views/my/Registrations.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'my-applications',
+        name: 'MyApplications',
+        component: () => import('@/views/my/Applications.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'notifications',
+        name: 'Notifications',
+        component: () => import('@/views/my/Notifications.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'my-score',
         name: 'MyScore',
         component: () => import('@/views/score/index.vue'),
         meta: { requiresAuth: true }
@@ -71,39 +114,62 @@ const routes = [
         path: 'user-manage',
         name: 'UserManage',
         component: () => import('@/views/user/index.vue'),
-        meta: { requiresAuth: true, roles: ['管理员'] }
+        meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', '管理员'] }
+      },
+      {
+        path: 'event-create',
+        name: 'EventCreate',
+        component: () => import('@/views/admin/EventCreate.vue'),
+        meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', '管理员'] }
+      },
+      {
+        path: 'school-settings',
+        name: 'SchoolSettings',
+        component: () => import('@/views/admin/SchoolSettings.vue'),
+        meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', '管理员'] }
       },
       {
         path: 'event-manage',
         name: 'EventManage',
         component: () => import('@/views/admin/EventManage.vue'),
-        meta: { requiresAuth: true, roles: ['管理员'] }
+        meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'EVENT_ADMIN', '管理员'] }
+      },
+      {
+        path: 'athlete-audit',
+        name: 'AthleteAudit',
+        component: () => import('@/views/admin/AthleteAudit.vue'),
+        meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'EVENT_ADMIN', '管理员'] }
       },
       {
         path: 'project-manage',
         name: 'ProjectManage',
         component: () => import('@/views/admin/ProjectManage.vue'),
-        meta: { requiresAuth: true, roles: ['管理员'] }
+        meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', '管理员'] }
       },
       {
         path: 'registration-audit',
         name: 'RegistrationAudit',
         component: () => import('@/views/admin/RegistrationAudit.vue'),
-        meta: { requiresAuth: true, roles: ['管理员'] }
+        meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'EVENT_ADMIN', '管理员'] }
       },
       {
         path: 'user-audit',
         name: 'UserAudit',
         component: () => import('@/views/admin/UserAudit.vue'),
-        meta: { requiresAuth: true, roles: ['管理员'] }
+        meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', '管理员'] }
       },
       {
         path: 'score-manage',
         name: 'ScoreManage',
         component: () => import('@/views/admin/ScoreManage.vue'),
-        meta: { requiresAuth: true, roles: ['管理员'] }
+        meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'EVENT_ADMIN', '管理员'] }
       }
     ]
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'CatchAll404',
+    redirect: '/404'
   }
 ]
 
@@ -162,11 +228,16 @@ router.beforeEach(async (to, from, next) => {
     if (userStore.userInfo && to.meta.roles.includes(userStore.userInfo.type)) {
       next()
     } else {
-      next('/dashboard') // No permission
+      next('/403')
     }
   } else {
     next()
   }
+})
+
+router.isReady().then(() => {
+  const userStore = useUserStore()
+  setupInterceptors(router, userStore)
 })
 
 export default router

@@ -89,6 +89,7 @@ import { getProjectList } from '@/api/project'
 import { applyProject } from '@/api/registration'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
+import { isSuccess } from '@/utils/result'
 
 const userStore = useUserStore()
 const isAthlete = computed(() => userStore.userInfo && userStore.userInfo.type === '运动员')
@@ -110,7 +111,7 @@ const getList = async () => {
   loading.value = true
   try {
     const res = await getProjectList(queryParams)
-    if (res.code === 1) {
+    if (isSuccess(res)) {
       projectList.value = res.data.records
       total.value = res.data.total
     }
@@ -151,7 +152,7 @@ const confirmApply = async () => {
     // Call Registration API
     const res = await applyProject(currentProject.value.itemId)
     
-    if (res.code === 1) {
+    if (isSuccess(res)) {
       ElMessage.success('报名申请已提交')
       dialogVisible.value = false
       getList() // Refresh list to update status

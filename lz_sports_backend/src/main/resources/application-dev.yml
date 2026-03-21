@@ -27,17 +27,3 @@ aliyun:
 
 app:
   upload-dir: ${APP_UPLOAD_DIR:uploads}
-
-# ==============================================================================
-# 日志配置
-# ==============================================================================
-logging:
-  file:
-    path: D:/lz-sports/docker/logs  # 日志文件存储目录
-  logback:
-    rollingpolicy:
-      max-file-size: 100MB  # 单个日志文件最大大小
-      max-history: 30       # 日志文件保留天数
-      total-size-cap: 5GB   # 日志文件总大小上限
-  level:
-    com.lz.mapper: debug    # 指定 Mapper 包日志级别为 DEBUG（打印SQL）

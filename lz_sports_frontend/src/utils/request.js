@@ -1,81 +1,60 @@
 import axios from 'axios'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import router from '@/router'
-import { useUserStore } from '@/stores/user'
+import { ElMessage } from 'element-plus'
+import { ERROR_STRATEGY, FALLBACK_STRATEGY } from '@/config/errorStrategy'
 
-const service = axios.create({
-  baseURL: '/api', // Proxy target
-  timeout: 5000
-})
+let runtimeRouter = null
+let runtimeStore = null
 
-// HTTP status code mapping
-const errorCode = {
-  '401': '认证失败，无法访问系统资源',
-  '403': '当前操作没有权限',
-  '404': '访问资源不存在',
-  'default': '系统未知错误，请反馈给管理员'
+export function setupInterceptors(router, store) {
+  runtimeRouter = router
+  runtimeStore = store
 }
 
-// Request Interceptor
+const service = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  timeout: 10000
+})
+
 service.interceptors.request.use(
   (config) => {
-    const userStore = useUserStore()
-    if (userStore.token) {
-      config.headers['token'] = userStore.token
+    const token = runtimeStore?.token || localStorage.getItem('token')
+    if (token) {
+      config.headers.token = token
+      config.headers.Authorization = `Bearer ${token}`
     }
     return config
   },
-  (error) => {
-    return Promise.reject(error)
-  }
+  (error) => Promise.reject(error)
 )
 
-// Response Interceptor
 service.interceptors.response.use(
   (response) => {
-    const res = response.data
-    // 兼容部分非 Result 结构的响应（如直接返回二进制流）
     if (response.config.responseType === 'blob') {
-      return res
+      return response.data
     }
-
-    // 200: 成功
-    if (res.code === 200) {
-      return res
-    }
-    
-    // 处理业务错误码
-    const msg = res.msg || errorCode[res.code] || errorCode['default']
-    
-    // 401: 未登录
-    if (res.code === 401) {
-       ElMessageBox.confirm('登录状态已过期，您可以继续留在该页面，或者重新登录', '系统提示', {
-          confirmButtonText: '重新登录',
-          cancelButtonText: '取消',
-          type: 'warning'
-        }
-      ).then(() => {
-        const userStore = useUserStore()
-        userStore.logout()
-        router.push('/login')
-      }).catch(() => {})
-      return Promise.reject(new Error('无效的会话，或者会话已过期，请重新登录。'))
-    }
-    
-    // 500: 服务器错误; 400: 参数错误; 403: 无权限; 409: 业务冲突
-    ElMessage.error(msg)
-    return Promise.reject(new Error(msg))
+    return response.data
   },
   (error) => {
-    let { message } = error;
-    if (message == "Network Error") {
-      message = "后端接口连接异常";
-    } else if (message.includes("timeout")) {
-      message = "系统接口请求超时";
-    } else if (message.includes("Request failed with status code")) {
-      message = "系统接口" + message.substr(message.length - 3) + "异常";
+    const status = error.response?.status
+    const strategy = ERROR_STRATEGY[status] ?? FALLBACK_STRATEGY
+    const store = runtimeStore
+    const router = runtimeRouter
+
+    if (strategy.clearAuth && store?.logout) {
+      store.logout()
     }
-    ElMessage.error(message)
+
+    if (typeof strategy.before === 'function') {
+      strategy.before(router, store)
+    }
+
+    const serverMsg = error.response?.data?.msg || error.response?.data?.message
+    ElMessage[strategy.notifyType](serverMsg || strategy.message)
+
+    if (strategy.redirect && router?.currentRoute?.value?.path !== strategy.redirect) {
+      router.push(strategy.redirect)
+    }
+
     return Promise.reject(error)
   }
 )

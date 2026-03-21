@@ -41,6 +41,7 @@ import java.net.URLEncoder;
  */
 import com.lz.common.enums.EventStatus;
 import com.alibaba.excel.EasyExcel;
+import com.lz.util.StringUtils;
 import com.lz.vo.RegistrationExportVO;
 
 import java.util.concurrent.TimeUnit;
@@ -130,7 +131,7 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
 
                     if (project.getStartTime() != null && project.getEndTime() != null) {
                         String conflictItemName = registrationMapper.findConflictItemName(userId, event.getId(), project.getStartTime(), project.getEndTime());
-                        if (conflictItemName != null && !conflictItemName.isEmpty()) {
+                        if (StringUtils.isNotBlank(conflictItemName)) {
                             throw new BusinessException("与您已报名的[" + conflictItemName + "]时间冲突");
                         }
                     }
@@ -251,7 +252,7 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
         }
         r.setRegistrationStatus(RegistrationStatus.REJECTED);
         updateById(r);
-        String reason = r.getRejectReason() == null || r.getRejectReason().isBlank() ? "无" : r.getRejectReason();
+        String reason = StringUtils.defaultIfBlank(r.getRejectReason(), "无");
         notificationService.create(r.getAthleteId(), "报名审核拒绝", "您的报名已被拒绝，原因：" + reason, NotificationType.SYSTEM);
     }
 
@@ -357,11 +358,11 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
 
     private void syncAthleteProfileToUser(Athlete athlete, User user) {
         boolean changed = false;
-        if (athlete.getName() != null && !athlete.getName().isEmpty() && !athlete.getName().equals(user.getName())) {
+        if (StringUtils.isNotBlank(athlete.getName()) && !athlete.getName().equals(user.getName())) {
             user.setName(athlete.getName());
             changed = true;
         }
-        if (athlete.getContact() != null && !athlete.getContact().isEmpty() && !athlete.getContact().equals(user.getStudentId())) {
+        if (StringUtils.isNotBlank(athlete.getContact()) && !athlete.getContact().equals(user.getStudentId())) {
             user.setStudentId(athlete.getContact());
             changed = true;
         }

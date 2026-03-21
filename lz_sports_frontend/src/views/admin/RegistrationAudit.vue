@@ -68,6 +68,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { getRegistrationList, approveRegistration, refuseRegistration } from '@/api/registration'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { isSuccess } from '@/utils/result'
 
 const loading = ref(false)
 const tableData = ref([])
@@ -84,7 +85,7 @@ const getList = async () => {
   loading.value = true
   try {
     const res = await getRegistrationList(queryParams)
-    if (res.code === 1) {
+    if (isSuccess(res)) {
       tableData.value = res.data.records
       total.value = res.data.total
     }
@@ -118,7 +119,7 @@ const handleApprove = (row) => {
   }).then(async () => {
     try {
       const res = await approveRegistration(row.id)
-      if (res.code === 1) {
+      if (isSuccess(res)) {
         ElMessage.success('操作成功')
         getList()
       }
@@ -136,7 +137,7 @@ const handleRefuse = (row) => {
   }).then(async () => {
     try {
       const res = await refuseRegistration(row.id)
-      if (res.code === 1) {
+      if (isSuccess(res)) {
         ElMessage.success('操作成功')
         getList()
       }

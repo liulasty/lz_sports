@@ -1,0 +1,109 @@
+:root {
+  --bg-page: #f4f6f9;
+  --bg-card: #ffffff;
+  --bg-placeholder: #eef0f3;
+  --bg-soft: #f7f9fc;
+  --text-primary: #1a1a2e;
+  --text-secondary: #6b7280;
+  --border: rgba(0, 0, 0, 0.07);
+  --accent: #ff6b35;
+}
+
+html.dark {
+  --bg-page: #0d0f14;
+  --bg-card: #161921;
+  --bg-placeholder: #1e2130;
+  --bg-soft: #1e2130;
+  --text-primary: #f0f2f8;
+  --text-secondary: #8892a4;
+  --border: rgba(255, 255, 255, 0.07);
+  --accent: #ff6b35;
+}
+
+:root {
+  --main-bg-color: var(--bg-page);
+  --content-bg-color: var(--bg-card);
+}
+
+.el-main,
+.el-container {
+  background-color: var(--bg-page) !important;
+}
+
+.app-main,
+.main-container {
+  background-color: var(--bg-page);
+}
+
+html.dark .event-card:hover {
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 107, 53, 0.15);
+}
+
+html.dark {
+  --el-fill-color-blank: #1e2130;
+  --el-bg-color: #161921;
+  --el-border-color: rgba(255, 255, 255, 0.1);
+  --el-text-color-regular: #f0f2f8;
+  --el-text-color-placeholder: #4a5568;
+}
+
+html.dark .el-main {
+  background-color: #0d0f14 !important;
+}
+
+html.dark .el-pagination .el-input__wrapper {
+  background-color: #1e2130 !important;
+}
+
+html.dark .el-pagination button,
+html.dark .el-pager li {
+  background: transparent !important;
+  color: #8892a4;
+}
+
+html.dark .el-pager li.is-active {
+  color: #ff6b35 !important;
+}
+
+.event-manage-container .el-card,
+.project-manage-container .el-card,
+.registration-container .el-card,
+.user-audit-container .el-card,
+.score-manage-container .el-card {
+  background: var(--bg-card);
+  border-color: var(--border);
+}
+
+.event-manage-container .el-card__header,
+.project-manage-container .el-card__header,
+.registration-container .el-card__header,
+.user-audit-container .el-card__header,
+.score-manage-container .el-card__header {
+  border-bottom-color: var(--border);
+  color: var(--text-primary);
+}
+
+.event-manage-container .el-table,
+.project-manage-container .el-table,
+.registration-container .el-table,
+.user-audit-container .el-table,
+.score-manage-container .el-table {
+  --el-table-border-color: var(--border);
+  --el-table-header-bg-color: var(--bg-soft);
+  --el-table-tr-bg-color: var(--bg-card);
+  --el-table-row-hover-bg-color: var(--bg-soft);
+  --el-table-text-color: var(--text-primary);
+  --el-table-header-text-color: var(--text-primary);
+  color: var(--text-primary);
+}
+
+.event-manage-container .el-pagination,
+.project-manage-container .el-pagination,
+.registration-container .el-pagination,
+.user-audit-container .el-pagination,
+.score-manage-container .el-pagination {
+  --el-pagination-bg-color: transparent;
+  --el-pagination-text-color: var(--text-secondary);
+  --el-pagination-button-color: var(--text-secondary);
+  --el-pagination-hover-color: var(--accent);
+}

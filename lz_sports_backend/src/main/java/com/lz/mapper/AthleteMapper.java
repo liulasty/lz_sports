@@ -12,18 +12,18 @@ import org.apache.ibatis.annotations.Update;
 @Mapper
 public interface AthleteMapper extends BaseMapper<Athlete> {
 
-    @Select("SELECT COUNT(*) FROM athlete WHERE DATE_FORMAT(applyTime, '%Y%m') = #{month} AND AthleteState = '成功'")
+    @Select("SELECT COUNT(*) FROM athlete WHERE DATE_FORMAT(apply_time, '%Y%m') = #{month} AND athlete_state = '成功'")
     int getAthleteNumsByMonth(String month);
 
-    @Select("SELECT COUNT(*) FROM athlete WHERE AthleteState = '成功'")
+    @Select("SELECT COUNT(*) FROM athlete WHERE athlete_state = '成功'")
     Integer getAthleteTotal();
 
-    @Select("SELECT COUNT(*) FROM athlete WHERE YEAR(agreeTime) = #{year} AND MONTH(agreeTime) = #{month}")
+    @Select("SELECT COUNT(*) FROM athlete WHERE YEAR(agree_time) = #{year} AND MONTH(agree_time) = #{month}")
     int getAthleteNumByMonth(int year, int month);
 
-    @Update("UPDATE athlete SET AthleteState = '不同意' WHERE UserID = #{userId}")
+    @Update("UPDATE athlete SET athlete_state = '不同意' WHERE user_id = #{userId}")
     void refusePlayer(Long userId);
 
-    @Select("SELECT * FROM athlete WHERE UserID = #{userId}")
+    @Select("SELECT * FROM athlete WHERE user_id = #{userId}")
     Athlete selectByUserId(Long userId);
 }

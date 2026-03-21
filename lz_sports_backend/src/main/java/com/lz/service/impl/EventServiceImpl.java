@@ -21,6 +21,7 @@ import com.lz.vo.EventVO;
 import com.lz.vo.chart.TableData;
 import com.lz.vo.chart.TypeData;
 import com.lz.util.ImageUtils;
+import com.lz.util.StringUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -169,8 +170,8 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
         IPage<Event> page = new Page<>(dto.getCurrentPage(), dto.getPageSize());
         LambdaQueryWrapper<Event> lqw = new LambdaQueryWrapper<>();
         
-        lqw.like(dto.getName() != null && !dto.getName().isEmpty(), Event::getEventName, dto.getName());
-        // lqw.eq(dto.getType() != null && !dto.getType().isEmpty(), Event::getDescription, dto.getType());
+        lqw.like(StringUtils.isNotBlank(dto.getName()), Event::getEventName, dto.getName());
+        // lqw.eq(StringUtils.isNotBlank(dto.getType()), Event::getDescription, dto.getType());
 
         Long userId = BaseContext.getCurrentId();
         if (userId != null) {
@@ -196,6 +197,7 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
 
         List<EventVO> eventVOS = page.getRecords().stream().map(event -> {
             List<String> imageUrls = sportsImgService.selectImgs(event.getId(), "event");
+            EventStatus eventStatus = event.getEventStatus() != null ? event.getEventStatus() : EventStatus.DRAFT;
             return EventVO.builder()
                     .id(event.getId())
                     .name(event.getEventName())
@@ -203,7 +205,7 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
                     .type(event.getEventDescription())
                     .date(event.getRegistrationStartTime() != null ? event.getRegistrationStartTime().toString() : "")
                     .end(event.getRegistrationEndTime() != null ? event.getRegistrationEndTime().toString() : "")
-                    .status(event.getEventStatus().name())
+                    .status(eventStatus.name())
                     .imageUrls(imageUrls)
                     .regStartTime(event.getRegistrationStartTime() != null ? event.getRegistrationStartTime().toString() : "")
                     .regEndTime(event.getRegistrationEndTime() != null ? event.getRegistrationEndTime().toString() : "")

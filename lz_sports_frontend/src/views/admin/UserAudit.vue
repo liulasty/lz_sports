@@ -54,6 +54,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { getUserList, auditUser } from '@/api/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { isSuccess } from '@/utils/result'
 
 const loading = ref(false)
 const userList = ref([])
@@ -81,7 +82,7 @@ const getList = async () => {
   loading.value = true
   try {
     const res = await getUserList(queryParams)
-    if (res.code === 1) {
+    if (isSuccess(res)) {
       userList.value = res.data.rows
       total.value = res.data.total
     }
@@ -115,7 +116,7 @@ const handleApprove = (row) => {
   }).then(async () => {
     try {
       const res = await auditUser(row.userId, 1, '') // 1 for active
-      if (res.code === 1) {
+      if (isSuccess(res)) {
         ElMessage.success('操作成功')
         getList()
       } else {
@@ -136,7 +137,7 @@ const handleReject = (row) => {
   }).then(async ({ value }) => {
     try {
       const res = await auditUser(row.userId, 0, value) // 0 for rejected
-      if (res.code === 1) {
+      if (isSuccess(res)) {
         ElMessage.success('操作成功')
         getList()
       } else {

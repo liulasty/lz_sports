@@ -4,7 +4,7 @@
 <mapper namespace="com.lz.mapper.SportsImgMapper">
 
     <insert id="addImageSrcs">
-        INSERT INTO sportsimg(ImgType, typeId, ImgSrc)
+        INSERT INTO sportsimg(img_type, type_id, img_src)
         VALUES
         <foreach collection="imgSrc" item="src" separator=",">
             (#{type}, #{imgId}, #{src})
@@ -13,19 +13,19 @@
 
     <delete id="deleteByTypeIdAndImgSrcAndImgType">
         DELETE FROM sportsimg
-        WHERE typeid = #{typeId}
-        AND ImgType = #{imgType}
-        AND ImgSrc IN
+        WHERE type_id = #{typeId}
+        AND img_type = #{imgType}
+        AND img_src IN
         <foreach item="item" collection="src" open="(" separator="," close=")">
             #{item}
         </foreach>
     </delete>
 
     <select id="selectImgSrcByTypeAndId" resultType="java.lang.String">
-        SELECT ImgSrc
+        SELECT img_src
         FROM sportsimg
-        WHERE ImgType = #{imgType}
-          AND typeId = #{typeId}
+        WHERE img_type = #{imgType}
+          AND type_id = #{typeId}
     </select>
 
 </mapper>

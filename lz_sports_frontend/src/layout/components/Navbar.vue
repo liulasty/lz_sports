@@ -1,15 +1,18 @@
 <template>
   <div class="navbar">
-    <div class="hamburger">
-      <el-icon><Fold /></el-icon>
+    <div class="hamburger" @click="toggleSidebar">
+      <el-icon :class="{ 'is-active': isCollapse }"><Fold /></el-icon>
     </div>
     <div class="breadcrumb">
       <el-breadcrumb separator="/">
         <el-breadcrumb-item :to="{ path: '/' }">Home</el-breadcrumb-item>
-        <el-breadcrumb-item v-if="$route.path !== '/'">{{ $route.name }}</el-breadcrumb-item>
+        <el-breadcrumb-item v-if="currentRouteName && currentRouteName !== 'Home' && currentRouteName !== 'Dashboard'">
+          {{ currentRouteName }}
+        </el-breadcrumb-item>
       </el-breadcrumb>
     </div>
     <div class="right-menu">
+      <ThemeToggle class="theme-toggle-wrapper" />
       <div class="notice-wrapper" @click="openDrawer">
         <el-badge :value="unreadCount" :hidden="unreadCount === 0" class="notice-badge">
           <el-icon><Bell /></el-icon>
@@ -18,7 +21,7 @@
       <el-dropdown trigger="click">
         <div class="avatar-wrapper">
           <el-avatar :size="30" :src="userInfo.avatarSrc || defaultAvatar" />
-          <span class="user-name">{{ userInfo.userName }}</span>
+          <span class="user-name">{{ userInfo.userName || '用户' }}</span>
           <el-icon><CaretBottom /></el-icon>
         </div>
         <template #dropdown>
@@ -63,6 +66,20 @@ import { getNotificationPage, getUnreadNotificationCount, markAllNotificationRea
 import { Fold, CaretBottom, Bell } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import defaultAvatar from '@/assets/vue.svg'
+import ThemeToggle from '@/components/ThemeToggle.vue'
+
+const props = defineProps({
+  isCollapse: {
+    type: Boolean,
+    default: false
+  }
+})
+
+const emit = defineEmits(['toggle-sidebar'])
+
+const toggleSidebar = () => {
+  emit('toggle-sidebar')
+}
 
 const userStore = useUserStore()
 const router = useRouter()
@@ -74,6 +91,33 @@ const drawerVisible = ref(false)
 const notifications = ref([])
 const readFilter = ref(null)
 let timer = null
+
+// 映射路由名称为中文展示
+const routeNameMap = {
+  'Dashboard': '系统首页',
+  'EventList': '赛事大厅',
+  'EventDetail': '赛事详情',
+  'ProjectList': '项目报名',
+  'Profile': '个人中心',
+  'MyRegistrations': '我的报名',
+  'MyApplications': '我的申请',
+  'Notifications': '消息通知',
+  'MyScore': '我的成绩',
+  'UserManage': '用户管理',
+  'EventCreate': '赛事创建',
+  'SchoolSettings': '学校配置',
+  'EventManage': '赛事管理',
+  'AthleteAudit': '运动员审核',
+  'ProjectManage': '项目管理',
+  'RegistrationAudit': '报名审核',
+  'UserAudit': '用户审核',
+  'ScoreManage': '成绩管理'
+}
+
+const currentRouteName = computed(() => {
+  const name = route.name
+  return routeNameMap[name] || route.meta.title || name
+})
 
 const loadUnreadCount = async () => {
   const res = await getUnreadNotificationCount()
@@ -153,8 +197,8 @@ onBeforeUnmount(() => {
   height: 50px;
   overflow: hidden;
   position: relative;
-  background: #fff;
-  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--el-border-color-light);
   display: flex;
   align-items: center;
   padding: 0 15px;
@@ -163,41 +207,83 @@ onBeforeUnmount(() => {
 .hamburger {
   padding: 0 15px;
   cursor: pointer;
+  transition: transform 0.3s;
+  color: var(--el-text-color-regular);
+}
+
+.hamburger:hover {
+  color: var(--el-color-primary);
+}
+
+.hamburger .is-active {
+  transform: rotate(180deg);
 }
 
 .breadcrumb {
   flex: 1;
+  margin-left: 10px;
+}
+
+/* 面包屑美化 */
+:deep(.el-breadcrumb__inner) {
+  font-weight: 500;
+  color: var(--el-text-color-regular);
+}
+
+:deep(.el-breadcrumb__item:last-child .el-breadcrumb__inner) {
+  color: var(--el-text-color-primary);
+  font-weight: 600;
 }
 
 .right-menu {
   display: flex;
   align-items: center;
-  float: right;
+  gap: 20px;
   height: 100%;
-  line-height: 50px;
+}
+
+.theme-toggle-wrapper {
+  transform: scale(0.88);
 }
 
 .notice-wrapper {
-  margin-right: 20px;
   display: flex;
   align-items: center;
   cursor: pointer;
-  color: var(--el-text-color-primary);
+  color: var(--el-text-color-regular);
+  transition: color 0.3s;
+  padding: 4px;
+}
+
+.notice-wrapper:hover {
+  color: var(--el-color-primary);
 }
 
 .notice-badge {
-  font-size: 18px;
+  display: flex;
+}
+.notice-badge .el-icon {
+  font-size: 20px;
 }
 
 .avatar-wrapper {
   display: flex;
   align-items: center;
   cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 20px;
+  transition: background-color 0.3s;
+}
+
+.avatar-wrapper:hover {
+  background-color: var(--el-fill-color-light);
 }
 
 .user-name {
-  margin: 0 5px;
+  margin: 0 8px;
   font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
 }
 
 .drawer-actions {

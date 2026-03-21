@@ -40,7 +40,7 @@ services:
     # 实现容器内上传文件持久化到宿主机
     volumes:
       - ./data/uploads:/app/uploads
-      - D:/lz-sports/docker/logs:/app/logs
+      - D:/app/logs/gaode_demo:/app/logs
     # 添加额外的主机映射：将 host.docker.internal 解析为宿主机网关地址
     # 解决容器访问宿主机服务的问题（兼容 Windows/Mac/Linux）
     extra_hosts:

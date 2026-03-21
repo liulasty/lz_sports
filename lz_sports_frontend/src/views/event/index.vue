@@ -1,40 +1,86 @@
 <template>
   <div class="event-container">
-    <el-card class="box-card">
-      <template #header>
-        <div class="card-header">
-          <span>赛事列表</span>
-          <div class="filter-box">
-            <el-input v-model="queryParams.name" placeholder="赛事名称" style="width: 200px; margin-right: 10px" @keyup.enter="handleQuery" />
-            <el-button type="primary" @click="handleQuery">查询</el-button>
+    <!-- Header -->
+    <div class="page-header">
+      <div class="page-title">
+        <span class="title-accent"></span>
+        <h2>赛事列表</h2>
+        <span class="total-badge" v-if="total > 0">{{ total }} 场</span>
+      </div>
+      <div class="filter-box">
+        <el-input
+            v-model="queryParams.name"
+            placeholder="搜索赛事名称…"
+            prefix-icon="Search"
+            class="search-input"
+            @keyup.enter="handleQuery"
+            clearable
+        />
+        <el-button type="primary" class="query-btn" @click="handleQuery">
+          <el-icon><Search /></el-icon>
+          查询
+        </el-button>
+      </div>
+    </div>
+
+    <!-- Empty state -->
+    <div v-if="eventList.length === 0" class="empty-state">
+      <div class="empty-icon">🏆</div>
+      <p class="empty-text">暂无赛事</p>
+      <p class="empty-sub">敬请期待更多精彩赛事</p>
+    </div>
+
+    <!-- Grid -->
+    <div v-else class="event-grid">
+      <div
+          class="event-card"
+          v-for="item in eventList"
+          :key="item.id"
+          @click="goDetail(item.id)"
+      >
+        <!-- Image -->
+        <div class="card-image">
+          <img
+              v-if="item.imageUrls && item.imageUrls.length > 0"
+              :src="item.imageUrls[0]"
+              :alt="item.name"
+          />
+          <div v-else class="image-placeholder">
+            <span class="placeholder-icon">🏅</span>
+          </div>
+          <!-- Status badge on image -->
+          <div class="status-badge" :class="getStatusClass(item)">
+            {{ getStatus(item) }}
           </div>
         </div>
-      </template>
 
-      <el-row :gutter="20">
-        <el-col :span="6" v-for="item in eventList" :key="item.id" style="margin-bottom: 20px;">
-          <el-card :body-style="{ padding: '0px' }" shadow="hover" @click="goDetail(item.id)">
-            <div class="image-container">
-               <img v-if="item.imageUrls && item.imageUrls.length > 0" :src="item.imageUrls[0]" class="image"/>
-               <div v-else class="image-placeholder">暂无图片</div>
+        <!-- Body -->
+        <div class="card-body">
+          <h3 class="event-title">{{ item.name }}</h3>
+          <div class="event-meta">
+            <div class="meta-item">
+              <el-icon class="meta-icon"><Calendar /></el-icon>
+              <span>{{ formatDate(item.date) }}</span>
             </div>
-            <div style="padding: 14px">
-              <span class="event-title">{{ item.name }}</span>
-              <div class="bottom">
-                <time class="time">{{ formatDate(item.date) }}</time>
-                <el-tag size="small" :type="getStatusType(item)">{{ getStatus(item) }}</el-tag>
-              </div>
-              <div class="description">
-                <div>要求：{{ item.type }}</div>
-                <div>费用：{{ item.fee }}元</div>
-              </div>
+            <div class="meta-item">
+              <el-icon class="meta-icon"><Trophy /></el-icon>
+              <span>{{ item.type }}</span>
             </div>
-          </el-card>
-        </el-col>
-      </el-row>
+          </div>
+          <div class="card-footer">
+            <div class="fee-tag">
+              <span class="fee-label">报名费</span>
+              <span class="fee-value">¥{{ item.fee }}</span>
+            </div>
+            <div class="go-arrow">→</div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-      <div class="pagination-container">
-        <el-pagination
+    <!-- Pagination -->
+    <div class="pagination-container" v-if="total > 0">
+      <el-pagination
           v-model:current-page="queryParams.currentPage"
           v-model:page-size="queryParams.pageSize"
           :page-sizes="[8, 16, 32]"
@@ -42,9 +88,8 @@
           :total="total"
           @size-change="handleSizeChange"
           @current-change="handleCurrentChange"
-        />
-      </div>
-    </el-card>
+      />
+    </div>
   </div>
 </template>
 
@@ -52,6 +97,10 @@
 import { ref, reactive, onMounted } from 'vue'
 import { getEventList } from '@/api/event'
 import { useRouter } from 'vue-router'
+import { Search, Calendar } from '@element-plus/icons-vue'
+
+// Trophy icon fallback (may not exist in all EP versions)
+const Trophy = { template: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4a2 2 0 01-2-2V5h4M18 9h2a2 2 0 002-2V5h-4M12 17v4M8 21h8M3 5h18M12 13a4 4 0 004-4V5H8v4a4 4 0 004 4z"/></svg>' }
 
 const router = useRouter()
 const eventList = ref([])
@@ -60,7 +109,7 @@ const queryParams = reactive({
   currentPage: 1,
   pageSize: 8,
   name: '',
-  status: 'PUBLISHED' // Only show published events
+  status: 'PUBLISHED'
 })
 
 const getList = async () => {
@@ -76,111 +125,284 @@ const getList = async () => {
   }
 }
 
-const goDetail = (id) => {
-  router.push(`/event/${id}`)
-}
-
-const handleQuery = () => {
-  queryParams.currentPage = 1
-  getList()
-}
-
-const handleSizeChange = (val) => {
-  queryParams.pageSize = val
-  getList()
-}
-
-const handleCurrentChange = (val) => {
-  queryParams.currentPage = val
-  getList()
-}
+const goDetail = (id) => router.push(`/event/${id}`)
+const handleQuery = () => { queryParams.currentPage = 1; getList() }
+const handleSizeChange = (val) => { queryParams.pageSize = val; getList() }
+const handleCurrentChange = (val) => { queryParams.currentPage = val; getList() }
 
 const formatDate = (dateStr) => {
   if (!dateStr) return ''
-  const date = new Date(dateStr)
-  return date.toLocaleDateString()
+  return new Date(dateStr).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })
 }
 
 const getStatus = (item) => {
-  if (item.status === 'OPEN') return '报名中'
-  if (item.status === 'CLOSED') return '报名结束'
-  if (item.status === 'ONGOING') return '进行中'
-  if (item.status === 'FINISHED') return '已结束'
-  return '草稿'
+  const map = { OPEN: '报名中', CLOSED: '报名截止', ONGOING: '进行中', FINISHED: '已结束' }
+  return map[item.status] || '草稿'
 }
 
-const getStatusType = (item) => {
-  const status = getStatus(item)
-  if (status === '报名中' || status === '进行中') return 'success'
-  if (status === '已结束') return 'info'
-  return 'warning'
+const getStatusClass = (item) => {
+  const map = { OPEN: 'status-open', ONGOING: 'status-ongoing', CLOSED: 'status-closed', FINISHED: 'status-finished' }
+  return map[item.status] || 'status-draft'
 }
 
-onMounted(() => {
-  getList()
-})
+onMounted(() => getList())
 </script>
 
 <style scoped>
+/* ── Container ── */
 .event-container {
-  padding: 20px;
+  padding: 24px;
+  min-height: 100%;
+  font-family: 'Noto Sans SC', sans-serif;
 }
-.card-header {
+
+/* ── Page Header ── */
+.page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
 }
-.image-container {
-  width: 100%;
-  height: 200px;
-  overflow: hidden;
-  background-color: #f5f7fa;
+
+.page-title {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 10px;
 }
-.image {
+
+.title-accent {
+  display: block;
+  width: 4px;
+  height: 22px;
+  background: var(--accent, #FF6B35);
+  border-radius: 2px;
+}
+
+.page-title h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary, #1a1a2e);
+}
+
+.total-badge {
+  font-size: 12px;
+  color: var(--accent, #FF6B35);
+  background: rgba(255, 107, 53, 0.1);
+  border: 1px solid rgba(255, 107, 53, 0.25);
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+.filter-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+:deep(.search-input .el-input__wrapper) {
+  width: 220px;
+  border-radius: 8px;
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border, rgba(0,0,0,0.08));
+  box-shadow: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+:deep(.search-input .el-input__wrapper:hover),
+:deep(.search-input .el-input__wrapper.is-focus) {
+  border-color: var(--accent, #FF6B35) !important;
+  box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.12) !important;
+}
+:deep(.search-input .el-input__inner) {
+  color: var(--text-primary, #1a1a2e);
+  font-size: 13px;
+}
+
+.query-btn {
+  background: var(--accent, #FF6B35) !important;
+  border-color: var(--accent, #FF6B35) !important;
+  border-radius: 8px !important;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.query-btn:hover {
+  opacity: 0.88;
+}
+
+/* ── Empty State ── */
+.empty-state {
+  text-align: center;
+  padding: 80px 0;
+  color: var(--text-secondary, #6b7280);
+}
+.empty-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-text { font-size: 16px; font-weight: 600; margin: 0 0 6px; color: var(--text-primary, #1a1a2e); }
+.empty-sub  { font-size: 13px; margin: 0; }
+
+/* ── Grid ── */
+.event-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+/* ── Event Card ── */
+.event-card {
+  background: var(--bg-card, #fff);
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--border, rgba(0,0,0,0.06));
+  cursor: pointer;
+  transition: transform 0.22s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.22s;
+  display: flex;
+  flex-direction: column;
+}
+
+.event-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+}
+
+/* Image */
+.card-image {
+  position: relative;
+  width: 100%;
+  height: 180px;
+  overflow: hidden;
+  background: var(--bg-placeholder, #f0f2f5);
+  flex-shrink: 0;
+}
+
+.card-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.4s ease;
 }
+
+.event-card:hover .card-image img {
+  transform: scale(1.05);
+}
+
 .image-placeholder {
-  color: #909399;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--bg-placeholder, #eef0f3), var(--bg-card, #fff));
 }
+.placeholder-icon { font-size: 40px; opacity: 0.4; }
+
+/* Status badge */
+.status-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 3px 10px;
+  border-radius: 20px;
+  backdrop-filter: blur(8px);
+}
+.status-open    { background: rgba(16, 185, 129, 0.85); color: #fff; }
+.status-ongoing { background: rgba(255, 107, 53, 0.85); color: #fff; }
+.status-closed  { background: rgba(107, 114, 128, 0.75); color: #fff; }
+.status-finished{ background: rgba(55, 65, 81, 0.75);   color: #d1d5db; }
+.status-draft   { background: rgba(245, 158, 11, 0.8);  color: #fff; }
+
+/* Body */
+.card-body {
+  padding: 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .event-title {
-  font-weight: bold;
-  font-size: 16px;
-  display: block;
-  margin-bottom: 10px;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary, #1a1a2e);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.4;
 }
-.bottom {
-  margin-top: 13px;
-  line-height: 12px;
+
+.event-meta {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 6px;
+}
+.meta-item {
+  display: flex;
   align-items: center;
-}
-.time {
+  gap: 6px;
   font-size: 12px;
-  color: #999;
+  color: var(--text-secondary, #6b7280);
 }
-.description {
-  margin-top: 10px;
+.meta-icon {
   font-size: 13px;
-  color: #666;
-  height: 40px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  color: var(--accent, #FF6B35);
+  flex-shrink: 0;
 }
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--border, rgba(0,0,0,0.06));
+}
+.fee-tag {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+.fee-label {
+  font-size: 11px;
+  color: var(--text-secondary, #6b7280);
+}
+.fee-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent, #FF6B35);
+}
+
+.go-arrow {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 107, 53, 0.08);
+  color: var(--accent, #FF6B35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: background 0.2s, transform 0.2s;
+}
+.event-card:hover .go-arrow {
+  background: var(--accent, #FF6B35);
+  color: #fff;
+  transform: translateX(3px);
+}
+
+/* ── Pagination ── */
 .pagination-container {
-  margin-top: 20px;
+  margin-top: 28px;
   display: flex;
   justify-content: flex-end;
+}
+
+:deep(.el-pagination) {
+  --el-pagination-button-color: var(--text-secondary, #6b7280);
+  --el-pagination-hover-color: var(--accent, #FF6B35);
 }
 </style>

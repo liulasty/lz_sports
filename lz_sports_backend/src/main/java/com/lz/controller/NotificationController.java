@@ -10,7 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/notification")
+@RequestMapping({"/api/notification", "/api/notifications"})
 @RequiredArgsConstructor
 @Tag(name = "站内信", description = "通知列表、已读标记、未读数")
 public class NotificationController {

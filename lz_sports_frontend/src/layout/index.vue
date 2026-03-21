@@ -1,11 +1,11 @@
 <template>
-  <div class="app-wrapper">
+  <div class="app-wrapper" :class="{ 'hide-sidebar': isCollapse }">
     <div class="sidebar-container">
-      <Sidebar />
+      <Sidebar :is-collapse="isCollapse" />
     </div>
     <div class="main-container">
       <div class="fixed-header">
-        <Navbar />
+        <Navbar @toggle-sidebar="toggleSideBar" :is-collapse="isCollapse" />
       </div>
       <div class="app-main">
         <router-view v-slot="{ Component }">
@@ -19,8 +19,15 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import Sidebar from './components/Sidebar/index.vue'
 import Navbar from './components/Navbar.vue'
+
+const isCollapse = ref(false)
+
+const toggleSideBar = () => {
+  isCollapse.value = !isCollapse.value
+}
 </script>
 
 <style scoped>
@@ -33,9 +40,14 @@ import Navbar from './components/Navbar.vue'
 .sidebar-container {
   width: 210px;
   height: 100%;
-  background-color: #304156;
+  background-color: var(--bg-card);
   transition: width 0.28s;
   overflow-y: auto;
+  border-right: 1px solid var(--el-border-color-light);
+}
+
+.hide-sidebar .sidebar-container {
+  width: 64px !important;
 }
 
 .main-container {
@@ -57,7 +69,7 @@ import Navbar from './components/Navbar.vue'
 .app-main {
   flex: 1;
   padding: 20px;
-  background-color: #f0f2f5;
+  background-color: var(--bg-page);
   overflow-y: auto;
 }
 
