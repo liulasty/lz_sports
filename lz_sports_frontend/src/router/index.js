@@ -59,107 +59,112 @@ const routes = [
   },
   {
     path: '/',
+    name: 'PortalHome',
+    component: () => import('@/views/Portalhome/index.vue'),
+    meta: { title: '首页', requiresAuth: false }
+  },
+  {
+    path: '/_layout',
     component: Layout,
-    redirect: '/dashboard',
     children: [
       {
-        path: 'dashboard',
+        path: '/dashboard',
         name: 'Dashboard',
         component: () => import('@/views/dashboard/index.vue'),
         meta: { requiresAuth: true }
       },
       {
-        path: 'event',
+        path: '/event',
         name: 'EventList',
         component: () => import('@/views/event/index.vue'),
         meta: { requiresAuth: true }
       },
       {
-        path: 'event/:id',
+        path: '/event/:id',
         name: 'EventDetail',
         component: () => import('@/views/event/detail.vue'),
         meta: { requiresAuth: true }
       },
       {
-        path: 'profile',
+        path: '/profile',
         name: 'Profile',
         component: () => import('@/views/profile/index.vue'),
         meta: { requiresAuth: true }
       },
       {
-        path: 'my-registrations',
+        path: '/my-registrations',
         name: 'MyRegistrations',
         component: () => import('@/views/my/Registrations.vue'),
         meta: { requiresAuth: true }
       },
       {
-        path: 'my-applications',
+        path: '/my-applications',
         name: 'MyApplications',
         component: () => import('@/views/my/Applications.vue'),
         meta: { requiresAuth: true }
       },
       {
-        path: 'notifications',
+        path: '/notifications',
         name: 'Notifications',
         component: () => import('@/views/my/Notifications.vue'),
         meta: { requiresAuth: true }
       },
       {
-        path: 'my-score',
+        path: '/my-score',
         name: 'MyScore',
         component: () => import('@/views/score/index.vue'),
         meta: { requiresAuth: true }
       },
       {
-        path: 'user-manage',
+        path: '/user-manage',
         name: 'UserManage',
         component: () => import('@/views/user/index.vue'),
         meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'] }
       },
       {
-        path: 'event-create',
+        path: '/event-create',
         name: 'EventCreate',
         component: () => import('@/views/admin/EventCreate.vue'),
         meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'] }
       },
       {
-        path: 'school-settings',
+        path: '/school-settings',
         name: 'SchoolSettings',
         component: () => import('@/views/admin/SchoolSettings.vue'),
         meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'] }
       },
       {
-        path: 'event-manage',
+        path: '/event-manage',
         name: 'EventManage',
         component: () => import('@/views/admin/EventManage.vue'),
         meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'EVENT_ADMIN', 'SCHOOL_ADMIN'] }
       },
       {
-        path: 'athlete-audit',
+        path: '/athlete-audit',
         name: 'AthleteAudit',
         component: () => import('@/views/admin/AthleteAudit.vue'),
         meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'EVENT_ADMIN', 'SCHOOL_ADMIN'] }
       },
       {
-        path: 'project-manage',
+        path: '/project-manage',
         name: 'ProjectManage',
         component: () => import('@/views/admin/ProjectManage.vue'),
         meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'] }
       },
       {
-        path: 'registration-audit',
+        path: '/registration-audit',
         name: 'RegistrationAudit',
         component: () => import('@/views/admin/RegistrationAudit.vue'),
         meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'EVENT_ADMIN', 'SCHOOL_ADMIN'] }
       },
       {
-        path: 'score-manage',
+        path: '/score-manage',
         name: 'ScoreManage',
         component: () => import('@/views/admin/ScoreManage.vue'),
         meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'EVENT_ADMIN', 'SCHOOL_ADMIN'] }
       },
       {
-        path: 'user-audit',
+        path: '/user-audit',
         name: 'UserAudit',
         component: () => import('@/views/admin/UserAudit.vue'),
         meta: {
@@ -223,6 +228,8 @@ router.beforeEach(async (to, from, next) => {
 
   if (to.meta.requiresAuth && !userStore.token) {
     next('/login')
+  } else if ((to.path === '/login' || to.path === '/register') && userStore.token) {
+    next('/dashboard')
   } else if (userStore.token && userStore.userInfo.isFirstLogin && to.path !== '/reset-password') {
     // Force reset password if first login
     next('/reset-password')
