@@ -474,7 +474,7 @@ onMounted(() => { getList(); getEventOptions() })
   background: var(--accent, #FF6B35);
   border: none;
   border-radius: 8px;
-  color: var(--el-bg-color);
+  color: #fff;
   font-size: 13px;
   font-weight: 600;
   font-family: inherit;
@@ -841,7 +841,7 @@ onMounted(() => { getList(); getEventOptions() })
   height: 38px; padding: 0 24px;
   background: linear-gradient(135deg, #FF6B35, #e0541e);
   border: none; border-radius: 8px;
-  color: var(--el-bg-color); font-size: 13px; font-weight: 600; font-family: inherit;
+  color: #fff; font-size: 13px; font-weight: 600; font-family: inherit;
   cursor: pointer;
   box-shadow: 0 3px 12px rgba(255,107,53,0.3);
   transition: transform 0.18s, box-shadow 0.18s;

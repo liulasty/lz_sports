@@ -643,7 +643,7 @@ onMounted(() => getInfo())
   background: linear-gradient(135deg, #FF6B35, #e0541e);
   border: none;
   border-radius: 10px;
-  color: var(--el-bg-color);
+  color: #fff;
   font-size: 14px;
   font-weight: 600;
   font-family: inherit;

@@ -308,11 +308,11 @@ onMounted(() => getList())
   border-radius: 20px;
   backdrop-filter: blur(8px);
 }
-.status-open    { background: rgba(16, 185, 129, 0.85); color: var(--el-bg-color); }
-.status-ongoing { background: rgba(255, 107, 53, 0.85); color: var(--el-bg-color); }
-.status-closed  { background: rgba(107, 114, 128, 0.75); color: var(--el-bg-color); }
+.status-open    { background: rgba(16, 185, 129, 0.85); color: #fff; }
+.status-ongoing { background: rgba(255, 107, 53, 0.85); color: #fff; }
+.status-closed  { background: rgba(107, 114, 128, 0.75); color: #fff; }
 .status-finished{ background: rgba(55, 65, 81, 0.75);   color: var(--el-border-color-light); }
-.status-draft   { background: rgba(245, 158, 11, 0.8);  color: var(--el-bg-color); }
+.status-draft   { background: rgba(245, 158, 11, 0.8);  color: #fff; }
 
 /* Body */
 .card-body {
@@ -389,7 +389,7 @@ onMounted(() => getList())
 }
 .event-card:hover .go-arrow {
   background: var(--accent, #FF6B35);
-  color: var(--el-bg-color);
+  color: #fff;
   transform: translateX(3px);
 }
 

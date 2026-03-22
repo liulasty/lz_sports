@@ -8,13 +8,15 @@
     3. 备份当前 docker-compose.yml，仅保留最近 3 个历史版本。
     4. 执行 Docker 镜像构建与容器部署。
     5. 自动记录版本清单（含 Tag 与 Image ID，保留最新 10 条记录）。
+    6. 清理历史 Docker 镜像，仅保留每个仓库最近 3 个镜像版本。
 #>
 
 # ========== 1. 基础配置 ==========
 $TargetFile = "docker-compose.yml"
 $BackupPrefix = "docker-compose_"
 $VersionFile = "release-version-history.json"
-$KeepCount = 3
+$KeepBackupCount = 3
+$KeepImageCount = 3
 
 $Timestamp = Get-Date -Format "yyyyMMddHHmmss"
 $BackendImageRepo = "lz-sports-backend"
@@ -72,12 +74,12 @@ Copy-Item $TargetFile -Destination $BackupFileName -Force
 Write-ColorLog "✅ 已备份当前配置为 $BackupFileName" "Green"
 
 # 获取并清理多余的旧备份
-$AllBackups = Get-ChildItem -Path . -Filter "${BackupPrefix}*.yml" | 
-              Where-Object { $_.Name -match "docker-compose_\d{14}\.yml" } | 
-              Sort-Object Name -Descending
+$AllBackups = Get-ChildItem -Path . -Filter "${BackupPrefix}*.yml" |
+        Where-Object { $_.Name -match "docker-compose_\d{14}\.yml" } |
+        Sort-Object Name -Descending
 
-if ($AllBackups.Count -gt $KeepCount) {
-    $ToDelete = $AllBackups | Select-Object -Skip $KeepCount
+if ($AllBackups.Count -gt $KeepBackupCount) {
+    $ToDelete = $AllBackups | Select-Object -Skip $KeepBackupCount
     foreach ($File in $ToDelete) {
         Remove-Item $File.FullName -Force
         Write-ColorLog "🗑️ 已清理过期配置备份 $($File.Name)" "DarkGray"
@@ -123,19 +125,11 @@ if ($LASTEXITCODE -ne 0) {
 # ========== 5. 记录版本发布历史 ==========
 Write-ColorLog "📊 获取镜像 ID 并记录版本清单..." "Yellow"
 
-# 获取最新构建的镜像 ID
 $BackendImageId = (docker images -q $BackendImageName)
 $FrontendImageId = (docker images -q $FrontendImageName)
 
-$BackendIdVal = $BackendImageId
-if ([string]::IsNullOrWhiteSpace($BackendIdVal)) {
-    $BackendIdVal = "Unknown"
-}
-
-$FrontendIdVal = $FrontendImageId
-if ([string]::IsNullOrWhiteSpace($FrontendIdVal)) {
-    $FrontendIdVal = "Unknown"
-}
+$BackendIdVal = if ([string]::IsNullOrWhiteSpace($BackendImageId)) { "Unknown" } else { $BackendImageId }
+$FrontendIdVal = if ([string]::IsNullOrWhiteSpace($FrontendImageId)) { "Unknown" } else { $FrontendImageId }
 
 $VersionInfo = [PSCustomObject]@{
     ReleaseTime   = (Get-Date -Format "yyyy-MM-dd HH:mm:ss")
@@ -156,18 +150,62 @@ if (Test-Path $VersionFile) {
     }
 }
 
-# 追加新记录，保留最近 10 条
 $History += $VersionInfo
 $History = $History | Select-Object -Last 10
 
-# 保存为 JSON 格式（原生支持，不依赖第三方 YAML 模块）
 $History | ConvertTo-Json -Depth 5 | Set-Content -Path $VersionFile -Encoding UTF8
 Write-ColorLog "✅ 版本清单已成功记录至 $VersionFile" "Green"
 
-# ========== 6. 验证服务状态 ==========
+# ========== 6. 清理历史 Docker 镜像 ==========
+Write-ColorLog "🗑️ 开始清理历史镜像，保留每个仓库最近 $KeepImageCount 个版本..." "Yellow"
+
+function Clean-OldDockerImages {
+    param(
+        [string]$ImageRepo,
+        [int]$KeepCount
+    )
+
+    # 直接按 Tag（时间戳字符串）降序排列，无需解析 CreatedAt，避免时区格式兼容问题
+    $Images = docker images --format "{{.Tag}}|{{.ID}}" $ImageRepo `
+        | Where-Object { $_ -notmatch "latest" } `
+        | Sort-Object { $_.Split('|')[0] } -Descending
+
+    if (-not $Images) {
+        Write-ColorLog "  📌 $ImageRepo 暂无需要清理的历史镜像" "DarkGray"
+        return
+    }
+
+    $ImageList = @()
+    foreach ($Img in $Images) {
+        $Parts = $Img -split '\|', 2
+        $ImageList += [PSCustomObject]@{
+            Tag = $Parts[0]
+            Id  = $Parts[1]
+        }
+    }
+
+    if ($ImageList.Count -gt $KeepCount) {
+        $ToDelete = $ImageList | Select-Object -Skip $KeepCount
+        foreach ($Img in $ToDelete) {
+            docker rmi "${ImageRepo}:$($Img.Tag)" -f 2>&1 | Out-Null
+            $TagCount = (docker images --format "{{.Tag}}" $($Img.Id) | Measure-Object).Count
+            if ($TagCount -eq 0) {
+                docker rmi $($Img.Id) -f 2>&1 | Out-Null
+            }
+            Write-ColorLog "  ✂️ 已删除 $ImageRepo 旧镜像: Tag=$($Img.Tag), ID=$($Img.Id)" "DarkGray"
+        }
+        Write-ColorLog "  ✅ $ImageRepo 清理完成，保留了最新 $KeepCount 个镜像版本" "Green"
+    } else {
+        Write-ColorLog "  📌 $ImageRepo 镜像数量($($ImageList.Count)) ≤ 保留数量($KeepCount)，无需清理" "DarkGray"
+    }
+}
+
+Clean-OldDockerImages -ImageRepo $BackendImageRepo -KeepCount $KeepImageCount
+Clean-OldDockerImages -ImageRepo $FrontendImageRepo -KeepCount $KeepImageCount
+
+# ========== 7. 验证服务状态 ==========
 Write-ColorLog "===== 检查发布状态 =====" "Cyan"
 
-# 获取容器运行状态
 $BackendStatus = (docker inspect --format '{{.State.Status}}' lz-sports-backend 2>&1)
 $FrontendStatus = (docker inspect --format '{{.State.Status}}' lz-sports-frontend 2>&1)
 
@@ -186,4 +224,4 @@ Write-ColorLog "🌐 访问地址：" "White"
 Write-ColorLog "  前端：http://localhost" "Cyan"
 Write-ColorLog "  后端：http://localhost:8080" "Cyan"
 
-Write-ColorLog "🎉 恭喜！版本配置备份 + 镜像版本管理发布完成！" "Green"
+Write-ColorLog "🎉 恭喜！版本配置备份 + 镜像版本管理 + 历史镜像清理发布完成！" "Green"

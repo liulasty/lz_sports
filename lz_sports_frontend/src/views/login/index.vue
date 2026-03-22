@@ -506,7 +506,7 @@ const handleLogin = async () => {
   background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   border: none;
   border-radius: 10px;
-  color: var(--el-bg-color);
+  color: var(--el-color-white);
   font-family: 'Noto Sans SC', sans-serif;
   font-size: 15px;
   font-weight: 600;

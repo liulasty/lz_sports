@@ -675,7 +675,7 @@ const handleRegister = async () => {
   background: linear-gradient(135deg, #FF6B35, #e0541e);
   border: none;
   border-radius: 10px;
-  color: var(--el-bg-color);
+  color: #fff;
   font-family: 'Noto Sans SC', sans-serif;
   font-size: 15px;
   font-weight: 600;
