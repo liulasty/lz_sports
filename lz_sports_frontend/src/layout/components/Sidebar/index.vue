@@ -15,7 +15,7 @@
     </div>
 
     <!-- 首页 -->
-    <el-menu-item index="/">
+    <el-menu-item index="/dashboard">
       <el-icon><Menu /></el-icon>
       <template #title><span>系统首页</span></template>
     </el-menu-item>
@@ -26,8 +26,8 @@
       <template #title><span>赛事大厅</span></template>
     </el-menu-item>
 
-    <!-- 我的（登录后可见） -->
-    <el-sub-menu index="my" v-if="isLoggedIn">
+    <!-- 我的（登录后可见，仅非管理员可见） -->
+    <el-sub-menu index="my" v-if="isLoggedIn && !isEventAdmin && !isSchoolAdmin">
       <template #title>
         <el-icon><User /></el-icon>
         <span>我的</span>
@@ -57,8 +57,8 @@
         <el-icon><Setting /></el-icon>
         <span>系统管理</span>
       </template>
-      <el-menu-item index="/event-create">赛事创建</el-menu-item>
       <el-menu-item index="/user-manage">用户管理</el-menu-item>
+      <el-menu-item index="/user-audit">用户审核</el-menu-item>
       <el-menu-item index="/project-manage">项目库管理</el-menu-item>
       <el-menu-item index="/school-settings">学校配置</el-menu-item>
     </el-sub-menu>
@@ -84,8 +84,7 @@ const isLoggedIn = computed(() => !!userStore.token)
 
 // 适配新旧角色标识
 const role = computed(() => {
-  const r = userStore.userInfo?.role || userStore.userInfo?.type
-  return r || 'USER'
+  return userStore.userInfo?.role || 'USER'
 })
 
 // 根据后端UserRole枚举定义的权限

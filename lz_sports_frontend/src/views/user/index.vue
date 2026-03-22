@@ -151,7 +151,7 @@ const handleCurrentChange = (val) => {
 
 const handleEditRole = (row) => {
   roleForm.id = row.id || row.userId
-  roleForm.role = row.type === 'EVENT_ADMIN' ? 'EVENT_ADMIN' : 'USER'
+  roleForm.role = row.type
   dialogVisible.value = true
 }
 

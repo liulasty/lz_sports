@@ -48,9 +48,13 @@ import java.util.concurrent.TimeUnit;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+import org.springframework.beans.BeansException;
+
 @Service
 @RequiredArgsConstructor
-public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Registration> implements RegistrationService {
+public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Registration> implements RegistrationService, ApplicationContextAware {
 
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(RegistrationServiceImpl.class);
 
@@ -61,11 +65,18 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
     private final UserMapper userMapper;
     private final NotificationService notificationService;
     private final RedissonClient redissonClient; // Requires Redisson dependency
+    
+    private ApplicationContext applicationContext;
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.applicationContext = applicationContext;
+    }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void add(Long projectId) {
-        String lockKey = "lock:registration:project:" + projectId;
+        String lockKey = "registration:lock:project:" + projectId;
         RLock lock = redissonClient.getLock(lockKey);
         User syncUser = null;
         Athlete syncAthlete = null;
@@ -89,7 +100,7 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
                     if (athlete == null) {
                         throw new BusinessException("请先完善运动员信息");
                     }
-                    if (athlete.getAthleteState() != AthleteStatus.SUCCESS) {
+                    if (athlete.getAthleteState() != AthleteStatus.APPROVED) {
                         throw new BusinessException("请先申请并通过运动员资格审核");
                     }
             
@@ -165,7 +176,11 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
             } else {
                 throw new BusinessException("系统繁忙，请稍后再试");
             }
-            syncAthleteProfileToUser(syncAthlete, syncUser);
+            if (syncAthlete != null && syncUser != null) {
+                // Get Spring proxy to ensure @Async and @Transactional work
+                RegistrationService proxy = applicationContext.getBean(RegistrationService.class);
+                proxy.syncAthleteProfileToUser(syncAthlete, syncUser);
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new BusinessException("系统中断");
@@ -184,6 +199,29 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
         Page<RegistrationDTO> page = new Page<>(currentPage, pageSize);
         IPage<RegistrationDTO> result = registrationMapper.selectRegistrationPage(page, name, status, date, athleteId);
         return new PageResult(result.getTotal(), result.getRecords());
+    }
+
+    @Override
+    public java.util.Map<String, Object> getRegistrationStatsByEvent(Long eventId) {
+        java.util.Map<String, Object> stats = new java.util.HashMap<>();
+        
+        long total = count(new LambdaQueryWrapper<Registration>().eq(Registration::getEventId, eventId));
+        long pending = count(new LambdaQueryWrapper<Registration>()
+                .eq(Registration::getEventId, eventId)
+                .eq(Registration::getRegistrationStatus, RegistrationStatus.PENDING));
+        long approved = count(new LambdaQueryWrapper<Registration>()
+                .eq(Registration::getEventId, eventId)
+                .in(Registration::getRegistrationStatus, java.util.Arrays.asList(RegistrationStatus.APPROVED, RegistrationStatus.CONFIRMED)));
+        long rejected = count(new LambdaQueryWrapper<Registration>()
+                .eq(Registration::getEventId, eventId)
+                .eq(Registration::getRegistrationStatus, RegistrationStatus.REJECTED));
+                
+        stats.put("total", total);
+        stats.put("pending", pending);
+        stats.put("approved", approved);
+        stats.put("rejected", rejected);
+        
+        return stats;
     }
 
     @Override
@@ -356,7 +394,10 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
         }
     }
 
-    private void syncAthleteProfileToUser(Athlete athlete, User user) {
+    @Override
+    @org.springframework.scheduling.annotation.Async
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    public void syncAthleteProfileToUser(Athlete athlete, User user) {
         boolean changed = false;
         if (StringUtils.isNotBlank(athlete.getName()) && !athlete.getName().equals(user.getName())) {
             user.setName(athlete.getName());

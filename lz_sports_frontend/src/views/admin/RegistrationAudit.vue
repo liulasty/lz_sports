@@ -5,6 +5,9 @@
         <div class="card-header">
           <span>报名审批</span>
           <div class="filter-box">
+            <el-select v-model="queryParams.eventId" placeholder="选择赛事" style="width: 200px; margin-right: 10px" clearable @change="handleQuery">
+              <el-option v-for="event in eventList" :key="event.id" :label="event.name" :value="event.id" />
+            </el-select>
             <el-input v-model="queryParams.name" placeholder="运动员姓名" style="width: 150px; margin-right: 10px" @keyup.enter="handleQuery" />
             <el-select v-model="queryParams.status" placeholder="状态" style="width: 150px; margin-right: 10px" clearable>
               <el-option label="审核中" value="审核中" />
@@ -15,6 +18,13 @@
           </div>
         </div>
       </template>
+
+      <!-- 报名统计组件 -->
+      <RegistrationStats 
+        v-if="queryParams.eventId" 
+        ref="statsRef" 
+        :event-id="queryParams.eventId" 
+      />
       
       <el-table :data="tableData" style="width: 100%" v-loading="loading">
         <el-table-column prop="id" label="ID" width="80" />
@@ -67,19 +77,35 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { getRegistrationList, approveRegistration, refuseRegistration } from '@/api/registration'
+import { getEventList } from '@/api/event'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { isSuccess } from '@/utils/result'
+import RegistrationStats from '@/components/RegistrationStats.vue'
 
 const loading = ref(false)
 const tableData = ref([])
+const eventList = ref([])
 const total = ref(0)
+const statsRef = ref(null)
 
 const queryParams = reactive({
   currentPage: 1,
   pageSize: 10,
+  eventId: null,
   name: '',
   status: '审核中' // Default to pending
 })
+
+const fetchEvents = async () => {
+  try {
+    const res = await getEventList({ currentPage: 1, pageSize: 1000 })
+    if (isSuccess(res)) {
+      eventList.value = res.data.records
+    }
+  } catch (error) {
+    console.error('获取赛事列表失败', error)
+  }
+}
 
 const getList = async () => {
   loading.value = true
@@ -122,6 +148,9 @@ const handleApprove = (row) => {
       if (isSuccess(res)) {
         ElMessage.success('操作成功')
         getList()
+        if (statsRef.value) {
+          statsRef.value.refresh()
+        }
       }
     } catch (error) {
       console.error(error)
@@ -140,6 +169,9 @@ const handleRefuse = (row) => {
       if (isSuccess(res)) {
         ElMessage.success('操作成功')
         getList()
+        if (statsRef.value) {
+          statsRef.value.refresh()
+        }
       }
     } catch (error) {
       console.error(error)
@@ -160,6 +192,7 @@ const getStatusType = (status) => {
 }
 
 onMounted(() => {
+  fetchEvents()
   getList()
 })
 </script>

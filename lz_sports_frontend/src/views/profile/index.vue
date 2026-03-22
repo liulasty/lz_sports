@@ -112,15 +112,15 @@
           <div v-if="hasApplied" class="applied-section">
             <div class="apply-status-card" :class="getApplyStatusClass()">
               <div class="apply-status-icon">
-                <span v-if="applicationStatus === '成功'">✓</span>
-                <span v-else-if="applicationStatus === '拒绝'">✗</span>
+                <span v-if="applicationStatus === 'APPROVED'">✓</span>
+                <span v-else-if="applicationStatus === 'REJECTED'">✗</span>
                 <span v-else>⋯</span>
               </div>
               <div>
-                <div class="apply-status-title">申请{{ applicationStatus }}</div>
+                <div class="apply-status-title">申请{{ applicationStatus === 'APPROVED' ? '成功' : (applicationStatus === 'REJECTED' ? '拒绝' : '审核中') }}</div>
                 <div class="apply-status-sub">
-                  {{ applicationStatus === '成功' ? '您已通过认证，可以参加赛事报名' :
-                    applicationStatus === '拒绝' ? '您的申请未通过，请重新提交' : '审核中，请耐心等待' }}
+                  {{ applicationStatus === 'APPROVED' ? '您已通过认证，可以参加赛事报名' :
+                    applicationStatus === 'REJECTED' ? '您的申请未通过，请重新提交' : '审核中，请耐心等待' }}
                 </div>
               </div>
             </div>
@@ -221,8 +221,8 @@ import { isSuccess } from '@/utils/result'
 
 const userStore = useUserStore()
 const userInfo = ref({})
-const isAthlete = computed(() => userInfo.value.userType === '运动员')
-const isAdmin = computed(() => userInfo.value.userType === '管理员')
+const isAthlete = computed(() => userInfo.value.userType === 'ATHLETE' || userInfo.value.userType === '运动员')
+const isAdmin = computed(() => ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'EVENT_ADMIN', '管理员'].includes(userInfo.value.userType))
 
 const loading = ref(false)
 const registrationList = ref([])
@@ -260,8 +260,8 @@ const getPillClass = (status) => {
 }
 
 const getApplyStatusClass = () => {
-  if (applicationStatus.value === '成功') return 'apply-success'
-  if (applicationStatus.value === '拒绝') return 'apply-danger'
+  if (applicationStatus.value === 'APPROVED') return 'apply-success'
+  if (applicationStatus.value === 'REJECTED') return 'apply-danger'
   return 'apply-pending'
 }
 

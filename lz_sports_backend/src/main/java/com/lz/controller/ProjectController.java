@@ -52,12 +52,11 @@ public class ProjectController {
         EventListDTO listDto = new EventListDTO(name, event, date, currentPage, pageSize);
         
         Long userId = BaseContext.getCurrentId();
-        Athlete athlete = athleteMapper.selectByUserId(userId);
-        
-        if (athlete == null) {
-            return Result.success(projectService.list(listDto));
-        } else {
+        // If user is logged in, use listByAthlete to check registration status
+        if (userId != null) {
             return Result.success(projectService.listByAthlete(listDto));
+        } else {
+            return Result.success(projectService.list(listDto));
         }
     }
 

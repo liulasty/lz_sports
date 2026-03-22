@@ -19,14 +19,14 @@
              {{ formatTime(scope.row.registerTime) }}
            </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态">
+        <el-table-column prop="state" label="状态">
           <template #default="scope">
-            <el-tag :type="getStatusType(scope.row.status)">{{ scope.row.status.status }}</el-tag>
+            <el-tag :type="getStatusType(scope.row.state)">{{ scope.row.state === 'PENDING' ? '待审核' : (scope.row.state === 'ACTIVE' ? '已激活' : '已拒绝') }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="200">
           <template #default="scope">
-            <div v-if="scope.row.status.status === '待审核'">
+            <div v-if="scope.row.state === 'PENDING'">
               <el-button type="success" size="small" @click="handleApprove(scope.row)">通过</el-button>
               <el-button type="danger" size="small" @click="handleReject(scope.row)">拒绝</el-button>
             </div>
@@ -66,10 +66,10 @@ const queryParams = reactive({
   name: ''
 })
 
-const getStatusType = (status) => {
-  if (status.status === '已激活') return 'success'
-  if (status.status === '待审核') return 'warning'
-  if (status.status === '已拒绝') return 'danger'
+const getStatusType = (state) => {
+  if (state === 'ACTIVE') return 'success'
+  if (state === 'PENDING') return 'warning'
+  if (state === 'REJECTED') return 'danger'
   return 'info'
 }
 

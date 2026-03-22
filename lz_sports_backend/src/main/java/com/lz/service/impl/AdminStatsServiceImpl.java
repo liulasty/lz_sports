@@ -58,29 +58,45 @@ public class AdminStatsServiceImpl implements AdminStatsService {
 
     @Override
     public List<EventStatsVO> getEventStats() {
+        // 1. 一次性查询所有赛事（按创建时间倒序）
         List<Event> allEvents = eventMapper.selectList(new LambdaQueryWrapper<Event>().orderByDesc(Event::getCreateTime));
-        List<EventStatsVO> result = new ArrayList<>();
+        
+        // 2. 批量聚合查询报名统计 (按 event_id 分组)
+        List<Map<String, Object>> regStats = registrationMapper.countRegistrationsGroupByEvent();
+        Map<Long, Map<String, Object>> regStatsMap = regStats.stream()
+                .collect(Collectors.toMap(
+                        map -> ((Number) map.get("eventId")).longValue(),
+                        map -> map,
+                        (existing, replacement) -> existing
+                ));
 
+        // 3. 批量聚合查询成绩发布统计 (按 event_id 分组)
+        List<Map<String, Object>> scoreStats = scoreMapper.countPublishedProjectsGroupByEvent();
+        Map<Long, Long> scoreStatsMap = scoreStats.stream()
+                .collect(Collectors.toMap(
+                        map -> ((Number) map.get("eventId")).longValue(),
+                        map -> ((Number) map.get("publishedCount")).longValue(),
+                        (existing, replacement) -> existing
+                ));
+
+        // 4. 组装结果
+        List<EventStatsVO> result = new ArrayList<>();
         for (Event event : allEvents) {
             EventStatsVO vo = new EventStatsVO();
             vo.setEventId(event.getId());
             vo.setEventName(event.getEventName());
 
-            long totalReg = registrationMapper.selectCount(new LambdaQueryWrapper<Registration>()
-                    .eq(Registration::getEventId, event.getId()));
-            vo.setTotalRegistrations(totalReg);
+            Map<String, Object> eventRegStats = regStatsMap.get(event.getId());
+            if (eventRegStats != null) {
+                vo.setTotalRegistrations(((Number) eventRegStats.get("total")).longValue());
+                Object approvedObj = eventRegStats.get("approved");
+                vo.setApprovedRegistrations(approvedObj != null ? ((Number) approvedObj).longValue() : 0L);
+            } else {
+                vo.setTotalRegistrations(0L);
+                vo.setApprovedRegistrations(0L);
+            }
 
-            long approvedReg = registrationMapper.selectCount(new LambdaQueryWrapper<Registration>()
-                    .eq(Registration::getEventId, event.getId())
-                    .eq(Registration::getRegistrationStatus, RegistrationStatus.CONFIRMED));
-            vo.setApprovedRegistrations(approvedReg);
-
-            List<Score> publishedScores = scoreMapper.selectList(new LambdaQueryWrapper<Score>()
-                    .select(Score::getItemId)
-                    .eq(Score::getEventId, event.getId())
-                    .eq(Score::getIsPublished, true));
-            long publishedProj = publishedScores.stream().map(Score::getItemId).distinct().count();
-            vo.setPublishedProjects(publishedProj);
+            vo.setPublishedProjects(scoreStatsMap.getOrDefault(event.getId(), 0L));
 
             result.add(vo);
         }

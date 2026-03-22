@@ -7,6 +7,7 @@ import com.lz.config.AppConfig;
 import com.lz.dto.EventListDTO;
 import com.lz.dto.UserLoginDTO;
 import com.lz.dto.UserRegisterDTO;
+import com.lz.dto.ResetPasswordDTO;
 import com.lz.entity.User;
 import com.lz.service.SportsImgService;
 import com.lz.service.UserService;
@@ -142,6 +143,17 @@ public class UserController {
     public Result<UserDetailVO> info() {
         UserDetailVO userDetailVO = userService.getUserDetail();
         return Result.success(userDetailVO);
+    }
+
+    /**
+     * 重置密码
+     * 未登录状态下，通过 verifyToken 重置密码
+     */
+    @PostMapping("/reset-password")
+    @Operation(summary = "重置密码", description = "未登录状态下，通过 verifyToken 重置密码")
+    public Result<String> resetPassword(@Valid @RequestBody ResetPasswordDTO resetPasswordDTO) {
+        userService.resetPassword(resetPasswordDTO);
+        return Result.success("密码重置成功");
     }
 
     /**

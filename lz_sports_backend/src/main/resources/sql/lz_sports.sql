@@ -23,18 +23,19 @@ DROP TABLE IF EXISTS `athlete`;
 CREATE TABLE `athlete` (
                            `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
                            `user_id` bigint NOT NULL COMMENT '用户ID',
-                           `name` varchar(50) DEFAULT NULL COMMENT '姓名',
+                           `event_id` bigint NOT NULL COMMENT '赛事ID',
+                           `name` varchar(50) NOT NULL COMMENT '姓名',
                            `age` varchar(10) DEFAULT NULL COMMENT '年龄',
                            `gender` varchar(10) DEFAULT NULL COMMENT '性别',
                            `contact` varchar(50) DEFAULT NULL COMMENT '联系方式',
-                           `athlete_state` varchar(20) DEFAULT 'PENDING' COMMENT '运动员状态: PENDING/SUCCESS/FAIL',
-                           `apply_time` datetime DEFAULT NULL COMMENT '申请时间',
+                           `athlete_state` varchar(20) DEFAULT 'PENDING' COMMENT '状态: PENDING/APPROVED/REJECTED',
+                           `apply_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '申请时间',
                            `agree_time` datetime DEFAULT NULL COMMENT '审核通过时间',
                            `grade` varchar(50) DEFAULT NULL COMMENT '年级',
                            `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
                            `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                            PRIMARY KEY (`id`),
-                           UNIQUE KEY `uk_user_id` (`user_id`)
+                           UNIQUE KEY `uk_user_event` (`user_id`, `event_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='运动员信息表';
 
 /*Table structure for table `event` */

@@ -127,13 +127,23 @@ Write-ColorLog "📊 获取镜像 ID 并记录版本清单..." "Yellow"
 $BackendImageId = (docker images -q $BackendImageName)
 $FrontendImageId = (docker images -q $FrontendImageName)
 
+$BackendIdVal = $BackendImageId
+if ([string]::IsNullOrWhiteSpace($BackendIdVal)) {
+    $BackendIdVal = "Unknown"
+}
+
+$FrontendIdVal = $FrontendImageId
+if ([string]::IsNullOrWhiteSpace($FrontendIdVal)) {
+    $FrontendIdVal = "Unknown"
+}
+
 $VersionInfo = [PSCustomObject]@{
     ReleaseTime   = (Get-Date -Format "yyyy-MM-dd HH:mm:ss")
     VersionTag    = $Timestamp
     BackendImage  = $BackendImageName
-    BackendId     = [string]::IsNullOrWhiteSpace($BackendImageId) ? "Unknown" : $BackendImageId
+    BackendId     = $BackendIdVal
     FrontendImage = $FrontendImageName
-    FrontendId    = [string]::IsNullOrWhiteSpace($FrontendImageId) ? "Unknown" : $FrontendImageId
+    FrontendId    = $FrontendIdVal
 }
 
 $History = @()

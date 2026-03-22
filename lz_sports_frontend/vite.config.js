@@ -6,6 +6,8 @@ import Components from 'unplugin-vue-components/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 
 // https://vite.dev/config/
+const frontendPort = Number(process.env.FRONTEND_PORT || 5173)
+
 export default defineConfig({
   plugins: [
     vue(),
@@ -25,7 +27,7 @@ export default defineConfig({
     }
   },
   server: {
-    port: 5173,
+    port: frontendPort,
     proxy: {
       '/api': {
         target: 'http://localhost:8080',

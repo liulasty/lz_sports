@@ -22,11 +22,17 @@ const routes = [
     component: () => import('@/views/register/index.vue')
   },
   {
-    path: '/reset-password',
-    name: 'ResetPassword',
-    component: () => import('@/views/login/ResetPassword.vue'),
-    meta: { requiresAuth: true, title: '修改初始密码' }
-  },
+      path: '/reset-password',
+      name: 'ResetPassword',
+      component: () => import('@/views/login/ResetPassword.vue'),
+      meta: { requiresAuth: true, title: '修改初始密码' }
+    },
+    {
+      path: '/forgot-password',
+      name: 'ForgotPassword',
+      component: () => import('@/views/login/ForgotPassword.vue'),
+      meta: { requiresAuth: false, title: '忘记密码' }
+    },
   {
     path: '/401',
     name: 'Error401',
@@ -75,12 +81,6 @@ const routes = [
         meta: { requiresAuth: true }
       },
       {
-        path: 'project',
-        name: 'ProjectList',
-        component: () => import('@/views/project/index.vue'),
-        meta: { requiresAuth: true }
-      },
-      {
         path: 'profile',
         name: 'Profile',
         component: () => import('@/views/profile/index.vue'),
@@ -114,55 +114,49 @@ const routes = [
         path: 'user-manage',
         name: 'UserManage',
         component: () => import('@/views/user/index.vue'),
-        meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', '管理员'] }
+        meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'] }
       },
       {
         path: 'event-create',
         name: 'EventCreate',
         component: () => import('@/views/admin/EventCreate.vue'),
-        meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', '管理员'] }
+        meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'] }
       },
       {
         path: 'school-settings',
         name: 'SchoolSettings',
         component: () => import('@/views/admin/SchoolSettings.vue'),
-        meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', '管理员'] }
+        meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'] }
       },
       {
         path: 'event-manage',
         name: 'EventManage',
         component: () => import('@/views/admin/EventManage.vue'),
-        meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'EVENT_ADMIN', '管理员'] }
+        meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'EVENT_ADMIN', 'SCHOOL_ADMIN'] }
       },
       {
         path: 'athlete-audit',
         name: 'AthleteAudit',
         component: () => import('@/views/admin/AthleteAudit.vue'),
-        meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'EVENT_ADMIN', '管理员'] }
+        meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'EVENT_ADMIN', 'SCHOOL_ADMIN'] }
       },
       {
         path: 'project-manage',
         name: 'ProjectManage',
         component: () => import('@/views/admin/ProjectManage.vue'),
-        meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', '管理员'] }
+        meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'] }
       },
       {
         path: 'registration-audit',
         name: 'RegistrationAudit',
         component: () => import('@/views/admin/RegistrationAudit.vue'),
-        meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'EVENT_ADMIN', '管理员'] }
-      },
-      {
-        path: 'user-audit',
-        name: 'UserAudit',
-        component: () => import('@/views/admin/UserAudit.vue'),
-        meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN', '管理员'] }
+        meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'EVENT_ADMIN', 'SCHOOL_ADMIN'] }
       },
       {
         path: 'score-manage',
         name: 'ScoreManage',
         component: () => import('@/views/admin/ScoreManage.vue'),
-        meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'EVENT_ADMIN', '管理员'] }
+        meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'EVENT_ADMIN', 'SCHOOL_ADMIN'] }
       }
     ]
   },

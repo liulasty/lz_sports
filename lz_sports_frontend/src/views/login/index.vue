@@ -109,9 +109,14 @@
             </el-form-item>
 
             <div class="login-footer">
-              <span class="footer-text">还没有账号？</span>
-              <el-button link class="register-link" @click="$router.push('/register')">
-                立即注册
+              <div>
+                <span class="footer-text">还没有账号？</span>
+                <el-button link class="register-link" @click="$router.push('/register')">
+                  立即注册
+                </el-button>
+              </div>
+              <el-button link class="register-link" @click="$router.push('/forgot-password')">
+                忘记密码？
               </el-button>
             </div>
           </el-form>
@@ -127,6 +132,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useConfigStore } from '@/stores/config'
 import { login } from '@/api/user'
+import { checkInit } from '@/api/init'
 import { ElMessage } from 'element-plus'
 import { User, Lock } from '@element-plus/icons-vue'
 
@@ -146,7 +152,19 @@ const rules = {
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
 }
 
-onMounted(() => {
+onMounted(async () => {
+  try {
+    const { data } = await checkInit()
+    if (data === false) {
+      localStorage.removeItem('isInitialized')
+      router.replace('/init')
+      return
+    } else {
+      localStorage.setItem('isInitialized', 'true')
+    }
+  } catch (error) {
+    console.error('Init check failed', error)
+  }
   configStore.fetchConfig()
 })
 
@@ -561,7 +579,7 @@ const handleLogin = async () => {
 .login-footer {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: 6px;
   margin-top: 6px;
 }

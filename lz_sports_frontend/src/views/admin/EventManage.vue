@@ -7,7 +7,7 @@
           <div class="filter-box">
             <el-input v-model="queryParams.name" placeholder="赛事名称" style="width: 200px; margin-right: 10px" @keyup.enter="handleQuery" />
             <el-button type="primary" @click="handleQuery">查询</el-button>
-            <el-button type="success" @click="handleAdd">新增赛事</el-button>
+            <el-button type="success" @click="$router.push('/event-create')">新建赛事</el-button>
           </div>
         </div>
       </template>
@@ -25,10 +25,11 @@
             {{ scope.row.date }} 至 {{ scope.row.end }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="350">
+        <el-table-column label="操作" width="450">
           <template #default="scope">
             <el-button type="primary" size="small" @click="handleEdit(scope.row)">编辑</el-button>
             <el-button type="danger" size="small" @click="handleDelete(scope.row)">删除</el-button>
+            <el-button v-if="isSuperAdmin" type="info" size="small" @click="handleAssignAdmin(scope.row)">分配管理员</el-button>
             
             <el-dropdown style="margin-left: 10px">
               <el-button type="warning" size="small">
@@ -37,7 +38,7 @@
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item @click="handleStatus(scope.row, 'OPEN')" v-if="scope.row.status === 'DRAFT'">发布赛事</el-dropdown-item>
-                  <el-dropdown-item @click="handleStatus(scope.row, 'DRAFT')" v-if="scope.row.status === 'OPEN'">撤回赛事</el-dropdown-item>
+                  <el-dropdown-item @click="handleWithdraw(scope.row)" v-if="scope.row.status === 'OPEN'">撤回赛事</el-dropdown-item>
                   <el-dropdown-item @click="handleStatus(scope.row, 'FINISHED')" v-if="scope.row.status === 'ONGOING'">结束赛事</el-dropdown-item>
                   <el-dropdown-item @click="handleExport(scope.row)">导出名单</el-dropdown-item>
                   <el-dropdown-item @click="handleImportClick(scope.row)">导入成绩</el-dropdown-item>
@@ -128,21 +129,34 @@
         </span>
       </template>
     </el-dialog>
+
+    <EventAdminManager 
+      v-model:visible="adminManagerVisible"
+      :event-id="currentEventId"
+      @saved="getList"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { getEventList, addEvent, updateEvent, deleteEvent, changeEventStatus } from '@/api/event'
+import { withdrawEvent } from '@/api/admin'
 import { exportRegistration, importScores, publishScores } from '@/api/score'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowDown, UploadFilled } from '@element-plus/icons-vue'
+import { useUserStore } from '@/stores/user'
+import EventAdminManager from '@/components/EventAdminManager.vue'
+
+const userStore = useUserStore()
+const isSuperAdmin = computed(() => userStore.userInfo?.role === 'SUPER_ADMIN')
 
 const loading = ref(false)
 const eventList = ref([])
 const total = ref(0)
 const dialogVisible = ref(false)
 const importVisible = ref(false)
+const adminManagerVisible = ref(false)
 const currentEventId = ref(null)
 const dialogTitle = ref('新增赛事')
 const isEdit = ref(false)
@@ -211,6 +225,31 @@ const handleStatus = (row, status) => {
       console.error(error)
     }
   })
+}
+
+const handleWithdraw = (row) => {
+  ElMessageBox.confirm('确认撤回该赛事吗？已报名的记录可能会受影响。', '警告', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(async () => {
+    try {
+      const res = await withdrawEvent(row.id)
+      if (res.code === 200) {
+        ElMessage.success('赛事已撤回')
+        getList()
+      } else {
+        ElMessage.error(res.msg || '撤回失败')
+      }
+    } catch (error) {
+      console.error(error)
+    }
+  })
+}
+
+const handleAssignAdmin = (row) => {
+  currentEventId.value = row.id
+  adminManagerVisible.value = true
 }
 
 const handleExport = async (row) => {

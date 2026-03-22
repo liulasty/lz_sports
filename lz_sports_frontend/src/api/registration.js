@@ -35,3 +35,20 @@ export function cancelRegistration(id) {
     method: 'delete'
   })
 }
+
+export function batchAuditRegistration(ids, approve) {
+  return request({
+    url: '/registration/batch-audit',
+    method: 'put',
+    data: ids,
+    params: { approve }
+  })
+}
+
+export function exportRegistrationList(eventId) {
+  return request({
+    url: `/registration/export/${eventId}`,
+    method: 'get',
+    responseType: 'blob'
+  })
+}

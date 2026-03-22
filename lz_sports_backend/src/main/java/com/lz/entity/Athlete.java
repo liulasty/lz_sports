@@ -25,6 +25,12 @@ public class Athlete extends BaseEntity<Long> {
     private Long userId;
 
     /**
+     * 赛事ID
+     */
+    @TableField("event_id")
+    private Long eventId;
+
+    /**
      * 姓名
      */
     @TableField("name")

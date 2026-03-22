@@ -4,8 +4,9 @@ import com.lz.common.context.BaseContext;
 import com.lz.common.result.PageResult;
 import com.lz.common.result.Result;
 import com.lz.dto.RegistrationAndAthleteDTO;
-import com.lz.entity.Athlete;
-import com.lz.mapper.AthleteMapper;
+import com.lz.entity.User;
+import com.lz.common.enums.UserRole;
+import com.lz.mapper.UserMapper;
 import com.lz.service.RegistrationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -34,7 +35,7 @@ public class RegistrationController {
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(RegistrationController.class);
 
     private final RegistrationService registrationService;
-    private final AthleteMapper athleteMapper;
+    private final UserMapper userMapper;
 
     /**
      * 分页查询报名列表
@@ -53,12 +54,12 @@ public class RegistrationController {
         Date queryDate = parseDate(date);
         
         Long userId = BaseContext.getCurrentId();
-        Athlete athlete = athleteMapper.selectByUserId(userId);
         
-        if (athlete == null) {
+        User user = userMapper.selectById(userId);
+        if (user != null && (user.getUserType() == UserRole.SCHOOL_ADMIN || user.getUserType() == UserRole.EVENT_ADMIN)) {
             return Result.success(registrationService.list(currentPage, pageSize, name, status, queryDate));
         } else {
-            return Result.success(registrationService.listByAthlete(currentPage, pageSize, name, status, queryDate, athlete.getId()));
+            return Result.success(registrationService.listByAthlete(currentPage, pageSize, name, status, queryDate, userId));
         }
     }
 
@@ -73,11 +74,11 @@ public class RegistrationController {
     }
     
     /**
-     * 删除/取消报名
-     * 删除指定的报名记录
+     * 取消报名
+     * 运动员取消自己的报名记录
      */
     @DeleteMapping("/{id}")
-    @Operation(summary = "删除报名", description = "删除或取消报名记录")
+    @Operation(summary = "取消报名", description = "取消报名记录，报名截止后不可取消")
     public Result<String> delete(@Parameter(description = "报名ID") @PathVariable Long id) {
         registrationService.cancel(id);
         return Result.success("取消成功");

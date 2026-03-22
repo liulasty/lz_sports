@@ -36,3 +36,12 @@ export function deleteAthleteRecord(id) {
     method: 'delete'
   })
 }
+
+// 我的所有运动员申请记录
+export function getMyApplications() {
+  return request({
+    url: '/athlete/my-applications',
+    method: 'get'
+  })
+}
+

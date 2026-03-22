@@ -94,8 +94,8 @@ import { useUserStore } from '@/stores/user'
 
 const userStore = useUserStore()
 const isAdmin = computed(() => {
-  const role = userStore.userInfo?.role || userStore.userInfo?.type
-  return role === 'SUPER_ADMIN' || role === 'SCHOOL_ADMIN' || role === '管理员'
+  const role = userStore.userInfo?.role
+  return role === 'SUPER_ADMIN' || role === 'SCHOOL_ADMIN' || role === 'EVENT_ADMIN'
 })
 
 const overviewStats = ref({})

@@ -16,14 +16,6 @@ export function register(data) {
   })
 }
 
-export function sendCode(email) {
-  return request({
-    url: '/auth/send-code',
-    method: 'post',
-    params: { email }
-  })
-}
-
 export function auditUser(userId, status, reason) {
   return request({
     url: `/auth/audit/${userId}`,

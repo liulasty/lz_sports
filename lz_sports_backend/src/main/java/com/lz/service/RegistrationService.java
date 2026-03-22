@@ -23,6 +23,8 @@ public interface RegistrationService extends IService<Registration> {
      */
     PageResult listByAthlete(int currentPage, int pageSize, String name, String status, Date date, Long athleteId);
 
+    java.util.Map<String, Object> getRegistrationStatsByEvent(Long eventId);
+
     /**
      * 获取报名详情
      */
@@ -61,4 +63,6 @@ public interface RegistrationService extends IService<Registration> {
      * 导出报名名单
      */
     void export(Long eventId, jakarta.servlet.http.HttpServletResponse response);
+
+    void syncAthleteProfileToUser(com.lz.entity.Athlete athlete, com.lz.entity.User user);
 }

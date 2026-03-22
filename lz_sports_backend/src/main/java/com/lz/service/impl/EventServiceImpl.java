@@ -408,6 +408,62 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
         return eventMapper.getEventTotal();
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void addEventAdmins(Long eventId, List<Long> userIds) {
+        Event event = getById(eventId);
+        if (event == null) {
+            throw new BusinessException("赛事不存在");
+        }
+        if (userIds == null || userIds.isEmpty()) {
+            throw new BusinessException("请选择管理员");
+        }
+
+        for (Long userId : userIds) {
+            User user = userMapper.selectById(userId);
+            if (user == null) {
+                throw new BusinessException("用户不存在: " + userId);
+            }
+            if (user.getUserType() != UserRole.SUPER_ADMIN && user.getUserType() != UserRole.EVENT_ADMIN && user.getUserType() != UserRole.SCHOOL_ADMIN) {
+                throw new BusinessException("用户 " + user.getUsername() + " 角色不符合要求");
+            }
+            long count = eventAdminMappingMapper.selectCount(new LambdaQueryWrapper<EventAdminMapping>()
+                    .eq(EventAdminMapping::getEventId, eventId)
+                    .eq(EventAdminMapping::getUserId, userId));
+            if (count == 0) {
+                EventAdminMapping mapping = new EventAdminMapping();
+                mapping.setEventId(eventId);
+                mapping.setUserId(userId);
+                mapping.initTime();
+                eventAdminMappingMapper.insert(mapping);
+            }
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void removeEventAdmin(Long eventId, Long userId) {
+        long count = eventAdminMappingMapper.selectCount(new LambdaQueryWrapper<EventAdminMapping>()
+                .eq(EventAdminMapping::getEventId, eventId));
+        if (count <= 1) {
+            throw new BusinessException("至少保留一名赛事管理员", 400);
+        }
+        eventAdminMappingMapper.delete(new LambdaQueryWrapper<EventAdminMapping>()
+                .eq(EventAdminMapping::getEventId, eventId)
+                .eq(EventAdminMapping::getUserId, userId));
+    }
+
+    @Override
+    public List<User> getEventAdmins(Long eventId) {
+        List<EventAdminMapping> mappings = eventAdminMappingMapper.selectList(new LambdaQueryWrapper<EventAdminMapping>()
+                .eq(EventAdminMapping::getEventId, eventId));
+        if (mappings.isEmpty()) {
+            return new java.util.ArrayList<>();
+        }
+        List<Long> userIds = mappings.stream().map(EventAdminMapping::getUserId).collect(Collectors.toList());
+        return userMapper.selectBatchIds(userIds);
+    }
+
     private Date stringToDate(String s) {
         if (s == null || s.isEmpty()) return null;
         Date d = parseWithPattern(s, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");

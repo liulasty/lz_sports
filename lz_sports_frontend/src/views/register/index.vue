@@ -160,7 +160,8 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { register, sendCode } from '@/api/user'
+import { register } from '@/api/user'
+import { sendCode } from '@/api/auth'
 import { ElMessage } from 'element-plus'
 import { isSuccess } from '@/utils/result'
 
@@ -215,7 +216,7 @@ const handleSendCode = async () => {
   if (!/^[1-9][0-9]{4,10}$/.test(registerForm.email)) { ElMessage.warning('QQ号格式不正确'); return }
   isSending.value = true
   try {
-    const res = await sendCode(fullEmail.value)
+    const res = await sendCode({ email: fullEmail.value, scene: 'REGISTER' })
     if (isSuccess(res)) {
       ElMessage.success('验证码已发送，请查收邮件')
       countdown.value = 60

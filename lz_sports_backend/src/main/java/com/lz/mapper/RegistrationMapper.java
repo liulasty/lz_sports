@@ -54,4 +54,13 @@ public interface RegistrationMapper extends BaseMapper<Registration> {
                                 @Param("eventId") Long eventId,
                                 @Param("newStart") Date newStart,
                                 @Param("newEnd") Date newEnd);
+
+    @Select("""
+        SELECT event_id as eventId, 
+               COUNT(*) as total, 
+               SUM(CASE WHEN status = 'CONFIRMED' THEN 1 ELSE 0 END) as approved 
+        FROM registration 
+        GROUP BY event_id
+    """)
+    List<java.util.Map<String, Object>> countRegistrationsGroupByEvent();
 }

@@ -50,10 +50,33 @@ export function getScorePage(params) {
   })
 }
 
+export function upsertScore(data) {
+  return request({
+    url: '/score/upsert',
+    method: 'post',
+    data
+  })
+}
+
+export function updateScore(scoreId, data) {
+  return request({
+    url: `/score/${scoreId}`,
+    method: 'put',
+    data
+  })
+}
+
 export function getMyScores(params) {
   return request({
     url: '/score/my',
     method: 'get',
     params
+  })
+}
+
+export function getPublicScores(eventId) {
+  return request({
+    url: `/score/public/${eventId}`,
+    method: 'get'
   })
 }

@@ -1,5 +1,7 @@
-@import './variables.scss';
-@import './theme/default.scss';
+// 替换 @import 为 @use (推荐写法)
+// @use 会创建命名空间，避免变量冲突，是 Sass 推荐的新语法
+@use './variables.scss' as *;
+@use './theme/default.scss' as *;
 
 html, body, #app {
   margin: 0;

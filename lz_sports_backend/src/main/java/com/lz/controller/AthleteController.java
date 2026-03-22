@@ -25,6 +25,16 @@ public class AthleteController {
     private final AthleteService athleteService;
 
     /**
+     * 查询我的所有申请
+     * 返回当前用户的所有赛事运动员申请记录
+     */
+    @GetMapping("/my-applications")
+    @Operation(summary = "我的申请列表", description = "获取当前用户的所有运动员申请记录")
+    public Result<java.util.List<Athlete>> getMyApplications() {
+        return Result.success(athleteService.getMyApplications());
+    }
+
+    /**
      * 提交运动员申请
      * 允许普通用户提交成为运动员的申请信息，需管理员审核
      */

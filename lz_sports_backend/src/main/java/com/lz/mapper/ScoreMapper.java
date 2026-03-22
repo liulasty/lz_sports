@@ -39,4 +39,12 @@ public interface ScoreMapper extends BaseMapper<Score> {
     List<Score> selectMyPublished(@Param("userId") Long userId, @Param("eventId") Long eventId);
 
     List<ScoreVO> selectPublicByEvent(@Param("eventId") Long eventId);
+
+    @Select("""
+            SELECT event_id as eventId, COUNT(DISTINCT item_id) as publishedCount
+            FROM result
+            WHERE is_published = 1
+            GROUP BY event_id
+            """)
+    List<java.util.Map<String, Object>> countPublishedProjectsGroupByEvent();
 }

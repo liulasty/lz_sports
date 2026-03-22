@@ -50,25 +50,18 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
         List<ProjectVO> projectVOS = (List<ProjectVO>) pageResult.getRecords();
 
         Long userId = BaseContext.getCurrentId();
-        Athlete athlete = athleteMapper.selectByUserId(userId);
 
-        if (athlete != null) {
-            for (ProjectVO vo : projectVOS) {
-                LambdaQueryWrapper<Registration> qw = new LambdaQueryWrapper<>();
-                qw.eq(Registration::getAthleteId, userId)
-                  .eq(Registration::getItemId, vo.getId());
-                
-                Registration registration = registrationMapper.selectOne(qw);
-                if (registration == null) {
-                    vo.setRegistrationStatus("未报名");
-                } else {
-                    vo.setRegistrationStatus(registration.getRegistrationStatus().getStatus());
-                }
+        for (ProjectVO vo : projectVOS) {
+            LambdaQueryWrapper<Registration> qw = new LambdaQueryWrapper<>();
+            qw.eq(Registration::getAthleteId, userId)
+              .eq(Registration::getItemId, vo.getId());
+            
+            Registration registration = registrationMapper.selectOne(qw);
+            if (registration == null) {
+                vo.setRegistrationStatus("未报名");
+            } else {
+                vo.setRegistrationStatus(registration.getRegistrationStatus().getStatus());
             }
-        } else {
-             for (ProjectVO vo : projectVOS) {
-                 vo.setRegistrationStatus("未报名");
-             }
         }
         return pageResult;
     }

@@ -17,6 +17,7 @@ import java.io.Serializable;
 public class AthleteUpdateDTO implements Serializable {
     private Long athleteId;
     private Long userId;
+    private Long eventId;
     private String name;
     private Integer age;
     private String gender;

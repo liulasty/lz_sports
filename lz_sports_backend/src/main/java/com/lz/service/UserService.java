@@ -39,6 +39,11 @@ public interface UserService extends IService<User> {
 
     void updateUser(UserUpdateDTO userUpdateDTO);
 
+    /**
+     * 重置密码
+     */
+    void resetPassword(com.lz.dto.ResetPasswordDTO resetPasswordDTO);
+
     PageResult list(EventListDTO listDto);
 
     void deleteUser(String id);

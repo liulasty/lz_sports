@@ -27,8 +27,8 @@
       <div class="project-list" style="margin-top: 30px;">
         <el-alert
           v-if="athleteApplyStatus"
-          :title="`运动员资格状态：${athleteApplyStatus}`"
-          :type="athleteApplyStatus === '成功' ? 'success' : (athleteApplyStatus === '在审核' ? 'warning' : 'error')"
+          :title="`运动员资格状态：${athleteApplyStatus === 'APPROVED' ? '审核通过' : (athleteApplyStatus === 'PENDING' ? '审核中' : '审核拒绝')}`"
+          :type="athleteApplyStatus === 'APPROVED' ? 'success' : (athleteApplyStatus === 'PENDING' ? 'warning' : 'error')"
           :closable="false"
           style="margin-bottom: 16px;"
         />

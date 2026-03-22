@@ -250,6 +250,33 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void resetPassword(com.lz.dto.ResetPasswordDTO resetPasswordDTO) {
+        String verifyTokenKey = buildVerifyTokenKey("RESET_PASSWORD", resetPasswordDTO.getEmail());
+        Object verifyTokenObj = redisUtil.get(verifyTokenKey);
+        if (verifyTokenObj == null || !resetPasswordDTO.getVerifyToken().equals(verifyTokenObj.toString())) {
+            throw new BusinessException("verifyToken无效或已过期", 400);
+        }
+
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("email", resetPasswordDTO.getEmail());
+        User user = userMapper.selectOne(queryWrapper);
+        if (user == null) {
+            throw new BusinessException("该邮箱未注册账号", 404);
+        }
+
+        user.setPassword(passwordEncoder.encode(resetPasswordDTO.getNewPassword()));
+        user.setUpdateTime(LocalDateTime.now());
+        userMapper.updateById(user);
+
+        // 重置成功后，使得已登录的token失效
+        redisUtil.del(buildUserLoginTokenKey(user.getId()));
+        
+        // 使得 verifyToken 失效
+        redisUtil.del(verifyTokenKey);
+    }
+
+    @Override
     public PageResult list(EventListDTO listDto) {
         if (listDto.getPageSize() == 0) {
             listDto.setPageSize(10); // 默认每页10条
@@ -315,7 +342,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (current == null) {
             throw new BusinessException("运动员申请不存在");
         }
-        if (current.getAthleteState() != AthleteStatus.AUDITING) {
+        if (current.getAthleteState() != AthleteStatus.PENDING) {
             throw new BusinessException("已审核的申请不可重复审核");
         }
         User user = new User();
@@ -326,7 +353,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // Update Athlete status
         Athlete athlete = new Athlete();
         athlete.setAgreeTime(LocalDateTime.now());
-        athlete.setAthleteState(AthleteStatus.SUCCESS);
+        athlete.setAthleteState(AthleteStatus.APPROVED);
         
         LambdaQueryWrapper<Athlete> updateWrapper = new LambdaQueryWrapper<>();
         updateWrapper.eq(Athlete::getUserId, Long.valueOf(id));

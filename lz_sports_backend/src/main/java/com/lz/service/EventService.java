@@ -65,4 +65,10 @@ public interface EventService extends IService<Event> {
      * Get Total Events count
      */
     int getTotal();
+
+    void addEventAdmins(Long eventId, java.util.List<Long> userIds);
+
+    void removeEventAdmin(Long eventId, Long userId);
+
+    java.util.List<com.lz.entity.User> getEventAdmins(Long eventId);
 }

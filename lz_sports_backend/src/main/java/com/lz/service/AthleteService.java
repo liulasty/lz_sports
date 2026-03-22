@@ -36,6 +36,22 @@ public interface AthleteService extends IService<Athlete> {
     Athlete selectOne(Long athleteId);
 
     /**
+     * Get all applications for current user
+     */
+    java.util.List<Athlete> getMyApplications();
+
+    /**
+     * Get applications by event ID
+     */
+    com.lz.common.result.PageResult getAthleteApplicationsByEvent(Long eventId, String status, String keyword, Integer page, Integer size);
+
+    void approveAthleteApplication(Long eventId, Long applicationId);
+
+    void rejectAthleteApplication(Long eventId, Long applicationId, String reason);
+
+    void batchApproveAthleteApplications(Long eventId, java.util.List<Long> applicationIds);
+
+    /**
      * Update athlete (Re-apply process)
      */
     void update(Long athleteId, AthleteUpdateDTO athleteUpdateDTO);

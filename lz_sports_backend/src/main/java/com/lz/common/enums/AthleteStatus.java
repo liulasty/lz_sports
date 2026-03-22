@@ -6,9 +6,9 @@ import lombok.Getter;
 
 @Getter
 public enum AthleteStatus {
-    AUDITING("在审核"),
-    SUCCESS("成功"),
-    REJECTED("不同意");
+    PENDING("PENDING"),
+    APPROVED("APPROVED"),
+    REJECTED("REJECTED");
 
     @EnumValue
     @JsonValue
