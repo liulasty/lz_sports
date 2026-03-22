@@ -27,8 +27,8 @@
       <div class="project-list" style="margin-top: 30px;">
         <el-alert
           v-if="athleteApplyStatus"
-          :title="`运动员资格状态：${athleteApplyStatus === 'APPROVED' ? '审核通过' : (athleteApplyStatus === 'PENDING' ? '审核中' : '审核拒绝')}`"
-          :type="athleteApplyStatus === 'APPROVED' ? 'success' : (athleteApplyStatus === 'PENDING' ? 'warning' : 'error')"
+          :title="`运动员资格状态：${athleteApplyStatusText}`"
+          :type="getAthleteStatusType(athleteApplyStatus)"
           :closable="false"
           style="margin-bottom: 16px;"
         />
@@ -77,7 +77,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getEventById } from '@/api/event'
 import { getProjectsByEventId } from '@/api/project'
@@ -85,6 +85,7 @@ import { applyProject, getRegistrationList, cancelRegistration } from '@/api/reg
 import { getAthleteApply } from '@/api/athlete'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { getAthleteStatusText, getAthleteStatusType, normalizeAthleteStatus } from '@/utils/athleteStatus'
 
 const route = useRoute()
 const router = useRouter()
@@ -92,6 +93,7 @@ const userStore = useUserStore()
 const event = ref(null)
 const projects = ref([])
 const athleteApplyStatus = ref('')
+const athleteApplyStatusText = computed(() => getAthleteStatusText(athleteApplyStatus.value))
 const myRegistrations = ref([])
 const registeredProjectNames = ref([])
 
@@ -152,7 +154,7 @@ const loadAthleteStatus = async () => {
     if (!userId) return
     const res = await getAthleteApply(userId)
     if (res.code === 200 && res.data) {
-      athleteApplyStatus.value = res.data.athleteState
+      athleteApplyStatus.value = normalizeAthleteStatus(res.data.athleteState || res.data.status)
     } else {
       athleteApplyStatus.value = ''
     }
@@ -199,7 +201,7 @@ const refreshButtonState = () => {
     } else if (project.attendance >= project.maxAttendance) {
       registerDisabled = true
       registerText = '名额已满'
-    } else if (athleteApplyStatus.value !== 'SUCCESS' && athleteApplyStatus.value !== '成功') {
+    } else if (normalizeAthleteStatus(athleteApplyStatus.value) !== 'APPROVED') {
       registerDisabled = true
       registerText = '请先通过运动员审核'
     } else if (registration) {

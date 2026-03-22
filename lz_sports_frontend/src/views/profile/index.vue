@@ -112,19 +112,19 @@
           <div v-if="hasApplied" class="applied-section">
             <div class="apply-status-card" :class="getApplyStatusClass()">
               <div class="apply-status-icon">
-                <span v-if="applicationStatus === 'APPROVED'">✓</span>
-                <span v-else-if="applicationStatus === 'REJECTED'">✗</span>
+                <span v-if="normalizedApplicationStatus === 'APPROVED'">✓</span>
+                <span v-else-if="normalizedApplicationStatus === 'REJECTED'">✗</span>
                 <span v-else>⋯</span>
               </div>
               <div>
-                <div class="apply-status-title">申请{{ applicationStatus === 'APPROVED' ? '成功' : (applicationStatus === 'REJECTED' ? '拒绝' : '审核中') }}</div>
+                <div class="apply-status-title">申请{{ normalizedApplicationStatus === 'APPROVED' ? '成功' : (normalizedApplicationStatus === 'REJECTED' ? '拒绝' : '审核中') }}</div>
                 <div class="apply-status-sub">
-                  {{ applicationStatus === 'APPROVED' ? '您已通过认证，可以参加赛事报名' :
-                    applicationStatus === 'REJECTED' ? '您的申请未通过，请重新提交' : '审核中，请耐心等待' }}
+                  {{ normalizedApplicationStatus === 'APPROVED' ? '您已通过认证，可以参加赛事报名' :
+                    normalizedApplicationStatus === 'REJECTED' ? '您的申请未通过，请重新提交' : '审核中，请耐心等待' }}
                 </div>
               </div>
             </div>
-            <div v-if="applicationStatus === '拒绝'" class="retry-section">
+            <div v-if="normalizedApplicationStatus === 'REJECTED'" class="retry-section">
               <el-button class="retry-btn" @click="resetApplication">重新提交申请</el-button>
             </div>
           </div>
@@ -218,6 +218,7 @@ import { getRegistrationList } from '@/api/registration'
 import { applyAthlete, getAthleteApply } from '@/api/athlete'
 import { ElMessage } from 'element-plus'
 import { isSuccess } from '@/utils/result'
+import { normalizeAthleteStatus } from '@/utils/athleteStatus'
 
 const userStore = useUserStore()
 const userInfo = ref({})
@@ -231,6 +232,7 @@ const queryParams = reactive({ currentPage: 1, pageSize: 5 })
 
 const hasApplied = ref(false)
 const applicationStatus = ref('')
+const normalizedApplicationStatus = computed(() => normalizeAthleteStatus(applicationStatus.value))
 const applyFormRef = ref(null)
 const applyForm = reactive({ name: '', age: 18, gender: '', phone: '', grade: '', userId: '' })
 
@@ -260,8 +262,8 @@ const getPillClass = (status) => {
 }
 
 const getApplyStatusClass = () => {
-  if (applicationStatus.value === 'APPROVED') return 'apply-success'
-  if (applicationStatus.value === 'REJECTED') return 'apply-danger'
+  if (normalizedApplicationStatus.value === 'APPROVED') return 'apply-success'
+  if (normalizedApplicationStatus.value === 'REJECTED') return 'apply-danger'
   return 'apply-pending'
 }
 
@@ -290,7 +292,7 @@ const getRegistrations = async () => {
 const checkApplication = async () => {
   try {
     const res = await getAthleteApply(userInfo.value.userId)
-    if (isSuccess(res) && res.data) { hasApplied.value = true; applicationStatus.value = res.data.athleteState }
+    if (isSuccess(res) && res.data) { hasApplied.value = true; applicationStatus.value = normalizeAthleteStatus(res.data.athleteState || res.data.status) }
   } catch {}
 }
 
@@ -300,7 +302,7 @@ const submitApply = async () => {
     if (valid) {
       try {
         const res = await applyAthlete(applyForm)
-        if (isSuccess(res)) { ElMessage.success('申请提交成功'); hasApplied.value = true; applicationStatus.value = '申请中' }
+        if (isSuccess(res)) { ElMessage.success('申请提交成功'); hasApplied.value = true; applicationStatus.value = 'PENDING' }
       } catch (error) { console.error(error) }
     }
   })
