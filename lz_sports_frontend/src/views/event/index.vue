@@ -108,8 +108,7 @@ const total = ref(0)
 const queryParams = reactive({
   currentPage: 1,
   pageSize: 8,
-  name: '',
-  status: 'PUBLISHED'
+  name: ''
 })
 
 const getList = async () => {
@@ -117,7 +116,7 @@ const getList = async () => {
     const res = await getEventList(queryParams)
     if (res.code === 200) {
       const records = res.data.records || res.data.rows || []
-      eventList.value = records.filter(item => item.status !== 'DRAFT')
+      eventList.value = records
       total.value = res.data.total
     }
   } catch (error) {

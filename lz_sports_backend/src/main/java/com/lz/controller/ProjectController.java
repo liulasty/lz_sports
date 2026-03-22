@@ -1,6 +1,8 @@
 package com.lz.controller;
 
 import com.lz.common.context.BaseContext;
+import com.lz.common.annotation.RequireRole;
+import com.lz.common.enums.UserRole;
 import com.lz.common.result.PageResult;
 import com.lz.common.result.Result;
 import com.lz.dto.EventListDTO;
@@ -15,7 +17,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -65,7 +66,7 @@ public class ProjectController {
      * 管理员在指定赛事下创建新的比赛项目
      */
     @PostMapping
-    @PreAuthorize("hasAuthority('ROLE_SCHOOL_ADMIN')")
+    @RequireRole({UserRole.SCHOOL_ADMIN})
     @Operation(summary = "添加项目", description = "管理员添加新的比赛项目")
     public Result<String> addProject(@Valid @RequestBody ProjectDTO projectDTO) {
         if (projectDTO.getImageUrls() != null) {
@@ -96,7 +97,7 @@ public class ProjectController {
      * 管理员删除指定的比赛项目
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('ROLE_SCHOOL_ADMIN')")
+    @RequireRole({UserRole.SCHOOL_ADMIN})
     @Operation(summary = "删除项目", description = "根据ID删除比赛项目")
     public Result<String> delete(@Parameter(description = "项目ID") @PathVariable Long id) {
         projectService.delete(id);
@@ -108,7 +109,7 @@ public class ProjectController {
      * 管理员修改项目配置
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('ROLE_SCHOOL_ADMIN')")
+    @RequireRole({UserRole.SCHOOL_ADMIN})
     @Operation(summary = "更新项目", description = "更新比赛项目信息")
     public Result<String> update(
             @Parameter(description = "项目ID") @PathVariable Long id, 

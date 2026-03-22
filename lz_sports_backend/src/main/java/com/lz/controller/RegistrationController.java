@@ -1,6 +1,8 @@
 package com.lz.controller;
 
 import com.lz.common.context.BaseContext;
+import com.lz.common.annotation.RequireRole;
+import com.lz.common.enums.UserRole;
 import com.lz.common.result.PageResult;
 import com.lz.common.result.Result;
 import com.lz.dto.RegistrationAndAthleteDTO;
@@ -14,7 +16,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.text.ParseException;
@@ -100,7 +101,7 @@ public class RegistrationController {
      * 管理员审核通过报名申请
      */
     @PutMapping("/attend/{id}")
-    @PreAuthorize("hasAuthority('ROLE_SCHOOL_ADMIN')")
+    @RequireRole({UserRole.SCHOOL_ADMIN})
     @Operation(summary = "同意报名", description = "管理员审核通过报名申请")
     public Result<String> attend(@Parameter(description = "报名ID") @PathVariable Long id) {
         registrationService.approve(id);
@@ -112,7 +113,7 @@ public class RegistrationController {
      * 管理员拒绝报名申请
      */
     @PutMapping("/refuse/{id}")
-    @PreAuthorize("hasAuthority('ROLE_SCHOOL_ADMIN')")
+    @RequireRole({UserRole.SCHOOL_ADMIN})
     @Operation(summary = "拒绝报名", description = "管理员拒绝报名申请")
     public Result<String> refuse(@Parameter(description = "报名ID") @PathVariable Long id) {
         registrationService.refuse(id);
@@ -120,7 +121,7 @@ public class RegistrationController {
     }
 
     @PutMapping("/batch-audit")
-    @PreAuthorize("hasAuthority('ROLE_SCHOOL_ADMIN')")
+    @RequireRole({UserRole.SCHOOL_ADMIN})
     @Operation(summary = "批量审核", description = "仅处理PENDING状态，已审核记录自动跳过")
     public Result<String> batchAudit(@Valid @RequestBody List<Long> ids, @RequestParam boolean approve) {
         return Result.success(registrationService.batchAudit(ids, approve));
@@ -131,8 +132,8 @@ public class RegistrationController {
      * 导出指定赛事的报名人员名单Excel
      */
     @GetMapping("/export/{eventId}")
-    @PreAuthorize("hasAuthority('ROLE_SCHOOL_ADMIN')")
-    @Operation(summary = "导出名单", description = "导出指定赛事的报名名单Excel")
+    @RequireRole({UserRole.SCHOOL_ADMIN})
+    @Operation(summary = "导出报名名单", description = "按赛事导出各项目的报名名单Excel")
     public void export(
             @Parameter(description = "赛事ID") @PathVariable Long eventId, 
             jakarta.servlet.http.HttpServletResponse response) {

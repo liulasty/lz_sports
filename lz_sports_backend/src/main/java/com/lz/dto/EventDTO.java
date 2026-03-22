@@ -26,6 +26,7 @@ public class EventDTO implements Serializable {
     private String eventStartTime;
     private String eventEndTime;
     private List<Long> adminIds;
+    private List<ProjectDTO> projects;
     private ImgDTO[] imageUrls; 
     private ImgDTO[] deleteImagesUrls;
     private String[] addImage;

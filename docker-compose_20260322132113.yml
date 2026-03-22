@@ -17,7 +17,7 @@ services:
         # 指定要打包到镜像中的 JAR 包路径
         JAR_FILE: target/lz_sports_backend-0.0.1-SNAPSHOT.jar
     # 构建后的镜像名称和标签
-    image: lz-sports-backend:20260322122708
+    image: lz-sports-backend:20260322132113
     # 容器名称（自定义容器名，便于识别和管理）
     container_name: lz-sports-backend
     # 端口映射：主机端口 8080 映射到容器内 8080 端口
@@ -56,19 +56,25 @@ services:
       context: ./lz_sports_frontend
       # 前端构建使用的 Dockerfile
       dockerfile: Dockerfile
+      args:
+        FRONTEND_PORT: ${FRONTEND_PORT:-5173}
     # 前端镜像名称和标签
-    image: lz-sports-frontend:20260322122708
+    image: lz-sports-frontend:20260322132113
     # 前端容器名称
     container_name: lz-sports-frontend
-    # 端口映射：主机 80 端口映射到容器 80 端口（前端 Nginx 服务默认端口）
+    # 端口映射：通过 FRONTEND_PORT 统一控制主机和容器端口
     ports:
-      - "80:5173"
+      - "${FRONTEND_PORT:-5173}:${FRONTEND_PORT:-5173}"
     # 依赖关系：前端服务启动依赖后端服务（确保后端先启动）
     # 注意：仅保证启动顺序，不保证后端服务完全就绪
     depends_on:
       - backend
     # 重启策略：始终自动重启
     restart: always
+
+
+
+
 
 
 

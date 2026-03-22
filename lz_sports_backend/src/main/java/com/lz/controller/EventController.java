@@ -36,9 +36,8 @@ public class EventController {
     /**
      * 发布新赛事
      * 管理员发布新的运动会或比赛活动
-     * 注意：路径保持 /EventList 是为了兼容旧版前端
      */
-    @PostMapping("/EventList")
+    @PostMapping
     @RequireRole({UserRole.SCHOOL_ADMIN, UserRole.EVENT_ADMIN})
     @Operation(summary = "发布赛事", description = "管理员发布新的赛事活动")
     public Result<String> addEvent(@Valid @RequestBody EventDTO eventDTO) {

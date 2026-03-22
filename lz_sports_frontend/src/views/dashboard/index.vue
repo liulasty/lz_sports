@@ -121,6 +121,8 @@ const loadData = async () => {
     const res2 = await getEventStats()
     if (res2.code === 200) {
       eventStats.value = res2.data
+    }else {
+      console.error('Failed to load event stats', res2.message)
     }
   } catch (error) {
     console.error('Failed to load stats', error)

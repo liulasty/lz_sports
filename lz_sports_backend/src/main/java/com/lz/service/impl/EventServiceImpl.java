@@ -117,7 +117,53 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
             sportsImg.setImgSrc(coverImage);
             sportsImgService.addSrc(sportsImg);
         }
-        return "添加成功";
+
+        // 插入包含的比赛项目
+        if (eventDTO.getProjects() != null && !eventDTO.getProjects().isEmpty()) {
+            for (com.lz.dto.ProjectDTO pDto : eventDTO.getProjects()) {
+                Date pStart = stringToDate(pDto.getStartTime());
+                Date pEnd = stringToDate(pDto.getEndTime());
+                
+                if (pStart == null || pEnd == null) {
+                    throw new BusinessException("项目时间不能为空");
+                }
+                if (!pStart.before(pEnd)) {
+                    throw new BusinessException("项目开始时间必须早于结束时间");
+                }
+                if (pStart.before(eventStart)) {
+                    throw new BusinessException("项目开始时间需在赛事时间范围内");
+                }
+                if (pEnd.after(eventEnd)) {
+                    throw new BusinessException("项目结束时间需在赛事时间范围内");
+                }
+
+                Project project = new Project();
+                project.setEventId(event.getId());
+                project.setItemName(pDto.getName());
+                project.setGrade(pDto.getGrade());
+                project.setMaxAttendance(pDto.getMaxAttendance() == null ? 0 : pDto.getMaxAttendance());
+                project.setAttendance(0);
+                project.setStartTime(pStart);
+                project.setEndTime(pEnd);
+                
+                if (pDto.getCategory() == null || pDto.getCategory().isEmpty()) {
+                    project.setCategory(com.lz.common.enums.ProjectCategory.CUSTOM);
+                } else {
+                    project.setCategory(com.lz.common.enums.ProjectCategory.valueOf(pDto.getCategory()));
+                }
+                
+                if (pDto.getLimitation() == null || pDto.getLimitation().isEmpty()) {
+                    project.setLimitation(com.lz.common.enums.GenderLimit.ALL);
+                } else {
+                    project.setLimitation(com.lz.common.enums.GenderLimit.valueOf(pDto.getLimitation()));
+                }
+                
+                project.initTime();
+                projectMapper.insert(project);
+            }
+        }
+
+        return String.valueOf(event.getId());
     }
 
     @Override

@@ -76,6 +76,18 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void add(Long projectId) {
+        Long userId = BaseContext.getCurrentId();
+        if (userId == null) {
+            throw new BusinessException("用户未登录");
+        }
+        
+        // 防重放/幂等性控制：5秒内同一个用户对同一个项目只能发起一次报名请求
+        String idempotencyKey = "registration:idempotency:" + userId + ":" + projectId;
+        boolean isFirst = redissonClient.getBucket(idempotencyKey).trySet("1", 5, TimeUnit.SECONDS);
+        if (!isFirst) {
+            throw new BusinessException("您的请求过于频繁，请稍后再试");
+        }
+
         String lockKey = "registration:lock:project:" + projectId;
         RLock lock = redissonClient.getLock(lockKey);
         User syncUser = null;
@@ -84,7 +96,6 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
         try {
             if (lock.tryLock(5, 10, TimeUnit.SECONDS)) {
                 try {
-                    Long userId = BaseContext.getCurrentId();
                     User user = userMapper.selectById(userId);
                     if (user == null) {
                         throw new BusinessException("用户不存在");

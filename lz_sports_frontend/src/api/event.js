@@ -10,7 +10,7 @@ export function getEventList(params) {
 
 export function addEvent(data) {
   return request({
-    url: '/event/EventList',
+    url: '/event',
     method: 'post',
     data
   })

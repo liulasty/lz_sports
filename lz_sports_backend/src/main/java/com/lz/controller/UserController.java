@@ -1,6 +1,7 @@
 package com.lz.controller;
-
+import com.lz.common.annotation.RequireRole;
 import com.lz.common.context.BaseContext;
+import com.lz.common.enums.UserRole;
 import com.lz.common.result.PageResult;
 import com.lz.common.result.Result;
 import com.lz.config.AppConfig;
@@ -22,7 +23,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.prepost.PreAuthorize;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
@@ -124,7 +124,7 @@ public class UserController {
      * 管理员审核新注册用户，批准或拒绝
      */
     @PutMapping("/audit/{userId}")
-    @PreAuthorize("hasAuthority('ROLE_SCHOOL_ADMIN')")
+    @RequireRole({UserRole.SCHOOL_ADMIN})
     @Operation(summary = "审核用户", description = "管理员审核用户注册申请")
     public Result<String> auditUser(
             @Parameter(description = "用户ID") @PathVariable Long userId, 
@@ -172,7 +172,7 @@ public class UserController {
      * 管理员分页查询系统用户
      */
     @PostMapping("/list")
-    @PreAuthorize("hasAuthority('ROLE_SCHOOL_ADMIN')")
+    @RequireRole({UserRole.SCHOOL_ADMIN})
     @Operation(summary = "用户列表", description = "管理员分页查询用户列表")
     public Result<PageResult> list(@Valid @RequestBody(required = false) EventListDTO listDto) {
         if (listDto == null) {
@@ -187,7 +187,7 @@ public class UserController {
      * 管理员删除指定用户
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('ROLE_SCHOOL_ADMIN')")
+    @RequireRole({UserRole.SCHOOL_ADMIN})
     @Operation(summary = "删除用户", description = "根据ID删除用户")
     public Result<String> delete(@Parameter(description = "用户ID") @PathVariable String id) {
         userService.deleteUser(id);
@@ -199,7 +199,7 @@ public class UserController {
      * 管理员直接通过运动员的资格申请
      */
     @PutMapping("/examine/{id}")
-    @PreAuthorize("hasAuthority('ROLE_SCHOOL_ADMIN')")
+    @RequireRole({UserRole.SCHOOL_ADMIN})
     @Operation(summary = "审核运动员", description = "管理员审核通过运动员资格")
     public Result<String> examine(@Parameter(description = "用户ID") @PathVariable String id) {
         userService.examinePlayer(id);
@@ -211,7 +211,7 @@ public class UserController {
      * 统计指定月份的用户增长情况
      */
     @GetMapping("/getUserNumsByMonth")
-    @PreAuthorize("hasAuthority('ROLE_SCHOOL_ADMIN')")
+    @RequireRole({UserRole.SCHOOL_ADMIN})
     @Operation(summary = "月度统计", description = "统计指定月份的用户注册数量")
     public Result<UserData> getUserNumsByMonth(@Parameter(description = "月份") @RequestParam String month) {
         return Result.success(userService.getUserNumsByMonth(month));
@@ -221,8 +221,9 @@ public class UserController {
      * 用户类型统计
      * 统计各类用户的数量分布
      */
+
     @GetMapping("/getUserType")
-    @PreAuthorize("hasAuthority('ROLE_SCHOOL_ADMIN')")
+    @RequireRole({UserRole.SCHOOL_ADMIN})
     @Operation(summary = "类型统计", description = "统计各类型用户的数量分布")
     public Result<List<UserType>> getUserTypes() {
         return Result.success(userService.getUserTypes());
@@ -233,7 +234,7 @@ public class UserController {
      * 获取后台首页所需的各类统计数字
      */
     @GetMapping("/getNums")
-    @PreAuthorize("hasAuthority('ROLE_SCHOOL_ADMIN')")
+    @RequireRole({UserRole.SCHOOL_ADMIN})
     @Operation(summary = "仪表盘数据", description = "获取系统概览统计数据")
     public Result<int[]> getNums() {
         return Result.success(userService.getNums());

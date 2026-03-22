@@ -1,13 +1,5 @@
 [
   {
-    "ReleaseTime": "2026-03-21 15:15:20",
-    "VersionTag": "20260321151517",
-    "BackendImage": "lz-sports-backend:20260321151517",
-    "BackendId": "Unknown",
-    "FrontendImage": "lz-sports-frontend:20260321151517",
-    "FrontendId": "Unknown"
-  },
-  {
     "ReleaseTime": "2026-03-21 15:16:10",
     "VersionTag": "20260321151608",
     "BackendImage": "lz-sports-backend:20260321151608",
@@ -62,5 +54,29 @@
     "BackendId": "cd7a67c7a5ee",
     "FrontendImage": "lz-sports-frontend:20260322123102",
     "FrontendId": "f2dfa5830b59"
+  },
+  {
+    "ReleaseTime": "2026-03-22 13:02:14",
+    "VersionTag": "20260322130200",
+    "BackendImage": "lz-sports-backend:20260322130200",
+    "BackendId": "cd7a67c7a5ee",
+    "FrontendImage": "lz-sports-frontend:20260322130200",
+    "FrontendId": "8741c843a701"
+  },
+  {
+    "ReleaseTime": "2026-03-22 13:08:16",
+    "VersionTag": "20260322130807",
+    "BackendImage": "lz-sports-backend:20260322130807",
+    "BackendId": "aa77f98d74cf",
+    "FrontendImage": "lz-sports-frontend:20260322130807",
+    "FrontendId": "8741c843a701"
+  },
+  {
+    "ReleaseTime": "2026-03-22 13:21:26",
+    "VersionTag": "20260322132113",
+    "BackendImage": "lz-sports-backend:20260322132113",
+    "BackendId": "aa77f98d74cf",
+    "FrontendImage": "lz-sports-frontend:20260322132113",
+    "FrontendId": "cc40cae96270"
   }
 ]
