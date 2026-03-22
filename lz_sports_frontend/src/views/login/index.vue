@@ -211,8 +211,8 @@ const handleLogin = async () => {
   --dark-2: #161921;
   --dark-3: #1e2130;
   --dark-4: #252a3a;
-  --text-primary: #f0f2f8;
-  --text-secondary: #8892a4;
+  --text-primary: var(--el-bg-color-page);
+  --text-secondary: var(--el-text-color-secondary);
   --border: rgba(255, 255, 255, 0.08);
 }
 
@@ -430,14 +430,14 @@ const handleLogin = async () => {
 .card-title {
   font-size: 22px;
   font-weight: 700;
-  color: #f0f2f8;
+  color: var(--el-bg-color-page);
   margin: 0 0 8px;
   letter-spacing: 0.02em;
 }
 
 .card-sub {
   font-size: 13px;
-  color: #8892a4;
+  color: var(--el-text-color-secondary);
   margin: 0;
 }
 
@@ -445,8 +445,8 @@ const handleLogin = async () => {
 .login-form {
   --el-border-color: rgba(255, 255, 255, 0.1);
   --el-fill-color-blank: rgba(255, 255, 255, 0.04);
-  --el-text-color-regular: #f0f2f8;
-  --el-text-color-placeholder: #8892a4;
+  --el-text-color-regular: var(--el-bg-color-page);
+  --el-text-color-placeholder: var(--el-text-color-secondary);
   --el-border-radius-base: 10px;
   --el-color-primary: #FF6B35;
   --el-bg-color: #161921;
@@ -475,18 +475,18 @@ const handleLogin = async () => {
 }
 
 :deep(.custom-input .el-input__inner) {
-  color: #f0f2f8 !important;
+  color: var(--el-bg-color-page) !important;
   background-color: transparent !important;
   font-size: 14px;
   font-family: 'Noto Sans SC', sans-serif;
 }
 
 :deep(.custom-input .el-input__prefix-inner .el-icon) {
-  color: #8892a4 !important;
+  color: var(--el-text-color-secondary) !important;
 }
 
 :deep(.custom-input .el-input__suffix .el-icon) {
-  color: #8892a4 !important;
+  color: var(--el-text-color-secondary) !important;
 }
 
 :deep(.el-form-item__error) {
@@ -506,7 +506,7 @@ const handleLogin = async () => {
   background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   border: none;
   border-radius: 10px;
-  color: #fff;
+  color: var(--el-bg-color);
   font-family: 'Noto Sans SC', sans-serif;
   font-size: 15px;
   font-weight: 600;
@@ -586,7 +586,7 @@ const handleLogin = async () => {
 
 .footer-text {
   font-size: 13px;
-  color: #8892a4;
+  color: var(--el-text-color-secondary);
 }
 
 :deep(.register-link) {

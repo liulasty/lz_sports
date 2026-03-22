@@ -72,7 +72,7 @@ const goHome = () => {
 .error-hint {
   margin-top: 20px;
   font-size: 12px;
-  color: var(--text-secondary, #8892a4);
+  color: var(--text-secondary, var(--el-text-color-secondary));
 }
 
 .hint-link {

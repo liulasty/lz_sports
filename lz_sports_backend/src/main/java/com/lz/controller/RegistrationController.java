@@ -2,13 +2,11 @@ package com.lz.controller;
 
 import com.lz.common.annotation.RequireEventAdmin;
 import com.lz.common.context.BaseContext;
-import com.lz.common.annotation.RequireRole;
 import com.lz.common.enums.UserRole;
 import com.lz.common.result.PageResult;
 import com.lz.common.result.Result;
 import com.lz.dto.RegistrationAndAthleteDTO;
 import com.lz.entity.User;
-import com.lz.common.enums.UserRole;
 import com.lz.mapper.UserMapper;
 import com.lz.service.RegistrationService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,7 +14,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.text.ParseException;

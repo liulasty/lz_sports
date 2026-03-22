@@ -209,7 +209,7 @@ onMounted(() => {
 
 .el-icon.avatar-uploader-icon {
   font-size: 28px;
-  color: #8c939d;
+  color: var(--el-text-color-placeholder);
   width: 120px;
   height: 120px;
   text-align: center;

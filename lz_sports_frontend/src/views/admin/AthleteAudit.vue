@@ -368,11 +368,22 @@ onMounted(() => {
 .selection-tip {
   margin-left: 15px;
   font-size: 14px;
-  color: #606266;
+  color: var(--el-text-color-regular);
 }
 .pagination-container {
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
+}
+
+:deep(.el-table) {
+  background: var(--el-bg-color) !important;
+  color: var(--el-text-color-primary);
+}
+:deep(.el-table__inner-wrapper) {
+  background: var(--el-bg-color) !important;
+}
+:deep(.el-table__body-wrapper td) {
+  background: var(--el-bg-color) !important;
 }
 </style>

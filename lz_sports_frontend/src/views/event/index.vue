@@ -205,7 +205,7 @@ onMounted(() => getList())
 :deep(.search-input .el-input__wrapper) {
   width: 220px;
   border-radius: 8px;
-  background: var(--bg-card, #fff);
+  background: var(--bg-card, var(--el-bg-color));
   border: 1px solid var(--border, rgba(0,0,0,0.08));
   box-shadow: none;
   transition: border-color 0.2s, box-shadow 0.2s;
@@ -235,7 +235,7 @@ onMounted(() => getList())
 .empty-state {
   text-align: center;
   padding: 80px 0;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary, var(--el-text-color-secondary));
 }
 .empty-icon { font-size: 48px; margin-bottom: 12px; }
 .empty-text { font-size: 16px; font-weight: 600; margin: 0 0 6px; color: var(--text-primary, #1a1a2e); }
@@ -250,7 +250,7 @@ onMounted(() => getList())
 
 /* ── Event Card ── */
 .event-card {
-  background: var(--bg-card, #fff);
+  background: var(--bg-card, var(--el-bg-color));
   border-radius: 14px;
   overflow: hidden;
   border: 1px solid var(--border, rgba(0,0,0,0.06));
@@ -271,7 +271,7 @@ onMounted(() => getList())
   width: 100%;
   height: 180px;
   overflow: hidden;
-  background: var(--bg-placeholder, #f0f2f5);
+  background: var(--bg-placeholder, var(--el-bg-color-page));
   flex-shrink: 0;
 }
 
@@ -292,7 +292,7 @@ onMounted(() => getList())
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--bg-placeholder, #eef0f3), var(--bg-card, #fff));
+  background: linear-gradient(135deg, var(--bg-placeholder, var(--el-bg-color-page)), var(--bg-card, var(--el-bg-color)));
 }
 .placeholder-icon { font-size: 40px; opacity: 0.4; }
 
@@ -308,11 +308,11 @@ onMounted(() => getList())
   border-radius: 20px;
   backdrop-filter: blur(8px);
 }
-.status-open    { background: rgba(16, 185, 129, 0.85); color: #fff; }
-.status-ongoing { background: rgba(255, 107, 53, 0.85); color: #fff; }
-.status-closed  { background: rgba(107, 114, 128, 0.75); color: #fff; }
-.status-finished{ background: rgba(55, 65, 81, 0.75);   color: #d1d5db; }
-.status-draft   { background: rgba(245, 158, 11, 0.8);  color: #fff; }
+.status-open    { background: rgba(16, 185, 129, 0.85); color: var(--el-bg-color); }
+.status-ongoing { background: rgba(255, 107, 53, 0.85); color: var(--el-bg-color); }
+.status-closed  { background: rgba(107, 114, 128, 0.75); color: var(--el-bg-color); }
+.status-finished{ background: rgba(55, 65, 81, 0.75);   color: var(--el-border-color-light); }
+.status-draft   { background: rgba(245, 158, 11, 0.8);  color: var(--el-bg-color); }
 
 /* Body */
 .card-body {
@@ -344,7 +344,7 @@ onMounted(() => getList())
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary, var(--el-text-color-secondary));
 }
 .meta-icon {
   font-size: 13px;
@@ -367,7 +367,7 @@ onMounted(() => getList())
 }
 .fee-label {
   font-size: 11px;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary, var(--el-text-color-secondary));
 }
 .fee-value {
   font-size: 16px;
@@ -389,7 +389,7 @@ onMounted(() => getList())
 }
 .event-card:hover .go-arrow {
   background: var(--accent, #FF6B35);
-  color: #fff;
+  color: var(--el-bg-color);
   transform: translateX(3px);
 }
 
@@ -401,7 +401,7 @@ onMounted(() => getList())
 }
 
 :deep(.el-pagination) {
-  --el-pagination-button-color: var(--text-secondary, #6b7280);
+  --el-pagination-button-color: var(--text-secondary, var(--el-text-color-secondary));
   --el-pagination-hover-color: var(--accent, #FF6B35);
 }
 </style>

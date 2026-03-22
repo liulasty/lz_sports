@@ -427,14 +427,14 @@ const handleRegister = async () => {
   font-family: 'Bebas Neue', 'Noto Sans SC', sans-serif;
   font-size: 72px;
   line-height: 1;
-  color: #f0f2f8;
+  color: var(--el-bg-color-page);
   margin: 0 0 20px;
   letter-spacing: 0.02em;
 }
 .brand-title span { color: #FF6B35; }
 .brand-sub {
   font-size: 13px;
-  color: #8892a4;
+  color: var(--el-text-color-secondary);
   line-height: 1.8;
   max-width: 240px;
   margin: 0 0 44px;
@@ -476,12 +476,12 @@ const handleRegister = async () => {
 .step-title {
   font-size: 14px;
   font-weight: 600;
-  color: #f0f2f8;
+  color: var(--el-bg-color-page);
   margin-bottom: 2px;
 }
 .step-desc {
   font-size: 12px;
-  color: #8892a4;
+  color: var(--el-text-color-secondary);
 }
 
 .brand-deco {
@@ -516,12 +516,12 @@ const handleRegister = async () => {
 .form-title {
   font-size: 22px;
   font-weight: 700;
-  color: #f0f2f8;
+  color: var(--el-bg-color-page);
   margin: 0 0 6px;
 }
 .form-sub {
   font-size: 13px;
-  color: #8892a4;
+  color: var(--el-text-color-secondary);
   margin: 0;
 }
 
@@ -529,7 +529,7 @@ const handleRegister = async () => {
 .field-label {
   font-size: 12px;
   font-weight: 500;
-  color: #8892a4;
+  color: var(--el-text-color-secondary);
   letter-spacing: 0.06em;
   margin-bottom: 6px;
   margin-top: 2px;
@@ -575,17 +575,17 @@ const handleRegister = async () => {
   box-shadow: 0 0 0 3px rgba(255,107,53,0.14) !important;
 }
 :deep(.custom-input .el-input__inner) {
-  color: #f0f2f8 !important;
+  color: var(--el-bg-color-page) !important;
   background-color: transparent !important;
   font-size: 13px;
   font-family: 'Noto Sans SC', sans-serif;
 }
 :deep(.custom-input .el-input__inner::placeholder) {
-  color: #4a5568 !important;
+  color: var(--el-text-color-regular) !important;
 }
 :deep(.custom-input .el-input__prefix-inner .el-icon),
 :deep(.custom-input .el-input__suffix .el-icon) {
-  color: #8892a4 !important;
+  color: var(--el-text-color-secondary) !important;
 }
 
 /* QQ input */
@@ -611,7 +611,7 @@ const handleRegister = async () => {
   display: flex;
   align-items: center;
   font-size: 13px;
-  color: #8892a4;
+  color: var(--el-text-color-secondary);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -646,7 +646,7 @@ const handleRegister = async () => {
   transform: translateY(-1px);
 }
 .send-btn.disabled {
-  color: #4a5568;
+  color: var(--el-text-color-regular);
   background: rgba(255,255,255,0.03);
   border-color: rgba(255,255,255,0.08);
   cursor: not-allowed;
@@ -675,7 +675,7 @@ const handleRegister = async () => {
   background: linear-gradient(135deg, #FF6B35, #e0541e);
   border: none;
   border-radius: 10px;
-  color: #fff;
+  color: var(--el-bg-color);
   font-family: 'Noto Sans SC', sans-serif;
   font-size: 15px;
   font-weight: 600;
@@ -741,7 +741,7 @@ const handleRegister = async () => {
 }
 .footer-text {
   font-size: 13px;
-  color: #8892a4;
+  color: var(--el-text-color-secondary);
 }
 :deep(.login-link) {
   color: #FF6B35 !important;

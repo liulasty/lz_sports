@@ -119,4 +119,15 @@ onMounted(() => {
 .app-container {
   padding: 20px;
 }
+
+:deep(.el-table) {
+  background: var(--el-bg-color) !important;
+  color: var(--el-text-color-primary);
+}
+:deep(.el-table__inner-wrapper) {
+  background: var(--el-bg-color) !important;
+}
+:deep(.el-table__body-wrapper td) {
+  background: var(--el-bg-color) !important;
+}
 </style>

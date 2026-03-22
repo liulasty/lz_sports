@@ -371,7 +371,7 @@ onMounted(() => getInfo())
   margin: 0;
   font-size: 17px;
   font-weight: 700;
-  color: var(--text-primary, #f0f2f8);
+  color: var(--text-primary, var(--el-bg-color-page));
   letter-spacing: 0.02em;
 }
 
@@ -380,7 +380,7 @@ onMounted(() => getInfo())
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: var(--text-secondary, #8892a4);
+  color: var(--text-secondary, var(--el-text-color-secondary));
   background: rgba(255,255,255,0.05);
   padding: 4px 12px;
   border-radius: 20px;
@@ -426,7 +426,7 @@ onMounted(() => getInfo())
   align-items: center;
   gap: 7px;
   font-size: 12px;
-  color: var(--text-secondary, #8892a4);
+  color: var(--text-secondary, var(--el-text-color-secondary));
   font-weight: 500;
   flex-shrink: 0;
 }
@@ -440,7 +440,7 @@ onMounted(() => getInfo())
 
 .info-value {
   font-size: 13px;
-  color: var(--text-primary, #f0f2f8);
+  color: var(--text-primary, var(--el-bg-color-page));
   text-align: right;
   word-break: break-all;
   max-width: 160px;
@@ -448,7 +448,7 @@ onMounted(() => getInfo())
 
 .info-value.small {
   font-size: 12px;
-  color: var(--text-secondary, #8892a4);
+  color: var(--text-secondary, var(--el-text-color-secondary));
 }
 
 :deep(.custom-tag) {
@@ -478,7 +478,7 @@ onMounted(() => getInfo())
   margin: 0;
   font-size: 15px;
   font-weight: 700;
-  color: var(--text-primary, #f0f2f8);
+  color: var(--text-primary, var(--el-bg-color-page));
 }
 
 /* ── Table ── */
@@ -502,7 +502,7 @@ onMounted(() => getInfo())
 
 :deep(.custom-table .el-table__cell) {
   border-bottom: 1px solid var(--border, rgba(255,255,255,0.06)) !important;
-  color: var(--text-primary, #f0f2f8);
+  color: var(--text-primary, var(--el-bg-color-page));
   font-size: 13px;
 }
 
@@ -546,7 +546,7 @@ onMounted(() => getInfo())
 .field-label {
   font-size: 12px;
   font-weight: 500;
-  color: var(--text-secondary, #8892a4);
+  color: var(--text-secondary, var(--el-text-color-secondary));
   margin-bottom: 6px;
   letter-spacing: 0.04em;
 }
@@ -569,7 +569,7 @@ onMounted(() => getInfo())
   box-shadow: 0 0 0 2px rgba(255,107,53,0.15) !important;
 }
 :deep(.custom-input .el-input__inner) {
-  color: var(--text-primary, #f0f2f8) !important;
+  color: var(--text-primary, var(--el-bg-color-page)) !important;
   font-size: 13px;
 }
 
@@ -583,7 +583,7 @@ onMounted(() => getInfo())
   box-shadow: none !important;
 }
 :deep(.custom-number .el-input__inner) {
-  color: var(--text-primary, #f0f2f8) !important;
+  color: var(--text-primary, var(--el-bg-color-page)) !important;
 }
 
 /* Gender toggle */
@@ -599,7 +599,7 @@ onMounted(() => getInfo())
   border: 1px solid var(--border, rgba(255,255,255,0.1));
   border-radius: 8px;
   background: rgba(255,255,255,0.04);
-  color: var(--text-secondary, #8892a4);
+  color: var(--text-secondary, var(--el-text-color-secondary));
   font-size: 13px;
   font-family: inherit;
   cursor: pointer;
@@ -608,7 +608,7 @@ onMounted(() => getInfo())
 
 .gender-btn:hover {
   border-color: rgba(255,107,53,0.4);
-  color: var(--text-primary, #f0f2f8);
+  color: var(--text-primary, var(--el-bg-color-page));
 }
 
 .gender-btn.active {
@@ -643,7 +643,7 @@ onMounted(() => getInfo())
   background: linear-gradient(135deg, #FF6B35, #e0541e);
   border: none;
   border-radius: 10px;
-  color: #fff;
+  color: var(--el-bg-color);
   font-size: 14px;
   font-weight: 600;
   font-family: inherit;
@@ -705,13 +705,13 @@ onMounted(() => getInfo())
 .apply-status-title {
   font-size: 15px;
   font-weight: 700;
-  color: var(--text-primary, #f0f2f8);
+  color: var(--text-primary, var(--el-bg-color-page));
   margin-bottom: 4px;
 }
 
 .apply-status-sub {
   font-size: 12px;
-  color: var(--text-secondary, #8892a4);
+  color: var(--text-secondary, var(--el-text-color-secondary));
   line-height: 1.5;
 }
 
@@ -740,7 +740,7 @@ onMounted(() => getInfo())
 .admin-empty {
   padding: 60px 24px;
   text-align: center;
-  color: var(--text-secondary, #8892a4);
+  color: var(--text-secondary, var(--el-text-color-secondary));
   font-size: 14px;
 }
 
@@ -760,6 +760,17 @@ onMounted(() => getInfo())
   .form-field.full-width {
     grid-column: auto;
   }
+}
+
+:global(html.dark) :deep(.custom-table.el-table) {
+  background: var(--el-bg-color) !important;
+  color: var(--el-text-color-primary);
+}
+:global(html.dark) :deep(.custom-table .el-table__inner-wrapper) {
+  background: var(--el-bg-color) !important;
+}
+:global(html.dark) :deep(.custom-table .el-table__body-wrapper td) {
+  background: var(--el-bg-color) !important;
 }
 </style>
 

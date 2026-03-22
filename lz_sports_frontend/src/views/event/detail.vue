@@ -290,4 +290,15 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
 }
+
+:deep(.el-table) {
+  background: var(--el-bg-color) !important;
+  color: var(--el-text-color-primary);
+}
+:deep(.el-table__inner-wrapper) {
+  background: var(--el-bg-color) !important;
+}
+:deep(.el-table__body-wrapper td) {
+  background: var(--el-bg-color) !important;
+}
 </style>

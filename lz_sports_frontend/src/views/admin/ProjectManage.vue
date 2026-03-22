@@ -430,7 +430,7 @@ onMounted(() => { getList(); getEventOptions() })
   left: 10px;
   width: 15px;
   height: 15px;
-  color: var(--text-secondary, #8892a4);
+  color: var(--text-secondary, var(--el-text-color-secondary));
   pointer-events: none;
 }
 
@@ -438,7 +438,7 @@ onMounted(() => { getList(); getEventOptions() })
   height: 36px;
   width: 220px;
   padding: 0 12px 0 34px;
-  background: var(--bg-card, #fff);
+  background: var(--bg-card, var(--el-bg-color));
   border: 1px solid var(--border, rgba(0,0,0,0.1));
   border-radius: 8px;
   font-size: 13px;
@@ -448,7 +448,7 @@ onMounted(() => { getList(); getEventOptions() })
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.search-input::placeholder { color: var(--text-secondary, #9ca3af); }
+.search-input::placeholder { color: var(--text-secondary, var(--el-text-color-placeholder)); }
 .search-input:focus {
   border-color: var(--accent, #FF6B35);
   box-shadow: 0 0 0 2px rgba(255,107,53,0.12);
@@ -457,7 +457,7 @@ onMounted(() => { getList(); getEventOptions() })
 .btn-query {
   height: 36px;
   padding: 0 16px;
-  background: var(--bg-card, #fff);
+  background: var(--bg-card, var(--el-bg-color));
   border: 1px solid var(--border, rgba(0,0,0,0.1));
   border-radius: 8px;
   color: var(--text-primary, #1a1a2e);
@@ -474,7 +474,7 @@ onMounted(() => { getList(); getEventOptions() })
   background: var(--accent, #FF6B35);
   border: none;
   border-radius: 8px;
-  color: #fff;
+  color: var(--el-bg-color);
   font-size: 13px;
   font-weight: 600;
   font-family: inherit;
@@ -508,7 +508,7 @@ onMounted(() => { getList(); getEventOptions() })
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: var(--text-secondary, #9ca3af);
+  color: var(--text-secondary, var(--el-text-color-placeholder));
   text-transform: uppercase;
 }
 
@@ -516,7 +516,7 @@ onMounted(() => { getList(); getEventOptions() })
 .row-list { display: flex; flex-direction: column; gap: 6px; }
 
 .row-card {
-  background: var(--bg-card, #fff);
+  background: var(--bg-card, var(--el-bg-color));
   border: 1px solid var(--border, rgba(0,0,0,0.06));
   border-radius: 12px;
   padding-top: 14px;
@@ -565,7 +565,7 @@ onMounted(() => { getList(); getEventOptions() })
 .item-category-label {
   margin-top: 3px;
   font-size: 10px;
-  color: var(--text-secondary, #9ca3af);
+  color: var(--text-secondary, var(--el-text-color-placeholder));
   letter-spacing: 0.06em;
 }
 
@@ -593,7 +593,7 @@ onMounted(() => { getList(); getEventOptions() })
 }
 .time-main {
   font-size: 12px;
-  color: var(--text-primary, #374151);
+  color: var(--text-primary, var(--el-text-color-regular));
   font-variant-numeric: tabular-nums;
 }
 .time-sep {
@@ -605,7 +605,7 @@ onMounted(() => { getList(); getEventOptions() })
 /* Location */
 .location-text {
   font-size: 12px;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary, var(--el-text-color-secondary));
 }
 
 /* Limit badge */
@@ -618,7 +618,7 @@ onMounted(() => { getList(); getEventOptions() })
 }
 .limit-male   { background: rgba(59,130,246,0.1); color: #3b82f6; border: 1px solid rgba(59,130,246,0.22); }
 .limit-female { background: rgba(236,72,153,0.1); color: #ec4899; border: 1px solid rgba(236,72,153,0.22); }
-.limit-none   { font-size: 12px; color: var(--text-secondary, #9ca3af); }
+.limit-none   { font-size: 12px; color: var(--text-secondary, var(--el-text-color-placeholder)); }
 
 /* Quota / Progress */
 .col-quota { display: flex; flex-direction: column; gap: 4px; }
@@ -630,9 +630,9 @@ onMounted(() => { getList(); getEventOptions() })
   font-variant-numeric: tabular-nums;
 }
 .quota-num  { font-size: 14px; font-weight: 700; color: var(--text-primary, #1a1a2e); }
-.quota-sep  { font-size: 11px; color: var(--text-secondary, #9ca3af); }
-.quota-max  { font-size: 12px; color: var(--text-secondary, #9ca3af); }
-.quota-pct  { font-size: 10px; color: var(--text-secondary, #9ca3af); }
+.quota-sep  { font-size: 11px; color: var(--text-secondary, var(--el-text-color-placeholder)); }
+.quota-max  { font-size: 12px; color: var(--text-secondary, var(--el-text-color-placeholder)); }
+.quota-pct  { font-size: 10px; color: var(--text-secondary, var(--el-text-color-placeholder)); }
 
 .progress-bar {
   height: 4px;
@@ -667,7 +667,7 @@ onMounted(() => { getList(); getEventOptions() })
   justify-content: center;
   cursor: pointer;
   transition: background 0.18s, border-color 0.18s, transform 0.15s;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary, var(--el-text-color-secondary));
 }
 
 .btn-edit:hover {
@@ -692,14 +692,14 @@ onMounted(() => { getList(); getEventOptions() })
   gap: 12px;
   align-items: center;
   padding: 14px 20px;
-  background: var(--bg-card, #fff);
+  background: var(--bg-card, var(--el-bg-color));
   border: 1px solid var(--border, rgba(0,0,0,0.06));
   border-radius: 12px;
 }
 .skel {
   height: 14px;
   border-radius: 6px;
-  background: linear-gradient(90deg, var(--border, #e5e7eb) 25%, rgba(255,255,255,0.5) 50%, var(--border, #e5e7eb) 75%);
+  background: linear-gradient(90deg, var(--border, var(--el-border-color-lighter)) 25%, rgba(255,255,255,0.5) 50%, var(--border, var(--el-border-color-lighter)) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
 }
@@ -716,7 +716,7 @@ onMounted(() => { getList(); getEventOptions() })
 .empty-state {
   text-align: center;
   padding: 60px;
-  color: var(--text-secondary, #9ca3af);
+  color: var(--text-secondary, var(--el-text-color-placeholder));
 }
 .empty-icon { font-size: 40px; margin-bottom: 10px; }
 
@@ -729,7 +729,7 @@ onMounted(() => { getList(); getEventOptions() })
 
 /* ── Dialog ── */
 :deep(.pm-dialog .el-dialog) {
-  background: var(--bg-card, #fff);
+  background: var(--bg-card, var(--el-bg-color));
   border-radius: 16px;
   border: 1px solid var(--border, rgba(0,0,0,0.08));
 }
@@ -763,7 +763,7 @@ onMounted(() => { getList(); getEventOptions() })
 .field-label {
   font-size: 12px;
   font-weight: 600;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary, var(--el-text-color-secondary));
   letter-spacing: 0.04em;
 }
 .req { color: var(--accent, #FF6B35); }
@@ -809,7 +809,7 @@ onMounted(() => { getList(); getEventOptions() })
   border: 1px solid var(--border, rgba(0,0,0,0.1));
   border-radius: 8px;
   background: transparent;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary, var(--el-text-color-secondary));
   font-size: 12px;
   font-family: inherit;
   cursor: pointer;
@@ -831,7 +831,7 @@ onMounted(() => { getList(); getEventOptions() })
   background: transparent;
   border: 1px solid var(--border, rgba(0,0,0,0.1));
   border-radius: 8px;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary, var(--el-text-color-secondary));
   font-size: 13px; font-family: inherit;
   cursor: pointer; transition: all 0.18s;
 }
@@ -841,7 +841,7 @@ onMounted(() => { getList(); getEventOptions() })
   height: 38px; padding: 0 24px;
   background: linear-gradient(135deg, #FF6B35, #e0541e);
   border: none; border-radius: 8px;
-  color: #fff; font-size: 13px; font-weight: 600; font-family: inherit;
+  color: var(--el-bg-color); font-size: 13px; font-weight: 600; font-family: inherit;
   cursor: pointer;
   box-shadow: 0 3px 12px rgba(255,107,53,0.3);
   transition: transform 0.18s, box-shadow 0.18s;
@@ -858,7 +858,7 @@ onMounted(() => { getList(); getEventOptions() })
 html.dark .search-input {
   background: rgba(255,255,255,0.05);
   border-color: rgba(255,255,255,0.09);
-  color: #f0f2f8;
+  color: var(--el-bg-color-page);
 }
 html.dark .search-input:focus {
   border-color: #FF6B35;

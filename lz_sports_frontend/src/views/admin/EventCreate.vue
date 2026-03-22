@@ -475,7 +475,7 @@ const submitEvent = async (targetStatus) => {
 }
 .tip-text {
   margin-left: 15px;
-  color: #909399;
+  color: var(--el-text-color-secondary);
   font-size: 13px;
 }
 .footer-actions {
@@ -484,6 +484,17 @@ const submitEvent = async (targetStatus) => {
   gap: 15px;
   margin-top: 40px;
   padding-top: 20px;
-  border-top: 1px solid #ebeef5;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+:deep(.el-table) {
+  background: var(--el-bg-color) !important;
+  color: var(--el-text-color-primary);
+}
+:deep(.el-table__inner-wrapper) {
+  background: var(--el-bg-color) !important;
+}
+:deep(.el-table__body-wrapper td) {
+  background: var(--el-bg-color) !important;
 }
 </style>

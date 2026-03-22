@@ -52,7 +52,7 @@ const options = [
 
 .toggle-btn.active {
   background: var(--accent);
-  color: #fff;
+  color: var(--el-bg-color);
 }
 
 .toggle-btn:hover:not(.active) {
