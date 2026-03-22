@@ -10,6 +10,8 @@ import com.lz.dto.UserQueryDTO;
 import com.lz.entity.User;
 import com.lz.mapper.UserMapper;
 import com.lz.service.AdminUserService;
+import com.lz.service.SportsImgService;
+import com.lz.config.AppConfig;
 import com.lz.util.RedisUtil;
 import com.lz.vo.UserVO;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,8 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     private final UserMapper userMapper;
     private final RedisUtil redisUtil;
+    private final SportsImgService sportsImgService;
+    private final AppConfig appConfig;
 
     @Override
     public PageResult getUsers(UserQueryDTO queryDTO) {
@@ -50,7 +54,15 @@ public class AdminUserServiceImpl implements AdminUserService {
         userMapper.selectPage(page, wrapper);
 
         List<UserVO> voList = page.getRecords().stream()
-                .map(User::toUserVO)
+                .map(user -> {
+                    UserVO vo = user.toUserVO();
+                    String avatarImg = sportsImgService.selectImg(user.getId(), "avatar");
+                    if (avatarImg != null && !avatarImg.startsWith("http")) {
+                        avatarImg = "https://" + appConfig.getBucketName() + "." + appConfig.getEndpoint() + "/" + avatarImg;
+                    }
+                    vo.setAvatar(avatarImg != null && !avatarImg.trim().isEmpty() ? avatarImg : com.lz.util.ImageUtils.getDefaultAvatar());
+                    return vo;
+                })
                 .collect(Collectors.toList());
 
         return new PageResult((int) page.getTotal(), voList);

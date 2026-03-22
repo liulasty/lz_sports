@@ -75,6 +75,12 @@ public class User extends SchoolRelatedEntity<Long> {
     private Integer unreadCount;
 
     /**
+     * 验证令牌
+     */
+    @TableField("verify_token")
+    private String verifyToken;
+
+    /**
      * 用户状态
      */
     private UserStatus status;
@@ -88,7 +94,14 @@ public class User extends SchoolRelatedEntity<Long> {
         return UserVO.builder()
                 .id(this.getId())
                 .registerTime(this.getCreateTime() != null ? Date.from(this.getCreateTime().atZone(java.time.ZoneId.systemDefault()).toInstant()) : null)
-                .name(this.getName())
+                .username(this.getUsername() != null ? this.getUsername() : "")
+                .name(this.getName() != null ? this.getName() : "")
+                .gender(this.getGender() != null ? this.getGender() : "UNKNOWN")
+                .studentId(this.getStudentId() != null ? this.getStudentId() : "")
+                .gradeId(this.getGradeId() != null ? this.getGradeId() : 0L)
+                .email(this.getEmail() != null ? this.getEmail() : "")
+                .schoolId(this.getSchoolId() != null ? this.getSchoolId() : 0L)
+                .avatar(com.lz.util.ImageUtils.getDefaultAvatar()) // FIXME: Add actual avatar fetching logic if available
                 .state(this.getStatus() != null ? this.getStatus().getStatus() : null)
                 .type(this.getUserType() != null ? this.getUserType().getRole() : null)
                 .applyState(null)

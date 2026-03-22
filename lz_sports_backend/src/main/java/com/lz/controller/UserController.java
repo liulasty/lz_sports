@@ -90,32 +90,43 @@ public class UserController {
 
     /**
      * 发送验证码
-     * 向指定邮箱发送注册验证码
+     * 生成 6 位数字验证码与全局唯一 verifyToken，写入 Redis（TTL 5分钟）
      */
-    @PostMapping("/send-code")
-    @Operation(summary = "发送验证码", description = "向用户邮箱发送验证码")
-    public Result<String> sendCode(@Parameter(description = "邮箱地址") @RequestParam String email,
-                                   @Parameter(description = "场景，默认REGISTER") @RequestParam(required = false) String scene) {
-        userService.sendCode(email, scene);
-        return Result.success("验证码已发送");
+    @PostMapping("/send-verify-code")
+    @Operation(summary = "发送验证码", description = "向用户邮箱发送验证码并返回verifyToken")
+    public Result<String> sendVerifyCode(@Parameter(description = "邮箱地址") @RequestParam String email, jakarta.servlet.http.HttpServletRequest request) {
+        String ip = request.getRemoteAddr();
+        String verifyToken = userService.sendVerifyCode(email, ip);
+        return Result.success(verifyToken);
     }
 
+    /**
+     * 手动校验验证码
+     * 校验通过后返回一次性 registerToken（有效期 10 分钟）
+     */
     @PostMapping("/verify-code")
-    @Operation(summary = "校验验证码", description = "验证码校验成功后返回verifyToken")
-    public Result<String> verifyCode(@RequestParam String email,
-                                     @RequestParam String code,
-                                     @RequestParam(required = false) String scene) {
-        return Result.success(userService.verifyCode(email, code, scene));
+    @Operation(summary = "校验验证码", description = "验证码校验成功后返回registerToken")
+    public Result<String> verifyCode(@RequestParam String verifyToken,
+                                     @RequestParam String code) {
+        return Result.success(userService.verifyCode(verifyToken, code));
     }
 
     /**
      * 用户注册
-     * 提交注册信息，验证验证码，注册成功后需等待审核
+     * 提交注册信息，需携带 Authorization: Bearer registerToken
      */
     @PostMapping("/register")
     @Operation(summary = "用户注册", description = "新用户注册申请")
-    public Result<String> register(@Valid @RequestBody UserRegisterDTO userRegisterDTO) {
-        userService.register(userRegisterDTO);
+    public Result<String> register(@Valid @RequestBody UserRegisterDTO userRegisterDTO, jakarta.servlet.http.HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        String registerToken = null;
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            registerToken = authHeader.substring(7);
+        }
+        if (registerToken == null) {
+            return Result.error(com.lz.common.result.ResultCode.UNAUTHORIZED, "缺少registerToken");
+        }
+        userService.register(userRegisterDTO, registerToken);
         return Result.success("注册成功");
     }
 
@@ -177,6 +188,14 @@ public class UserController {
     public Result<PageResult> list(@Valid @RequestBody(required = false) EventListDTO listDto) {
         if (listDto == null) {
             listDto = new EventListDTO();
+        }
+        if (listDto.getCurrentPage() < 1) {
+            listDto.setCurrentPage(1);
+        }
+        if (listDto.getPageSize() < 1) {
+            listDto.setPageSize(10);
+        } else if (listDto.getPageSize() > 100) {
+            listDto.setPageSize(100);
         }
         PageResult pageResult = userService.list(listDto);
         return Result.success(pageResult);

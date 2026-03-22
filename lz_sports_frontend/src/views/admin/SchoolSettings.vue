@@ -32,7 +32,7 @@
         </el-form-item>
 
         <el-form-item>
-          <el-button type="primary" @click="submitForm" :loading="loading">保存配置</el-button>
+          <el-button type="primary" @click="submitForm" :loading="submitting" :disabled="submitting">保存配置</el-button>
           <el-button @click="resetForm">重置</el-button>
         </el-form-item>
       </el-form>
@@ -49,7 +49,7 @@ import { updateSchoolConfig, uploadSchoolLogo } from '@/api/schoolConfig'
 import { useConfigStore } from '@/stores/config' // We will create this or just use window.document
 
 const formRef = ref(null)
-const loading = ref(false)
+const submitting = ref(false)
 
 const form = reactive({
   schoolName: '',
@@ -124,6 +124,8 @@ const beforeLogoUpload = (file) => {
 }
 
 const handleLogoUpload = async (options) => {
+  if (submitting.value) return
+  submitting.value = true
   try {
     const res = await uploadSchoolLogo(options.file)
     if (res.code === 200) {
@@ -134,14 +136,17 @@ const handleLogoUpload = async (options) => {
     }
   } catch (error) {
     console.error('Upload failed', error)
+  } finally {
+    submitting.value = false
   }
 }
 
 const submitForm = async () => {
+  if (submitting.value) return
   if (!formRef.value) return
   await formRef.value.validate(async (valid) => {
     if (valid) {
-      loading.value = true
+      submitting.value = true
       try {
         const res = await updateSchoolConfig({
           schoolName: form.schoolName,
@@ -156,7 +161,7 @@ const submitForm = async () => {
       } catch (error) {
         console.error(error)
       } finally {
-        loading.value = false
+        submitting.value = false
       }
     }
   })

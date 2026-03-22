@@ -1,5 +1,6 @@
 package com.lz.controller;
 
+import com.lz.common.annotation.RequireEventAdmin;
 import com.lz.common.context.BaseContext;
 import com.lz.common.annotation.RequireRole;
 import com.lz.common.enums.UserRole;
@@ -101,9 +102,9 @@ public class RegistrationController {
      * 管理员审核通过报名申请
      */
     @PutMapping("/attend/{id}")
-    @RequireRole({UserRole.SCHOOL_ADMIN})
+    @RequireEventAdmin
     @Operation(summary = "同意报名", description = "管理员审核通过报名申请")
-    public Result<String> attend(@Parameter(description = "报名ID") @PathVariable Long id) {
+    public Result<String> attend(@Parameter(description = "报名ID") @PathVariable Long id, @RequestParam Long eventId) {
         registrationService.approve(id);
         return Result.success("已通过报名");
     }
@@ -113,17 +114,17 @@ public class RegistrationController {
      * 管理员拒绝报名申请
      */
     @PutMapping("/refuse/{id}")
-    @RequireRole({UserRole.SCHOOL_ADMIN})
+    @RequireEventAdmin
     @Operation(summary = "拒绝报名", description = "管理员拒绝报名申请")
-    public Result<String> refuse(@Parameter(description = "报名ID") @PathVariable Long id) {
+    public Result<String> refuse(@Parameter(description = "报名ID") @PathVariable Long id, @RequestParam Long eventId) {
         registrationService.refuse(id);
         return Result.success("已拒绝报名");
     }
 
     @PutMapping("/batch-audit")
-    @RequireRole({UserRole.SCHOOL_ADMIN})
+    @RequireEventAdmin
     @Operation(summary = "批量审核", description = "仅处理PENDING状态，已审核记录自动跳过")
-    public Result<String> batchAudit(@Valid @RequestBody List<Long> ids, @RequestParam boolean approve) {
+    public Result<String> batchAudit(@Valid @RequestBody List<Long> ids, @RequestParam boolean approve, @RequestParam Long eventId) {
         return Result.success(registrationService.batchAudit(ids, approve));
     }
 
@@ -132,7 +133,7 @@ public class RegistrationController {
      * 导出指定赛事的报名人员名单Excel
      */
     @GetMapping("/export/{eventId}")
-    @RequireRole({UserRole.SCHOOL_ADMIN})
+    @RequireEventAdmin
     @Operation(summary = "导出报名名单", description = "按赛事导出各项目的报名名单Excel")
     public void export(
             @Parameter(description = "赛事ID") @PathVariable Long eventId, 

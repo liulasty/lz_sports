@@ -15,7 +15,7 @@
             <el-button @click="downloadTemplate">下载模板</el-button>
             <el-button @click="exportScores">导出成绩</el-button>
             <el-button type="success" @click="showImportDialog = true">导入成绩</el-button>
-            <el-button type="warning" @click="publishWithConfirm">发布成绩</el-button>
+            <el-button type="warning" :loading="submitting" :disabled="submitting" @click="publishWithConfirm">发布成绩</el-button>
           </div>
         </div>
       </template>
@@ -66,6 +66,7 @@ import { getProjectsByEventId } from '@/api/project'
 import { downloadScoreTemplate, exportScore, getScorePage, importScores, publishScores } from '@/api/score'
 
 const loading = ref(false)
+const submitting = ref(false)
 const showImportDialog = ref(false)
 const importResult = ref(null)
 const eventOptions = ref([])
@@ -143,26 +144,39 @@ const handleUpload = async (options) => {
     ElMessage.error('请先选择赛事')
     return
   }
-  const res = await importScores(query.eventId, options.file)
-  if (res.code === 200) {
-    importResult.value = res.data
-    ElMessage.success('导入完成')
-    loadScores()
+  if (submitting.value) return
+  submitting.value = true
+  try {
+    const res = await importScores(query.eventId, options.file)
+    if (res.code === 200) {
+      importResult.value = res.data
+      ElMessage.success('导入完成')
+      loadScores()
+    }
+  } finally {
+    submitting.value = false
   }
 }
 
 const publishWithConfirm = async () => {
   if (!query.eventId) return
+  if (submitting.value) return
   await ElMessageBox.confirm('发布后成绩不可撤回，是否继续？', '二次确认', {
     type: 'warning',
     confirmButtonText: '确认发布',
     cancelButtonText: '取消'
-  })
-  const res = await publishScores(query.eventId)
-  if (res.code === 200) {
-    ElMessage.success('发布成功')
-    loadScores()
-  }
+  }).then(async () => {
+    submitting.value = true
+    try {
+      const res = await publishScores(query.eventId)
+      if (res.code === 200) {
+        ElMessage.success('发布成功')
+        loadScores()
+      }
+    } finally {
+      submitting.value = false
+    }
+  }).catch(() => {})
 }
 
 onMounted(() => {

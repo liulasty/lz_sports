@@ -99,11 +99,28 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void register(UserRegisterDTO userRegisterDTO) {
-        String verifyTokenKey = buildVerifyTokenKey("REGISTER", userRegisterDTO.getEmail());
-        Object verifyTokenObj = redisUtil.get(verifyTokenKey);
-        if (verifyTokenObj == null || !userRegisterDTO.getVerifyToken().equals(verifyTokenObj.toString())) {
-            throw new BusinessException("verifyToken无效或已过期");
+    public void register(UserRegisterDTO userRegisterDTO, String registerToken) {
+        // 校验 registerToken 是否在黑名单中
+        if (redisUtil.hasKey("blacklist:token:" + registerToken)) {
+            throw new BusinessException("该注册令牌已失效，请重新验证");
+        }
+
+        // 解析 registerToken
+        java.util.Map<String, Object> claims;
+        try {
+            claims = com.lz.util.JwtUtil.parseToken(registerToken, appConfig.getJwtKey());
+            if (com.lz.util.JwtUtil.isExpired(registerToken, appConfig.getJwtKey())) {
+                throw new BusinessException("注册令牌已过期");
+            }
+        } catch (Exception e) {
+            throw new BusinessException("无效的注册令牌");
+        }
+
+        String tokenEmail = (String) claims.get("email");
+        String verifyToken = (String) claims.get("verifyToken");
+
+        if (!userRegisterDTO.getEmail().equals(tokenEmail)) {
+            throw new BusinessException("注册邮箱与验证时的邮箱不一致");
         }
 
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
@@ -123,6 +140,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setUsername(userRegisterDTO.getUsername());
         user.setPassword(passwordEncoder.encode(userRegisterDTO.getPassword()));
         user.setEmail(userRegisterDTO.getEmail());
+        user.setVerifyToken(verifyToken);
         user.setCreateTime(LocalDateTime.now());
         user.setUpdateTime(LocalDateTime.now());
         user.setStatus(UserStatus.ACTIVE);
@@ -132,51 +150,62 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         
         userMapper.insert(user);
 
-        redisUtil.del(verifyTokenKey, buildCodeKey("REGISTER", userRegisterDTO.getEmail()));
+        // 将 registerToken 加入黑名单
+        redisUtil.set("blacklist:token:" + registerToken, "1", 10, TimeUnit.MINUTES);
     }
 
     @Override
-    public void sendCode(String email, String scene) {
-        String normalizedScene = normalizeScene(scene);
+    public String sendVerifyCode(String email, String ip) {
         if (!email.endsWith("@qq.com")) {
             throw new BusinessException("仅支持QQ邮箱注册");
         }
 
-        if ("REGISTER".equals(normalizedScene)) {
-            QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-            queryWrapper.eq("email", email);
-            if (userMapper.selectCount(queryWrapper) > 0) {
-                throw new BusinessException("该邮箱已注册");
-            }
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("email", email);
+        if (userMapper.selectCount(queryWrapper) > 0) {
+            throw new BusinessException("该邮箱已注册");
         }
 
-        String key = buildCodeKey(normalizedScene, email);
-        long expire = redisUtil.getExpire(key, TimeUnit.SECONDS);
-        long threshold = CODE_EXPIRE_MINUTES * 60 - CODE_COOLDOWN_SECONDS;
-        if (expire > threshold) {
-            throw new BusinessException("发送过于频繁，请" + (expire - threshold) + "秒后重试", 409);
+        String rateLimitKey = "rate_limit:ip:" + ip;
+        Long count = redisUtil.incr(rateLimitKey, 1);
+        if (count == 1) {
+            redisUtil.expire(rateLimitKey, 60, TimeUnit.SECONDS);
+        }
+        if (count > 3) {
+            throw new BusinessException("请求过于频繁，请稍后再试", 429);
         }
 
         String code = MailUtils.generateCode();
-        redisUtil.set(key, code, CODE_EXPIRE_MINUTES, TimeUnit.MINUTES);
-        
+        String verifyToken = UUID.randomUUID().toString().replace("-", "");
+
+        String key = "verify_token:" + verifyToken;
+        redisUtil.set(key, code + ":" + email, 5, TimeUnit.MINUTES);
+
         mailUtils.sendVerificationCodeMail(email, code);
+
+        return verifyToken;
     }
 
     @Override
-    public String verifyCode(String email, String code, String scene) {
-        String normalizedScene = normalizeScene(scene);
-        String codeKey = buildCodeKey(normalizedScene, email);
-        Object codeObj = redisUtil.get(codeKey);
-        if (codeObj == null || !code.equals(codeObj.toString())) {
+    public String verifyCode(String verifyToken, String code) {
+        String key = "verify_token:" + verifyToken;
+        Object obj = redisUtil.get(key);
+        if (obj == null) {
             throw new BusinessException("验证码错误或已过期");
         }
 
-        String verifyToken = UUID.randomUUID().toString().replace("-", "");
-        String verifyTokenKey = buildVerifyTokenKey(normalizedScene, email);
-        redisUtil.set(verifyTokenKey, verifyToken, VERIFY_TOKEN_EXPIRE_MINUTES, TimeUnit.MINUTES);
-        redisUtil.del(codeKey);
-        return verifyToken;
+        String[] parts = obj.toString().split(":");
+        if (parts.length != 2 || !parts[0].equals(code)) {
+            throw new BusinessException("验证码错误");
+        }
+
+        String email = parts[1];
+        redisUtil.del(key);
+
+        java.util.Map<String, Object> claims = new java.util.HashMap<>();
+        claims.put("verifyToken", verifyToken);
+        claims.put("email", email);
+        return com.lz.util.JwtUtil.genToken(claims, appConfig.getJwtKey(), 10 * 60 * 1000L);
     }
 
     @Override
@@ -281,11 +310,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (listDto.getPageSize() == 0) {
             listDto.setPageSize(10); // 默认每页10条
         }
-        // 计算分页偏移量
-        long currentPage = listDto.getCurrentPage();
-        if (currentPage > 0) {
-            listDto.setCurrentPage((currentPage - 1) * listDto.getPageSize());
-        }
+        
+        long currentPage = listDto.getCurrentPage() > 0 ? listDto.getCurrentPage() : 1;
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<User> page = new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(currentPage, listDto.getPageSize());
 
         // 1. 创建 LambdaQueryWrapper
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
@@ -300,23 +327,38 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (listDto.getType() != null && StringUtils.hasText(listDto.getType())) {
             // 如果数据库字段是 role
             wrapper.eq(User::getUserType, listDto.getType());
-
-            // 如果数据库字段是 userType
-            // wrapper.eq(SysUser::getUserType, listDto.getType());
         }
 
         // 时间查询
         if (listDto.getDate() != null) {
             wrapper.gt(User::getCreateTime, listDto.getDate());
         }
+        
+        // 权限过滤（school_id 仅返回当前管理员所属学校数据）
+        Long currentUserId = BaseContext.getCurrentId();
+        if (currentUserId != null) {
+            User currentUser = userMapper.selectById(currentUserId);
+            if (currentUser != null && currentUser.getSchoolId() != null) {
+                wrapper.eq(User::getSchoolId, currentUser.getSchoolId());
+            }
+        }
 
         wrapper.orderByDesc(User::getCreateTime);
-        List<User> users = baseMapper.selectList(wrapper);
+        baseMapper.selectPage(page, wrapper);
+        
+        List<User> users = page.getRecords();
         List<UserVO> list = users.stream()
-                .map(User::toUserVO)
+                .map(user -> {
+                    UserVO vo = user.toUserVO();
+                    String avatarImg = sportsImgService.selectImg(user.getId(), "avatar");
+                    if (avatarImg != null && !avatarImg.startsWith("http")) {
+                        avatarImg = "https://" + appConfig.getBucketName() + "." + appConfig.getEndpoint() + "/" + avatarImg;
+                    }
+                    vo.setAvatar(avatarImg != null && !avatarImg.trim().isEmpty() ? avatarImg : com.lz.util.ImageUtils.getDefaultAvatar());
+                    return vo;
+                })
                 .collect(Collectors.toList());
-        int total = userMapper.getTotalUserCount(listDto);
-        return new PageResult(total, list);
+        return new PageResult((int) page.getTotal(), list);
     }
 
     @Override

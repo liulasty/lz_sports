@@ -205,6 +205,7 @@ CREATE TABLE `sys_user` (
                             `student_id` varchar(50) DEFAULT NULL COMMENT '学号/工号',
                             `grade_id` bigint DEFAULT NULL COMMENT '所属年级ID',
                             `email` varchar(50) NOT NULL COMMENT '邮箱',
+                            `verify_token` varchar(64) DEFAULT NULL COMMENT '验证令牌',
                             `user_type` varchar(20) NOT NULL COMMENT '用户类型：SCHOOL_ADMIN/EVENT_ADMIN/ATHLETE',
                             `is_first_login` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否首次登录：0否1是',
                             `status` varchar(20) NOT NULL DEFAULT 'PENDING' COMMENT '状态：PENDING/ACTIVE/REJECTED',
@@ -213,7 +214,8 @@ CREATE TABLE `sys_user` (
                             `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                             PRIMARY KEY (`id`),
                             UNIQUE KEY `uk_username` (`username`),
-                            UNIQUE KEY `uk_email` (`email`)
+                            UNIQUE KEY `uk_email` (`email`),
+                            UNIQUE KEY `idx_sys_user_verify_token` (`verify_token`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='系统用户表';
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

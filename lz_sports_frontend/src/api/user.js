@@ -8,11 +8,14 @@ export function login(data) {
   })
 }
 
-export function register(data) {
+export function register(data, registerToken) {
   return request({
     url: '/auth/register',
     method: 'post',
-    data
+    data,
+    headers: {
+      'Authorization': `Bearer ${registerToken}`
+    }
   })
 }
 

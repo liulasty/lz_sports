@@ -50,6 +50,7 @@ public class SecurityConfig {
             "/api/auth/send-code",
             "/api/auth/verify-code",
             "/api/auth/reset-password",
+            "/api/auth/send-verify-code",
             // 系统初始化
             "/api/system/init-status",
             "/api/system/init",

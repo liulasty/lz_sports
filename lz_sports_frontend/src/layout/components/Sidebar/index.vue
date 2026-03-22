@@ -90,7 +90,11 @@ const role = computed(() => {
 // 根据后端UserRole枚举定义的权限
 const isSuperAdmin = computed(() => role.value === 'SUPER_ADMIN')
 const isSchoolAdmin = computed(() => role.value === 'SCHOOL_ADMIN' || isSuperAdmin.value)
-const isEventAdmin = computed(() => role.value === 'EVENT_ADMIN' || isSuperAdmin.value)
+const isEventAdmin = computed(() => 
+  role.value === 'EVENT_ADMIN' || 
+  role.value === 'SCHOOL_ADMIN' || 
+  isSuperAdmin.value
+)
 </script>
 
 <style scoped>

@@ -59,6 +59,7 @@ public class MailUtils {
     public void sendVerificationCodeMail(String to, String code) {
         String title = "【您的应用名】您的验证码";
         String htmlContent = buildVerificationCodeHtml(code);
+        log.info("正在发送验证码邮件至: {}, 验证码: {}", to, code);
         sendHtmlMail(to, title, htmlContent);
     }
 

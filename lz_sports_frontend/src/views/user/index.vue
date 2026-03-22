@@ -22,7 +22,17 @@
       </template>
 
       <el-table :data="userList" style="width: 100%" v-loading="loading">
-        <el-table-column prop="name" label="用户名" />
+        <el-table-column label="头像" width="80">
+          <template #default="scope">
+            <el-avatar :size="40" :src="scope.row.avatar" />
+          </template>
+        </el-table-column>
+        <el-table-column prop="username" label="用户名" />
+        <el-table-column prop="name" label="姓名">
+          <template #default="scope">
+            {{ scope.row.name ?? '未填写' }}
+          </template>
+        </el-table-column>
         <el-table-column prop="email" label="邮箱" width="200" />
         <el-table-column prop="type" label="角色">
           <template #default="scope">
@@ -95,14 +105,26 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { getAdminUserList, changeUserRole, disableUser, enableUser } from '@/api/adminUser'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
+interface UserData {
+  id: number;
+  userId?: number;
+  username: string;
+  name: string;
+  email: string;
+  avatar: string;
+  type: string;
+  state: string;
+  registerTime: string;
+}
+
 const loading = ref(false)
 const submitLoading = ref(false)
-const userList = ref([])
+const userList = ref<UserData[]>([])
 const total = ref(0)
 const dialogVisible = ref(false)
 
@@ -115,7 +137,7 @@ const queryParams = reactive({
 })
 
 const roleForm = reactive({
-  id: null,
+  id: null as number | null,
   role: ''
 })
 
@@ -139,18 +161,18 @@ const handleQuery = () => {
   getList()
 }
 
-const handleSizeChange = (val) => {
+const handleSizeChange = (val: number) => {
   queryParams.size = val
   getList()
 }
 
-const handleCurrentChange = (val) => {
+const handleCurrentChange = (val: number) => {
   queryParams.page = val
   getList()
 }
 
-const handleEditRole = (row) => {
-  roleForm.id = row.id || row.userId
+const handleEditRole = (row: UserData) => {
+  roleForm.id = row.id || row.userId || null
   roleForm.role = row.type
   dialogVisible.value = true
 }
@@ -175,7 +197,7 @@ const submitRoleForm = async () => {
   }
 }
 
-const handleToggleStatus = (row) => {
+const handleToggleStatus = (row: UserData) => {
   const isActive = row.state === 'ACTIVE' || row.state === '已激活'
   const actionText = isActive ? '禁用' : '启用'
   const targetId = row.id || row.userId
@@ -197,14 +219,14 @@ const handleToggleStatus = (row) => {
   })
 }
 
-const formatDate = (dateStr) => {
+const formatDate = (dateStr: string) => {
   if (!dateStr) return ''
   const date = new Date(dateStr)
   return date.toLocaleString()
 }
 
-const formatRole = (role) => {
-  const map = {
+const formatRole = (role: string) => {
+  const map: Record<string, string> = {
     'SUPER_ADMIN': '超级管理员',
     'SCHOOL_ADMIN': '系统管理员',
     'EVENT_ADMIN': '赛事管理员',
@@ -214,7 +236,7 @@ const formatRole = (role) => {
   return map[role] || role
 }
 
-const getRoleType = (role) => {
+const getRoleType = (role: string) => {
   if (role === 'SUPER_ADMIN' || role === 'SCHOOL_ADMIN') return 'danger'
   if (role === 'EVENT_ADMIN') return 'warning'
   if (role === 'ATHLETE') return 'success'

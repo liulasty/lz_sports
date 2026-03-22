@@ -10,9 +10,9 @@ export function resetPassword(data) {
 
 export function sendCode(data) {
   return request({
-    url: '/auth/send-code',
+    url: '/auth/send-verify-code',
     method: 'post',
-    params: data // { email, scene }
+    params: data // { email }
   })
 }
 
@@ -20,6 +20,6 @@ export function verifyCode(data) {
   return request({
     url: '/auth/verify-code',
     method: 'post',
-    params: data // { email, code, scene }
+    params: data // { verifyToken, code }
   })
 }

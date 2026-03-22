@@ -13,6 +13,10 @@ import java.util.Map;
 public class JwtUtil {
 
     public static String genToken(Map<String, Object> claims, String key) {
+        return genToken(claims, key, 1000 * 60 * 60 * 24 * 7L);
+    }
+
+    public static String genToken(Map<String, Object> claims, String key, long expireMillis) {
         Object o = claims.get("role");
         if (o == null) {
             claims.put("role", "user");
@@ -22,7 +26,7 @@ public class JwtUtil {
         }
         return JWT.create()
                 .withClaim("claims", claims)
-                .withExpiresAt(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24 * 7)) // 7 days
+                .withExpiresAt(new Date(System.currentTimeMillis() + expireMillis))
                 .sign(Algorithm.HMAC256(key));
     }
 

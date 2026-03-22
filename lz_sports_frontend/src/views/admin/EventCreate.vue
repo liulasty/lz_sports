@@ -151,8 +151,8 @@
         <el-button v-if="currentStep < 2" type="primary" @click="nextStep">下一步</el-button>
         
         <template v-if="currentStep === 2">
-          <el-button type="warning" @click="submitEvent('DRAFT')" :loading="submitting">保存草稿</el-button>
-          <el-button type="success" @click="submitEvent('OPEN')" :loading="submitting">直接发布</el-button>
+          <el-button type="warning" @click="submitEvent('DRAFT')" :loading="submitting" :disabled="submitting">保存草稿</el-button>
+          <el-button type="success" @click="submitEvent('OPEN')" :loading="submitting" :disabled="submitting">直接发布</el-button>
         </template>
       </div>
     </el-card>
@@ -397,6 +397,7 @@ const removeAdmin = (index) => {
 
 // --- 最终提交逻辑 ---
 const submitEvent = async (targetStatus) => {
+  if (submitting.value) return
   if (form.adminList.length === 0) {
     ElMessage.warning('至少需要指定1名赛事管理员')
     return

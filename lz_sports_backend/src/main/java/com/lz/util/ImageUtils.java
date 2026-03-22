@@ -50,4 +50,13 @@ public class ImageUtils {
         }
         return getRandomFallbackUrl();
     }
+
+    /**
+     * 获取默认头像URL
+     *
+     * @return 默认头像URL
+     */
+    public static String getDefaultAvatar() {
+        return "https://lz-sports.oss-cn-beijing.aliyuncs.com/default-avatar.png";
+    }
 }

@@ -38,7 +38,7 @@ public class EventController {
      * 管理员发布新的运动会或比赛活动
      */
     @PostMapping
-    @RequireRole({UserRole.SCHOOL_ADMIN, UserRole.EVENT_ADMIN})
+    @RequireRole({UserRole.SUPER_ADMIN, UserRole.SCHOOL_ADMIN, UserRole.EVENT_ADMIN})
     @Operation(summary = "发布赛事", description = "管理员发布新的赛事活动")
     public Result<String> addEvent(@Valid @RequestBody EventDTO eventDTO) {
         // 如果包含图片URL列表，映射到添加图片逻辑

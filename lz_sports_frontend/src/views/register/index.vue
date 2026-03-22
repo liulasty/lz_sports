@@ -17,7 +17,7 @@
           <p class="brand-sub">注册账号，开启您的专业体育管理之旅</p>
         </div>
         <div class="brand-steps">
-          <div class="step" v-for="(s, i) in steps" :key="i">
+          <div class="step" v-for="(s, i) in steps" :key="i" :class="{ active: currentStep === i }">
             <div class="step-num">{{ i + 1 }}</div>
             <div class="step-info">
               <div class="step-title">{{ s.title }}</div>
@@ -51,100 +51,131 @@
               label-width="0"
               class="reg-form"
           >
-            <!-- 用户名 -->
-            <div class="field-label">用户名</div>
-            <el-form-item prop="username">
-              <el-input
-                  v-model="registerForm.username"
-                  placeholder="请输入用户名"
-                  prefix-icon="User"
-                  class="custom-input"
-              />
-            </el-form-item>
-
-            <!-- QQ邮箱 -->
-            <div class="field-label">QQ 邮箱</div>
-            <el-form-item prop="email">
-              <div class="qq-input-wrap">
-                <el-input
-                    v-model="registerForm.email"
-                    placeholder="请输入 QQ 号"
-                    prefix-icon="Message"
-                    class="custom-input qq-input"
-                />
-                <div class="qq-suffix">@qq.com</div>
-              </div>
-            </el-form-item>
-
-            <!-- 验证码 -->
-            <div class="field-label">验证码</div>
-            <el-form-item prop="code">
-              <div class="code-row">
-                <el-input
-                    v-model="registerForm.code"
-                    placeholder="6 位验证码"
-                    prefix-icon="Key"
-                    class="custom-input code-input"
-                />
+            <!-- 第一步：邮箱 -->
+            <template v-if="currentStep === 0">
+              <div class="field-label">QQ 邮箱</div>
+              <el-form-item prop="email">
+                <div class="qq-input-wrap">
+                  <el-input
+                      v-model="registerForm.email"
+                      placeholder="请输入 QQ 号"
+                      prefix-icon="Message"
+                      class="custom-input qq-input"
+                  />
+                  <div class="qq-suffix">@qq.com</div>
+                </div>
+              </el-form-item>
+              
+              <el-form-item style="margin-top: 20px;">
                 <button
-                    class="send-btn"
-                    :class="{ disabled: isSending || countdown > 0 }"
-                    :disabled="isSending || countdown > 0"
+                    class="submit-btn"
+                    :class="{ disabled: isSending }"
+                    :disabled="isSending"
                     @click.prevent="handleSendCode"
                 >
-                  {{ countdown > 0 ? `${countdown}s 后重试` : '获取验证码' }}
+                  <span class="btn-text">
+                    {{ isSending ? '发送中...' : '发送验证码' }}
+                  </span>
                 </button>
-              </div>
-            </el-form-item>
+              </el-form-item>
+            </template>
 
-            <!-- 密码 -->
-            <div class="field-label">密码</div>
-            <el-form-item prop="password">
-              <el-input
-                  v-model="registerForm.password"
-                  type="password"
-                  placeholder="请输入密码"
-                  prefix-icon="Lock"
-                  show-password
-                  class="custom-input"
-              />
-            </el-form-item>
+            <!-- 第二步：验证码 -->
+            <template v-if="currentStep === 1">
+              <div class="field-label">验证码</div>
+              <p class="step-hint">验证码已发送至：{{ fullEmail }}</p>
+              <el-form-item prop="code">
+                <div class="code-row">
+                  <el-input
+                      v-model="registerForm.code"
+                      placeholder="6 位验证码"
+                      prefix-icon="Key"
+                      class="custom-input code-input"
+                  />
+                  <button
+                      class="send-btn"
+                      :class="{ disabled: isSending || countdown > 0 }"
+                      :disabled="isSending || countdown > 0"
+                      @click.prevent="handleSendCode"
+                  >
+                    {{ countdown > 0 ? `${countdown}s 后重试` : '重新发送' }}
+                  </button>
+                </div>
+              </el-form-item>
+              
+              <el-form-item style="margin-top: 20px;">
+                <button
+                    class="submit-btn"
+                    :class="{ disabled: !registerForm.code || isVerifying }"
+                    :disabled="!registerForm.code || isVerifying"
+                    @click.prevent="handleVerifyCode"
+                >
+                  <span class="btn-text">
+                    {{ isVerifying ? '验证中...' : '验证并下一步' }}
+                  </span>
+                </button>
+                <el-button link style="margin-top: 10px; width: 100%" @click="currentStep = 0">返回修改邮箱</el-button>
+              </el-form-item>
+            </template>
 
-            <!-- 确认密码 -->
-            <div class="field-label">确认密码</div>
-            <el-form-item prop="confirmPassword">
-              <el-input
-                  v-model="registerForm.confirmPassword"
-                  type="password"
-                  placeholder="请再次输入密码"
-                  prefix-icon="Lock"
-                  show-password
-                  class="custom-input"
-              />
-            </el-form-item>
+            <!-- 第三步：用户名和密码 -->
+            <template v-if="currentStep === 2">
+              <div class="field-label">用户名</div>
+              <el-form-item prop="username">
+                <el-input
+                    v-model="registerForm.username"
+                    placeholder="请输入用户名"
+                    prefix-icon="User"
+                    class="custom-input"
+                />
+              </el-form-item>
 
-            <!-- 提交 -->
-            <el-form-item style="margin-top: 8px;">
-              <button
-                  class="submit-btn"
-                  :class="{ loading }"
-                  :disabled="loading"
-                  @click.prevent="handleRegister"
-              >
-                <span v-if="!loading" class="btn-text">
-                  立即注册
-                  <svg class="btn-arrow" viewBox="0 0 24 24" fill="none">
-                    <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </span>
-                <span v-else class="btn-spinner">
-                  <svg class="spin" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-dasharray="32" stroke-dashoffset="10"/>
-                  </svg>
-                  注册中...
-                </span>
-              </button>
-            </el-form-item>
+              <div class="field-label">密码</div>
+              <el-form-item prop="password">
+                <el-input
+                    v-model="registerForm.password"
+                    type="password"
+                    placeholder="请输入密码"
+                    prefix-icon="Lock"
+                    show-password
+                    class="custom-input"
+                />
+              </el-form-item>
+
+              <div class="field-label">确认密码</div>
+              <el-form-item prop="confirmPassword">
+                <el-input
+                    v-model="registerForm.confirmPassword"
+                    type="password"
+                    placeholder="请再次输入密码"
+                    prefix-icon="Lock"
+                    show-password
+                    class="custom-input"
+                />
+              </el-form-item>
+
+              <el-form-item style="margin-top: 20px;">
+                <button
+                    class="submit-btn"
+                    :class="{ loading }"
+                    :disabled="loading"
+                    @click.prevent="handleRegister"
+                >
+                  <span v-if="!loading" class="btn-text">
+                    立即注册
+                    <svg class="btn-arrow" viewBox="0 0 24 24" fill="none">
+                      <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </span>
+                  <span v-else class="btn-spinner">
+                    <svg class="spin" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-dasharray="32" stroke-dashoffset="10"/>
+                    </svg>
+                    注册中...
+                  </span>
+                </button>
+              </el-form-item>
+            </template>
 
             <div class="form-footer">
               <span class="footer-text">已有账号？</span>
@@ -158,10 +189,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { register } from '@/api/user'
-import { sendCode } from '@/api/auth'
+import { sendCode, verifyCode } from '@/api/auth'
 import { ElMessage } from 'element-plus'
 import { isSuccess } from '@/utils/result'
 
@@ -169,14 +200,20 @@ const router = useRouter()
 const registerFormRef = ref(null)
 const loading = ref(false)
 const isSending = ref(false)
+const isVerifying = ref(false)
+const isVerified = ref(false)
 const countdown = ref(0)
 let timer = null
+let verifyToken = ''
 
 const steps = [
-  { title: '填写信息', desc: '输入用户名与 QQ 邮箱' },
-  { title: '邮箱验证', desc: '获取并填写验证码' },
-  { title: '等待审核', desc: '管理员审核后即可登录' },
+  { title: '填写邮箱', desc: '输入您的 QQ 邮箱' },
+  { title: '邮箱验证', desc: '输入收到的验证码' },
+  { title: '设置密码', desc: '设置账号与密码' },
 ]
+
+const currentStep = ref(0)
+let registerToken = ''
 
 const registerForm = reactive({
   username: '',
@@ -216,9 +253,11 @@ const handleSendCode = async () => {
   if (!/^[1-9][0-9]{4,10}$/.test(registerForm.email)) { ElMessage.warning('QQ号格式不正确'); return }
   isSending.value = true
   try {
-    const res = await sendCode({ email: fullEmail.value, scene: 'REGISTER' })
+    const res = await sendCode({ email: fullEmail.value })
     if (isSuccess(res)) {
       ElMessage.success('验证码已发送，请查收邮件')
+      verifyToken = res.data
+      currentStep.value = 1
       countdown.value = 60
       timer = setInterval(() => {
         countdown.value--
@@ -234,6 +273,41 @@ const handleSendCode = async () => {
   }
 }
 
+const handleVerifyCode = async () => {
+  if (!registerForm.code) { ElMessage.warning('请输入验证码'); return }
+  
+  isVerifying.value = true
+  try {
+    const res = await verifyCode({ 
+      verifyToken: verifyToken, 
+      code: registerForm.code
+    })
+    if (isSuccess(res)) {
+      ElMessage.success('验证成功')
+      isVerified.value = true
+      registerToken = res.data
+      currentStep.value = 2
+      clearInterval(timer)
+      countdown.value = 0
+    } else {
+      ElMessage.error(res.msg || '验证码错误')
+    }
+  } catch (error) {
+    console.error(error)
+  } finally {
+    isVerifying.value = false
+  }
+}
+
+watch(() => registerForm.email, () => {
+  if (isVerified.value) {
+    isVerified.value = false
+    registerForm.code = ''
+    verifyToken = ''
+    registerToken = ''
+  }
+})
+
 const handleRegister = async () => {
   if (!registerFormRef.value) return
   await registerFormRef.value.validate(async (valid) => {
@@ -243,10 +317,9 @@ const handleRegister = async () => {
         const data = {
           username: registerForm.username,
           password: registerForm.password,
-          email: fullEmail.value,
-          code: registerForm.code
+          email: fullEmail.value
         }
-        const res = await register(data)
+        const res = await register(data, registerToken)
         if (isSuccess(res)) {
           ElMessage.success(res.data || '注册成功，请等待审核')
           router.push('/login')
@@ -379,6 +452,11 @@ const handleRegister = async () => {
   display: flex;
   align-items: flex-start;
   gap: 16px;
+  opacity: 0.5;
+  transition: opacity 0.3s;
+}
+.step.active {
+  opacity: 1;
 }
 .step-num {
   width: 28px;
@@ -455,6 +533,13 @@ const handleRegister = async () => {
   letter-spacing: 0.06em;
   margin-bottom: 6px;
   margin-top: 2px;
+}
+
+.step-hint {
+  font-size: 12px;
+  color: #FF6B35;
+  margin-top: -4px;
+  margin-bottom: 12px;
 }
 
 /* ── Form Overrides ── */
@@ -565,6 +650,22 @@ const handleRegister = async () => {
   background: rgba(255,255,255,0.03);
   border-color: rgba(255,255,255,0.08);
   cursor: not-allowed;
+}
+
+.verify-btn {
+  background: rgba(99,140,255,0.1);
+  border-color: rgba(99,140,255,0.35);
+  color: #638CFF;
+}
+.verify-btn:hover:not(.disabled) {
+  background: rgba(99,140,255,0.2);
+  border-color: #638CFF;
+}
+
+.verified-btn {
+  color: #67C23A !important;
+  background: rgba(103, 194, 58, 0.1) !important;
+  border-color: rgba(103, 194, 58, 0.35) !important;
 }
 
 /* Submit button */

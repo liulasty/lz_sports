@@ -33,9 +33,18 @@
       </div>
 
       <el-table :data="adminList" v-loading="loading" style="width: 100%; margin-top: 20px;" border>
+        <el-table-column label="头像" width="80">
+          <template #default="scope">
+            <el-avatar :size="40" :src="scope.row.avatar" />
+          </template>
+        </el-table-column>
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="username" label="用户名" />
-        <el-table-column prop="name" label="姓名" />
+        <el-table-column prop="name" label="姓名">
+          <template #default="scope">
+            {{ scope.row.name ?? '未填写' }}
+          </template>
+        </el-table-column>
         <el-table-column prop="email" label="邮箱" show-overflow-tooltip />
         <el-table-column label="操作" width="100" fixed="right" align="center">
           <template #default="scope">
@@ -53,11 +62,23 @@
   </el-dialog>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, watch } from 'vue'
 import { getEventAdmins, addEventAdmins, removeEventAdmin } from '@/api/admin'
 import { getUserList } from '@/api/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
+
+interface UserData {
+  id: number;
+  userId?: number;
+  username: string;
+  name: string;
+  email: string;
+  avatar: string;
+  type: string;
+  state: string;
+  registerTime: string;
+}
 
 const props = defineProps({
   visible: {
@@ -73,10 +94,10 @@ const props = defineProps({
 const emit = defineEmits(['update:visible', 'saved'])
 
 const loading = ref(false)
-const adminList = ref([])
+const adminList = ref<UserData[]>([])
 const searching = ref(false)
-const searchResults = ref([])
-const selectedUserIds = ref([])
+const searchResults = ref<UserData[]>([])
+const selectedUserIds = ref<number[]>([])
 
 const fetchAdmins = async () => {
   if (!props.eventId) return
@@ -93,13 +114,13 @@ const fetchAdmins = async () => {
   }
 }
 
-const searchUsers = async (query) => {
+const searchUsers = async (query: string) => {
   if (query) {
     searching.value = true
     try {
       const res = await getUserList({ username: query, currentPage: 1, pageSize: 20 })
       if (res.code === 200) {
-        searchResults.value = res.data.records || []
+        searchResults.value = res.data.records || res.data.rows || []
       }
     } catch (error) {
       console.error('搜索用户失败', error)
@@ -111,7 +132,7 @@ const searchUsers = async (query) => {
   }
 }
 
-const isAlreadyAdmin = (userId) => {
+const isAlreadyAdmin = (userId: number) => {
   return adminList.value.some(admin => admin.id === userId)
 }
 
@@ -133,7 +154,7 @@ const handleAddAdmins = async () => {
   }
 }
 
-const handleRemoveAdmin = (row) => {
+const handleRemoveAdmin = (row: UserData) => {
   if (adminList.value.length <= 1) {
     ElMessage.warning('至少需要保留一名赛事管理员')
     return

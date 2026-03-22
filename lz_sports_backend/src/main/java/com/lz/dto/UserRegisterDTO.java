@@ -39,11 +39,4 @@ public class UserRegisterDTO {
     @Email(message = "邮箱格式不正确")
     @NotBlank(message = "邮箱不能为空")
     private String email;
-
-    /**
-     * 验证令牌
-     * 验证码校验通过后返回，一次性使用，不能为空
-     */
-    @NotBlank(message = "请先完成验证码校验")
-    private String verifyToken;
 }

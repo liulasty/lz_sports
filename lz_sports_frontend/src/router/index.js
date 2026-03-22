@@ -157,6 +157,15 @@ const routes = [
         name: 'ScoreManage',
         component: () => import('@/views/admin/ScoreManage.vue'),
         meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'EVENT_ADMIN', 'SCHOOL_ADMIN'] }
+      },
+      {
+        path: 'user-audit',
+        name: 'UserAudit',
+        component: () => import('@/views/admin/UserAudit.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN']
+        }
       }
     ]
   },

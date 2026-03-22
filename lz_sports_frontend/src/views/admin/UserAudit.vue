@@ -12,7 +12,17 @@
       </template>
 
       <el-table :data="userList" style="width: 100%" v-loading="loading">
-        <el-table-column prop="userName" label="用户名" />
+        <el-table-column label="头像" width="80">
+          <template #default="scope">
+            <el-avatar :size="40" :src="scope.row.avatar" />
+          </template>
+        </el-table-column>
+        <el-table-column prop="username" label="用户名" />
+        <el-table-column prop="name" label="姓名">
+          <template #default="scope">
+            {{ scope.row.name ?? '未填写' }}
+          </template>
+        </el-table-column>
         <el-table-column prop="email" label="邮箱" width="200" />
         <el-table-column prop="registerTime" label="注册时间" width="180">
            <template #default="scope">
@@ -50,14 +60,25 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { getUserList, auditUser } from '@/api/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { isSuccess } from '@/utils/result'
 
+interface UserData {
+  id: number;
+  userId?: number; // Depending on actual API
+  username: string;
+  name: string;
+  email: string;
+  avatar: string;
+  registerTime: string;
+  state: string;
+}
+
 const loading = ref(false)
-const userList = ref([])
+const userList = ref<UserData[]>([])
 const total = ref(0)
 
 const queryParams = reactive({
@@ -66,14 +87,14 @@ const queryParams = reactive({
   name: ''
 })
 
-const getStatusType = (state) => {
+const getStatusType = (state: string) => {
   if (state === 'ACTIVE') return 'success'
   if (state === 'PENDING') return 'warning'
   if (state === 'REJECTED') return 'danger'
   return 'info'
 }
 
-const formatTime = (time) => {
+const formatTime = (time: string | number | Date) => {
   if (!time) return ''
   return new Date(time).toLocaleString()
 }
@@ -98,18 +119,19 @@ const handleQuery = () => {
   getList()
 }
 
-const handleSizeChange = (val) => {
+const handleSizeChange = (val: number) => {
   queryParams.pageSize = val
   getList()
 }
 
-const handleCurrentChange = (val) => {
+const handleCurrentChange = (val: number) => {
   queryParams.currentPage = val
   getList()
 }
 
-const handleApprove = (row) => {
-  ElMessageBox.confirm(`确认通过用户 ${row.userName} 的注册申请吗？`, '提示', {
+const handleApprove = (row: UserData) => {
+  const displayName = row.name || row.username
+  ElMessageBox.confirm(`确认通过用户 ${displayName} 的注册申请吗？`, '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
@@ -128,7 +150,7 @@ const handleApprove = (row) => {
   })
 }
 
-const handleReject = (row) => {
+const handleReject = (row: UserData) => {
   ElMessageBox.prompt('请输入拒绝原因', '拒绝申请', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',

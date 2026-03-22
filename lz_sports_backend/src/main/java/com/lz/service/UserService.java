@@ -19,14 +19,11 @@ import com.lz.dto.UserUpdateDTO;
 import com.lz.vo.UserDetailVO;
 
 public interface UserService extends IService<User> {
-    void register(UserRegisterDTO userRegisterDTO);
+    void register(UserRegisterDTO userRegisterDTO, String registerToken);
 
-    /**
-     * Send verification code
-     */
-    void sendCode(String email, String scene);
+    String sendVerifyCode(String email, String ip);
 
-    String verifyCode(String email, String code, String scene);
+    String verifyCode(String verifyToken, String code);
 
     /**
      * Approve or reject user
