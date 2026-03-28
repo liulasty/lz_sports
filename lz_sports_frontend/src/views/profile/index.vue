@@ -655,27 +655,27 @@ onMounted(() => getInfo())
 }
 
 :deep(.custom-table) {
-  background: transparent !important;
+  background: transparent;
 }
 
-:deep(.custom-table .el-table__inner-wrapper) {
-  background: transparent !important;
+:deep(.el-table__inner-wrapper::before) {
+  display: none;
 }
 
 :deep(.custom-table tr),
 :deep(.custom-table td.el-table__cell),
 :deep(.custom-table th.el-table__cell) {
-  background: transparent !important;
+  background: transparent;
 }
 
 :deep(.custom-table .el-table__cell) {
-  border-bottom: 1px solid var(--border, rgba(255,255,255,0.06)) !important;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.06));
   color: var(--text-primary, var(--el-bg-color-page));
   font-size: 13px;
 }
 
 :deep(.custom-table .el-table__row:hover td) {
-  background: rgba(255,107,53,0.04) !important;
+  background: rgba(255,107,53,0.04);
 }
 
 /* Status pill */
@@ -942,27 +942,26 @@ onMounted(() => getInfo())
 }
 </style>
 
-<style>
-/* Global: force dark inputs inside profile */
-.profile-container .el-input__wrapper {
-  background-color: rgba(255,255,255,0.05) !important;
-  box-shadow: none !important;
+<style scoped>
+:deep(.profile-container .el-input__wrapper) {
+  background-color: rgba(255,255,255,0.05);
+  box-shadow: none;
 }
-.profile-container .el-input__inner {
-  color: var(--text-primary, #f0f2f8) !important;
-  background: transparent !important;
+:deep(.profile-container .el-input__inner) {
+  color: var(--text-primary, #f0f2f8);
+  background: transparent;
 }
-.profile-container .el-table {
-  background: transparent !important;
-  color: var(--text-primary, #f0f2f8) !important;
+:deep(.profile-container .el-table) {
+  background: transparent;
+  color: var(--text-primary, #f0f2f8);
 }
-.profile-container .el-table__header-wrapper {
-  background: transparent !important;
+:deep(.profile-container .el-table__header-wrapper) {
+  background: transparent;
 }
-.profile-container .el-input-number .el-input-number__decrease,
-.profile-container .el-input-number .el-input-number__increase {
-  background: rgba(255,255,255,0.05) !important;
-  border-color: rgba(255,255,255,0.09) !important;
-  color: var(--text-secondary, #8892a4) !important;
+:deep(.profile-container .el-input-number .el-input-number__decrease),
+:deep(.profile-container .el-input-number .el-input-number__increase) {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.09);
+  color: var(--text-secondary, #8892a4);
 }
 </style>
