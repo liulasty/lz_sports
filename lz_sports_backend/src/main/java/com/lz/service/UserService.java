@@ -45,8 +45,6 @@ public interface UserService extends IService<User> {
 
     void deleteUser(String id);
 
-    void examinePlayer(String id);
-
     UserData getUserNumsByMonth(String month);
 
     List<UserType> getUserTypes();

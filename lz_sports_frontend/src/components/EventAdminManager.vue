@@ -16,16 +16,29 @@
           reserve-keyword
           placeholder="搜索用户名或姓名添加为管理员"
           :remote-method="searchUsers"
+          @focus="() => searchUsers('')"
           :loading="searching"
           style="flex: 1; margin-right: 10px;"
+          popper-class="user-select-popper"
         >
           <el-option
             v-for="user in searchResults"
             :key="user.id"
-            :label="`${user.name || user.username} (${user.email || '无邮箱'})`"
+            :label="user.name || user.username"
             :value="user.id"
             :disabled="isAlreadyAdmin(user.id)"
-          />
+            class="user-option-item"
+          >
+            <div class="user-option-content">
+              <el-avatar :size="28" :src="getAvatarUrl(user.avatar)" class="user-option-avatar">
+                {{ (user.name || user.username || 'U').charAt(0).toUpperCase() }}
+              </el-avatar>
+              <div class="user-option-info">
+                <div class="user-option-name">{{ user.name || user.username }}</div>
+                <div class="user-option-email">{{ user.email || '无邮箱' }}</div>
+              </div>
+            </div>
+          </el-option>
         </el-select>
         <el-button type="primary" @click="handleAddAdmins" :disabled="!selectedUserIds.length">
           添加
@@ -33,9 +46,11 @@
       </div>
 
       <el-table :data="adminList" v-loading="loading" style="width: 100%; margin-top: 20px;" border>
-        <el-table-column label="头像" width="80">
+        <el-table-column label="头像" width="80" align="center">
           <template #default="scope">
-            <el-avatar :size="40" :src="scope.row.avatar" />
+            <el-avatar :size="40" :src="getAvatarUrl(scope.row.avatar)">
+              {{ (scope.row.name || scope.row.username || 'U').charAt(0).toUpperCase() }}
+            </el-avatar>
           </template>
         </el-table-column>
         <el-table-column prop="id" label="ID" width="80" />
@@ -99,6 +114,11 @@ const searching = ref(false)
 const searchResults = ref<UserData[]>([])
 const selectedUserIds = ref<number[]>([])
 
+const getAvatarUrl = (url?: string) => {
+  if (!url) return ''
+  return url.replace(/[`\s]/g, '')
+}
+
 const fetchAdmins = async () => {
   if (!props.eventId) return
   loading.value = true
@@ -114,21 +134,17 @@ const fetchAdmins = async () => {
   }
 }
 
-const searchUsers = async (query: string) => {
-  if (query) {
-    searching.value = true
-    try {
-      const res = await getUserList({ username: query, currentPage: 1, pageSize: 20 })
-      if (res.code === 200) {
-        searchResults.value = res.data.records || res.data.rows || []
-      }
-    } catch (error) {
-      console.error('搜索用户失败', error)
-    } finally {
-      searching.value = false
+const searchUsers = async (query: string = '') => {
+  searching.value = true
+  try {
+    const res = await getUserList({ username: query, currentPage: 1, pageSize: 20 })
+    if (res.code === 200) {
+      searchResults.value = res.data.records || res.data.rows || res.data || []
     }
-  } else {
-    searchResults.value = []
+  } catch (error) {
+    console.error('搜索用户失败', error)
+  } finally {
+    searching.value = false
   }
 }
 
@@ -198,6 +214,37 @@ watch(() => props.visible, (newVal) => {
   align-items: center;
 }
 
+/* ===================== Custom Select Option ===================== */
+:deep(.user-select-popper .el-select-dropdown__item) {
+  height: auto !important;
+  padding: 8px 12px;
+}
+.user-option-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.user-option-avatar {
+  background: linear-gradient(135deg, var(--el-color-primary-light-3), var(--el-color-primary));
+  color: #fff;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+.user-option-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.user-option-name {
+  font-size: 14px;
+  color: var(--el-text-color-primary);
+  font-weight: 500;
+}
+.user-option-email {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  margin-top: 4px;
+}
 :deep(.el-table) {
   background: var(--el-bg-color) !important;
   color: var(--el-text-color-primary);

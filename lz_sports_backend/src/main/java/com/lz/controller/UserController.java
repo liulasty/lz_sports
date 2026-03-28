@@ -213,17 +213,6 @@ public class UserController {
         return Result.success("删除成功");
     }
 
-    /**
-     * 审核运动员资格
-     * 管理员直接通过运动员的资格申请
-     */
-    @PutMapping("/examine/{id}")
-    @RequireRole({UserRole.SCHOOL_ADMIN})
-    @Operation(summary = "审核运动员", description = "管理员审核通过运动员资格")
-    public Result<String> examine(@Parameter(description = "用户ID") @PathVariable String id) {
-        userService.examinePlayer(id);
-        return Result.success("审核通过");
-    }
 
     /**
      * 月度用户统计

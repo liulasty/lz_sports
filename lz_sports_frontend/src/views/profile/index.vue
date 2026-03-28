@@ -64,179 +64,254 @@
 
       <!-- ── Right: Main Panel ── -->
       <div class="main-card">
-        <div class="main-card-header">
-          <span class="header-accent"></span>
-          <h3>{{ isAthlete ? '我的报名记录' : '运动员认证' }}</h3>
-        </div>
-
-        <!-- Athlete: Registration table -->
-        <div v-if="isAthlete" class="table-section">
-          <el-table
-              :data="registrationList"
-              v-loading="loading"
-              class="custom-table"
-              :header-cell-style="headerCellStyle"
-              :row-style="rowStyle"
-          >
-            <el-table-column prop="eventName" label="赛事名称" min-width="140" />
-            <el-table-column prop="itemName" label="参赛项目" min-width="100" />
-            <el-table-column label="报名时间" min-width="140">
-              <template #default="scope">
-                {{ formatDate(scope.row.registrationTime) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="状态" width="100" align="center">
-              <template #default="scope">
-                <span class="status-pill" :class="getPillClass(scope.row.registrationStatus)">
-                  {{ scope.row.registrationStatus }}
-                </span>
-              </template>
-            </el-table-column>
-          </el-table>
-          <div class="pagination-wrap">
-            <el-pagination
-                v-model:current-page="queryParams.currentPage"
-                v-model:page-size="queryParams.pageSize"
-                :page-sizes="[5, 10, 20]"
-                layout="total, sizes, prev, pager, next, jumper"
-                :total="total"
-                @size-change="handleSizeChange"
-                @current-change="handleCurrentChange"
-            />
-          </div>
-        </div>
-
-        <!-- Non-athlete, non-admin: Apply form -->
-        <div v-else-if="!isAdmin">
-          <!-- Already applied -->
-          <div v-if="hasApplied" class="applied-section">
-            <div class="apply-status-card" :class="getApplyStatusClass()">
-              <div class="apply-status-icon">
-                <span v-if="normalizedApplicationStatus === 'APPROVED'">✓</span>
-                <span v-else-if="normalizedApplicationStatus === 'REJECTED'">✗</span>
-                <span v-else>⋯</span>
-              </div>
-              <div>
-                <div class="apply-status-title">申请{{ normalizedApplicationStatus === 'APPROVED' ? '成功' : (normalizedApplicationStatus === 'REJECTED' ? '拒绝' : '审核中') }}</div>
-                <div class="apply-status-sub">
-                  {{ normalizedApplicationStatus === 'APPROVED' ? '您已通过认证，可以参加赛事报名' :
-                    normalizedApplicationStatus === 'REJECTED' ? '您的申请未通过，请重新提交' : '审核中，请耐心等待' }}
-                </div>
-              </div>
-            </div>
-            <div v-if="normalizedApplicationStatus === 'REJECTED'" class="retry-section">
-              <el-button class="retry-btn" @click="resetApplication">重新提交申请</el-button>
-            </div>
-          </div>
-
-          <!-- Apply form -->
-          <el-form
-              v-else
-              ref="applyFormRef"
-              :model="applyForm"
-              :rules="rules"
-              label-width="0"
-              class="apply-form"
-          >
-            <div class="form-grid">
-              <div class="form-field">
-                <div class="field-label">姓名 <span class="required">*</span></div>
-                <el-form-item prop="name">
-                  <el-input v-model="applyForm.name" placeholder="请输入真实姓名" class="custom-input" />
-                </el-form-item>
+        <el-tabs v-model="activeTab" class="profile-tabs" style="padding: 20px;">
+          <el-tab-pane label="运动员认证" name="apply" v-if="!isAdmin">
+            <div class="certification-section">
+              <!-- 已申请的赛事列表 -->
+              <div v-if="myApplications.length > 0" class="applications-list" style="margin-bottom: 30px;">
+                <h4 style="margin-bottom: 16px; font-size: 15px; color: var(--text-primary, #fff); font-weight: 600;">已申请的赛事</h4>
+                <el-table :data="myApplications" class="custom-table" :header-cell-style="headerCellStyle" :row-style="rowStyle">
+                  <el-table-column prop="eventName" label="赛事名称" min-width="150" />
+                  <el-table-column label="申请时间" min-width="160">
+                    <template #default="scope">{{ formatDate(scope.row.applyTime) }}</template>
+                  </el-table-column>
+                  <el-table-column label="状态" width="100" align="center">
+                    <template #default="scope">
+                      <span class="status-pill" :class="getApplyPillClass(scope.row.athleteState)">
+                        {{ normalizeAthleteStatus(scope.row.athleteState) === 'APPROVED' ? '审核通过' : (normalizeAthleteStatus(scope.row.athleteState) === 'REJECTED' ? '已拒绝' : '审核中') }}
+                      </span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="操作" width="140" align="center">
+                    <template #default="scope">
+                      <el-button type="primary" link size="small" @click="handleUpdateApplication(scope.row)">修改</el-button>
+                      <el-button type="danger" link size="small" @click="handleCancelApplication(scope.row.id)">取消</el-button>
+                    </template>
+                  </el-table-column>
+                </el-table>
               </div>
 
-              <div class="form-field">
-                <div class="field-label">年龄 <span class="required">*</span></div>
-                <el-form-item prop="age">
-                  <el-input-number v-model="applyForm.age" :min="1" :max="100" class="custom-number" controls-position="right" />
-                </el-form-item>
-              </div>
+              <!-- Apply form -->
+              <div v-if="availableEvents.length > 0">
+                <h4 style="margin-bottom: 16px; font-size: 15px; color: var(--text-primary, #fff); font-weight: 600;">申请新赛事资格</h4>
+                <el-form
+                    ref="applyFormRef"
+                    :model="applyForm"
+                    :rules="rules"
+                    label-width="0"
+                    class="apply-form"
+                >
+                  <div class="form-grid">
+                    <div class="form-field full-width">
+                      <div class="field-label">申请赛事 <span class="required">*</span></div>
+                      <el-form-item prop="eventId">
+                        <el-select v-model="applyForm.eventId" placeholder="请选择要报名的赛事" class="custom-input" style="width: 100%">
+                          <el-option v-for="event in availableEvents" :key="event.id" :label="event.name" :value="event.id" />
+                        </el-select>
+                      </el-form-item>
+                    </div>
 
-              <div class="form-field">
-                <div class="field-label">性别 <span class="required">*</span></div>
-                <el-form-item prop="gender">
-                  <div class="gender-toggle">
-                    <button
-                        class="gender-btn"
-                        :class="{ active: applyForm.gender === '男' }"
-                        type="button"
-                        @click="applyForm.gender = '男'"
-                    >♂ 男</button>
-                    <button
-                        class="gender-btn"
-                        :class="{ active: applyForm.gender === '女' }"
-                        type="button"
-                        @click="applyForm.gender = '女'"
-                    >♀ 女</button>
+                    <div class="form-field">
+                      <div class="field-label">姓名 <span class="required">*</span></div>
+                      <el-form-item prop="name">
+                        <el-input v-model="applyForm.name" placeholder="请输入真实姓名" class="custom-input" />
+                      </el-form-item>
+                    </div>
+
+                    <div class="form-field">
+                      <div class="field-label">年龄 <span class="required">*</span></div>
+                      <el-form-item prop="age">
+                        <el-input-number v-model="applyForm.age" :min="1" :max="100" class="custom-number" controls-position="right" />
+                      </el-form-item>
+                    </div>
+
+                    <div class="form-field">
+                      <div class="field-label">性别 <span class="required">*</span></div>
+                      <el-form-item prop="gender">
+                        <div class="gender-toggle">
+                          <button
+                              class="gender-btn"
+                              :class="{ active: applyForm.gender === '男' }"
+                              type="button"
+                              @click="applyForm.gender = '男'"
+                          >♂ 男</button>
+                          <button
+                              class="gender-btn"
+                              :class="{ active: applyForm.gender === '女' }"
+                              type="button"
+                              @click="applyForm.gender = '女'"
+                          >♀ 女</button>
+                        </div>
+                      </el-form-item>
+                    </div>
+
+                    <div class="form-field">
+                      <div class="field-label">联系方式 <span class="required">*</span></div>
+                      <el-form-item prop="phone">
+                        <el-input v-model="applyForm.phone" placeholder="请输入手机号码" class="custom-input" />
+                      </el-form-item>
+                    </div>
+
+                    <div class="form-field full-width">
+                      <div class="field-label">年级 / 班级 <span class="required">*</span></div>
+                      <el-form-item prop="grade">
+                        <el-input v-model="applyForm.grade" placeholder="例：高三 2 班" class="custom-input" />
+                      </el-form-item>
+                    </div>
                   </div>
-                </el-form-item>
-              </div>
 
-              <div class="form-field">
-                <div class="field-label">联系方式 <span class="required">*</span></div>
-                <el-form-item prop="phone">
-                  <el-input v-model="applyForm.phone" placeholder="请输入手机号码" class="custom-input" />
-                </el-form-item>
+                  <div class="form-actions">
+                    <button class="submit-btn" type="button" @click="submitApply">
+                      提交认证申请
+                      <svg class="btn-arrow" viewBox="0 0 24 24" fill="none">
+                        <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </button>
+                  </div>
+                </el-form>
               </div>
-
-              <div class="form-field full-width">
-                <div class="field-label">年级 / 班级 <span class="required">*</span></div>
-                <el-form-item prop="grade">
-                  <el-input v-model="applyForm.grade" placeholder="例：高三 2 班" class="custom-input" />
-                </el-form-item>
+              <div v-else-if="myApplications.length === 0" class="admin-empty">
+                <div class="admin-empty-icon">📅</div>
+                <p>当前暂无可以申请的赛事</p>
               </div>
             </div>
+          </el-tab-pane>
 
-            <div class="form-actions">
-              <button class="submit-btn" type="button" @click="submitApply">
-                提交认证申请
-                <svg class="btn-arrow" viewBox="0 0 24 24" fill="none">
-                  <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </button>
+          <el-tab-pane label="我的报名记录" name="registrations" v-if="isAthlete || myApplications.length > 0">
+            <div class="table-section">
+              <el-table
+                  :data="registrationList"
+                  v-loading="loading"
+                  class="custom-table"
+                  :header-cell-style="headerCellStyle"
+                  :row-style="rowStyle"
+              >
+                <el-table-column prop="eventName" label="赛事名称" min-width="140" />
+                <el-table-column prop="itemName" label="参赛项目" min-width="100" />
+                <el-table-column label="报名时间" min-width="140">
+                  <template #default="scope">
+                    {{ formatDate(scope.row.registrationTime) }}
+                  </template>
+                </el-table-column>
+                <el-table-column label="状态" width="100" align="center">
+                  <template #default="scope">
+                    <span class="status-pill" :class="getPillClass(scope.row.registrationStatus)">
+                      {{ scope.row.registrationStatus }}
+                    </span>
+                  </template>
+                </el-table-column>
+              </el-table>
+              <div class="pagination-wrap">
+                <el-pagination
+                    v-model:current-page="queryParams.currentPage"
+                    v-model:page-size="queryParams.pageSize"
+                    :page-sizes="[5, 10, 20]"
+                    layout="total, sizes, prev, pager, next, jumper"
+                    :total="total"
+                    @size-change="handleSizeChange"
+                    @current-change="handleCurrentChange"
+                />
+              </div>
             </div>
-          </el-form>
-        </div>
+          </el-tab-pane>
 
-        <!-- Admin -->
-        <div v-else class="admin-empty">
-          <div class="admin-empty-icon">🛡️</div>
-          <p>管理员账号无需运动员认证</p>
-        </div>
+          <el-tab-pane label="管理员说明" name="admin" v-if="isAdmin">
+            <div class="admin-empty">
+              <div class="admin-empty-icon">🛡️</div>
+              <p>管理员账号无需运动员认证</p>
+            </div>
+          </el-tab-pane>
+        </el-tabs>
       </div>
 
     </div>
   </div>
+
+  <!-- Update Athlete Info Dialog -->
+  <el-dialog
+    v-model="updateDialogVisible"
+    title="修改运动员信息"
+    width="500px"
+    class="custom-dialog"
+  >
+    <el-alert
+      title="修改信息后当前赛事的申请状态将重新变为「审核中」，需要重新审核。"
+      type="warning"
+      show-icon
+      :closable="false"
+      style="margin-bottom: 20px;"
+    />
+    <el-form ref="updateFormRef" :model="updateForm" :rules="rules" label-width="80px">
+      <el-form-item label="姓名" prop="name">
+        <el-input v-model="updateForm.name" placeholder="请输入真实姓名" />
+      </el-form-item>
+      <el-form-item label="年龄" prop="age">
+        <el-input-number v-model="updateForm.age" :min="1" :max="100" />
+      </el-form-item>
+      <el-form-item label="性别" prop="gender">
+        <el-radio-group v-model="updateForm.gender">
+          <el-radio label="男">男</el-radio>
+          <el-radio label="女">女</el-radio>
+        </el-radio-group>
+      </el-form-item>
+      <el-form-item label="联系方式" prop="phone">
+        <el-input v-model="updateForm.phone" placeholder="请输入手机号" />
+      </el-form-item>
+      <el-form-item label="年级/班级" prop="grade">
+        <el-input v-model="updateForm.grade" placeholder="例如：21级计科1班" />
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="updateDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitUpdate" :loading="updating">
+          确认修改
+        </el-button>
+      </span>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { getUserInfo } from '@/api/user'
 import { getRegistrationList } from '@/api/registration'
-import { applyAthlete, getAthleteApply } from '@/api/athlete'
-import { ElMessage } from 'element-plus'
+import { applyAthlete, getMyApplications, deleteAthleteRecord, updateAthlete } from '@/api/athlete'
+import { getEventList } from '@/api/event'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { isSuccess } from '@/utils/result'
 import { normalizeAthleteStatus } from '@/utils/athleteStatus'
 
+const route = useRoute()
 const userStore = useUserStore()
 const userInfo = ref({})
 const isAthlete = computed(() => userInfo.value.userType === 'ATHLETE' || userInfo.value.userType === '运动员')
 const isAdmin = computed(() => ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'EVENT_ADMIN', '管理员'].includes(userInfo.value.userType))
+
+const activeTab = ref('apply')
 
 const loading = ref(false)
 const registrationList = ref([])
 const total = ref(0)
 const queryParams = reactive({ currentPage: 1, pageSize: 5 })
 
-const hasApplied = ref(false)
-const applicationStatus = ref('')
-const normalizedApplicationStatus = computed(() => normalizeAthleteStatus(applicationStatus.value))
+const eventList = ref([])
+const myApplications = ref([])
+const availableEvents = computed(() => {
+  return eventList.value.filter(e => !myApplications.value.some(app => app.eventId === e.id))
+})
 const applyFormRef = ref(null)
-const applyForm = reactive({ name: '', age: 18, gender: '', phone: '', grade: '', userId: '' })
+const applyForm = reactive({ name: '', age: 18, gender: '', phone: '', grade: '', userId: '', eventId: null })
+
+const updateDialogVisible = ref(false)
+const updating = ref(false)
+const updateFormRef = ref(null)
+const updateForm = reactive({ id: null, name: '', age: 18, gender: '', phone: '', grade: '' })
 
 const rules = {
+  eventId: [{ required: true, message: '请选择要报名的赛事', trigger: 'change' }],
   name:   [{ required: true, message: '请输入姓名', trigger: 'blur' }],
   gender: [{ required: true, message: '请选择性别', trigger: 'change' }],
   phone:  [{ required: true, message: '请输入联系方式', trigger: 'blur' }],
@@ -261,10 +336,11 @@ const getPillClass = (status) => {
   return 'pill-warning'
 }
 
-const getApplyStatusClass = () => {
-  if (normalizedApplicationStatus.value === 'APPROVED') return 'apply-success'
-  if (normalizedApplicationStatus.value === 'REJECTED') return 'apply-danger'
-  return 'apply-pending'
+const getApplyPillClass = (status) => {
+  const normalized = normalizeAthleteStatus(status)
+  if (normalized === 'APPROVED') return 'pill-success'
+  if (normalized === 'REJECTED') return 'pill-danger'
+  return 'pill-warning'
 }
 
 const getInfo = async () => {
@@ -274,8 +350,44 @@ const getInfo = async () => {
       userInfo.value = res.data
       userStore.setUserInfo(res.data)
       applyForm.userId = res.data.userId
-      if (isAthlete.value) getRegistrations()
-      else if (!isAdmin.value) checkApplication()
+      
+      if (isAdmin.value) {
+        activeTab.value = 'admin'
+      } else {
+        await loadMyApplications()
+        if (isAthlete.value || myApplications.value.length > 0) {
+          getRegistrations()
+          if (!route.query.eventId && activeTab.value !== 'apply') {
+            activeTab.value = 'registrations'
+          }
+        }
+        await loadEvents()
+      }
+    }
+  } catch (error) { console.error(error) }
+}
+
+const loadMyApplications = async () => {
+  try {
+    const res = await getMyApplications()
+    if (isSuccess(res)) {
+      myApplications.value = res.data || []
+    }
+  } catch (error) { console.error(error) }
+}
+
+const loadEvents = async () => {
+  try {
+    const res = await getEventList({ currentPage: 1, pageSize: 100, status: 'OPEN' })
+    if (isSuccess(res)) {
+      eventList.value = res.data.records || []
+      if (route.query.eventId && availableEvents.value.some(e => e.id === Number(route.query.eventId))) {
+        applyForm.eventId = Number(route.query.eventId)
+      } else if (availableEvents.value.length > 0) {
+        applyForm.eventId = availableEvents.value[0].id
+      } else {
+        applyForm.eventId = null
+      }
     }
   } catch (error) { console.error(error) }
 }
@@ -289,11 +401,65 @@ const getRegistrations = async () => {
   finally { loading.value = false }
 }
 
-const checkApplication = async () => {
-  try {
-    const res = await getAthleteApply(userInfo.value.userId)
-    if (isSuccess(res) && res.data) { hasApplied.value = true; applicationStatus.value = normalizeAthleteStatus(res.data.athleteState || res.data.status) }
-  } catch {}
+const handleCancelApplication = (id) => {
+  ElMessageBox.confirm('确认取消该赛事的运动员申请吗？', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(async () => {
+    try {
+      const res = await deleteAthleteRecord(id)
+      if (isSuccess(res)) {
+        ElMessage.success('取消成功')
+        await getInfo() // refresh everything
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  })
+}
+
+const handleUpdateApplication = (row) => {
+  updateForm.id = row.id
+  updateForm.name = row.name
+  updateForm.age = Number(row.age) || 18
+  updateForm.gender = row.gender
+  updateForm.phone = row.contact
+  updateForm.grade = row.grade
+  updateDialogVisible.value = true
+}
+
+const submitUpdate = async () => {
+  if (!updateFormRef.value) return
+  await updateFormRef.value.validate(async (valid) => {
+    if (valid) {
+      ElMessageBox.confirm('修改信息后当前赛事的申请状态将重新变为「审核中」，确认修改吗？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(async () => {
+        updating.value = true
+        try {
+          const res = await updateAthlete(updateForm.id, {
+            name: updateForm.name,
+            age: updateForm.age,
+            gender: updateForm.gender,
+            contact: updateForm.phone,
+            grade: updateForm.grade
+          })
+          if (isSuccess(res)) {
+            ElMessage.success('修改成功，请等待重新审核')
+            updateDialogVisible.value = false
+            await getInfo()
+          }
+        } catch (error) {
+          console.error(error)
+        } finally {
+          updating.value = false
+        }
+      }).catch(() => {})
+    }
+  })
 }
 
 const submitApply = async () => {
@@ -302,13 +468,15 @@ const submitApply = async () => {
     if (valid) {
       try {
         const res = await applyAthlete(applyForm)
-        if (isSuccess(res)) { ElMessage.success('申请提交成功'); hasApplied.value = true; applicationStatus.value = 'PENDING' }
+        if (isSuccess(res)) { 
+          ElMessage.success('申请提交成功')
+          applyFormRef.value.resetFields()
+          await getInfo()
+        }
       } catch (error) { console.error(error) }
     }
   })
 }
-
-const resetApplication = () => { hasApplied.value = false; applicationStatus.value = '' }
 const handleSizeChange = (val) => { queryParams.pageSize = val; getRegistrations() }
 const handleCurrentChange = (val) => { queryParams.currentPage = val; getRegistrations() }
 const formatDate = (dateStr) => {

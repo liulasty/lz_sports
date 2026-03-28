@@ -77,4 +77,10 @@ public class Athlete extends BaseEntity<Long> {
      */
     @TableField("grade")
     private String grade;
+
+    /**
+     * 赛事名称 (非表字段)
+     */
+    @TableField(exist = false)
+    private String eventName;
 }

@@ -25,13 +25,29 @@
       </div>
 
       <div class="project-list" style="margin-top: 30px;">
-        <el-alert
-          v-if="athleteApplyStatus"
-          :title="`运动员资格状态：${athleteApplyStatusText}`"
-          :type="getAthleteStatusType(athleteApplyStatus)"
-          :closable="false"
-          style="margin-bottom: 16px;"
-        />
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <el-alert
+            v-if="athleteApplyStatus"
+            :title="`运动员资格状态：${athleteApplyStatusText}`"
+            :type="getAthleteStatusType(athleteApplyStatus)"
+            :closable="false"
+            style="flex: 1; margin-right: 16px; margin-bottom: 0;"
+          />
+          <el-alert
+            v-else
+            title="您还未获取本赛事的运动员资格"
+            type="warning"
+            :closable="false"
+            style="flex: 1; margin-right: 16px; margin-bottom: 0;"
+          />
+          <el-button 
+            v-if="!athleteApplyStatus || athleteApplyStatus === 'REJECTED'" 
+            type="primary" 
+            @click="goToApply"
+          >
+            去认证资格
+          </el-button>
+        </div>
         <el-alert
           v-if="registeredProjectNames.length > 0"
           :title="`已报名项目：${registeredProjectNames.join('、')}`"
@@ -128,6 +144,10 @@ const loadEvent = async () => {
   }
 }
 
+const goToApply = () => {
+  router.push({ path: '/profile', query: { eventId: event.value.id } })
+}
+
 const loadProjects = async () => {
   if (!event.value) return
   
@@ -150,9 +170,9 @@ const loadProjects = async () => {
 
 const loadAthleteStatus = async () => {
   try {
-    const userId = userStore.userInfo.id
-    if (!userId) return
-    const res = await getAthleteApply(userId)
+    const userId = userStore.userInfo.id || userStore.userInfo.userId
+    if (!userId || !event.value) return
+    const res = await getAthleteApply(userId, event.value.id)
     if (res.code === 200 && res.data) {
       athleteApplyStatus.value = normalizeAthleteStatus(res.data.athleteState || res.data.status)
     } else {

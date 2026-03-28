@@ -377,31 +377,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
     }
 
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void examinePlayer(String id) {
-        Athlete current = athleteMapper.selectOne(new LambdaQueryWrapper<Athlete>().eq(Athlete::getUserId, Long.valueOf(id)));
-        if (current == null) {
-            throw new BusinessException("运动员申请不存在");
-        }
-        if (current.getAthleteState() != AthleteStatus.PENDING) {
-            throw new BusinessException("已审核的申请不可重复审核");
-        }
-        User user = new User();
-        user.setId(Long.valueOf(id));
-        user.setUserType(UserRole.ATHLETE);
-        userMapper.updateById(user);
-
-        // Update Athlete status
-        Athlete athlete = new Athlete();
-        athlete.setAgreeTime(LocalDateTime.now());
-        athlete.setAthleteState(AthleteStatus.APPROVED);
-        
-        LambdaQueryWrapper<Athlete> updateWrapper = new LambdaQueryWrapper<>();
-        updateWrapper.eq(Athlete::getUserId, Long.valueOf(id));
-        athleteMapper.update(athlete, updateWrapper);
-        notificationService.create(Long.valueOf(id), "运动员审核结果", "您的运动员申请已审核通过", NotificationType.ATHLETE_APPROVED);
-    }
 
     @Override
     public UserData getUserNumsByMonth(String month) {

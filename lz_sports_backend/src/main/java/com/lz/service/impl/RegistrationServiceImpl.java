@@ -107,14 +107,6 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
                         throw new BusinessException("管理员角色不可申请", 403);
                     }
                     
-                    Athlete athlete = athleteMapper.selectByUserId(userId);
-                    if (athlete == null) {
-                        throw new BusinessException("请先完善运动员信息");
-                    }
-                    if (athlete.getAthleteState() != AthleteStatus.APPROVED) {
-                        throw new BusinessException("请先申请并通过运动员资格审核");
-                    }
-            
                     Project project = projectMapper.selectById(projectId);
                     if (project == null) {
                         throw new BusinessException("项目不存在");
@@ -123,6 +115,16 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
                     Event event = eventMapper.selectById(project.getEventId());
                     if (event == null) {
                         throw new BusinessException("赛事不存在");
+                    }
+
+                    Athlete athlete = athleteMapper.selectOne(new LambdaQueryWrapper<Athlete>()
+                            .eq(Athlete::getUserId, userId)
+                            .eq(Athlete::getEventId, event.getId()));
+                    if (athlete == null) {
+                        throw new BusinessException("请先完善本赛事的运动员信息");
+                    }
+                    if (athlete.getAthleteState() != AthleteStatus.APPROVED) {
+                        throw new BusinessException("请先申请并通过本赛事的运动员资格审核");
                     }
             
                     if (event.getEventStatus() != EventStatus.OPEN) {

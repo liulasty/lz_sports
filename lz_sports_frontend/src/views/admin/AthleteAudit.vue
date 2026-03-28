@@ -132,17 +132,17 @@
               </div>
             </template>
           </el-table-column>
-          <el-table-column prop="status" label="状态" width="100">
+          <el-table-column prop="athleteState" label="状态" width="100">
             <template #default="scope">
-              <div class="status-badge" :class="'status-' + scope.row.status?.toLowerCase()">
+              <div class="status-badge" :class="'status-' + scope.row.athleteState?.toLowerCase()">
                 <span class="status-dot"></span>
-                {{ getStatusLabel(scope.row.status) }}
+                {{ getStatusLabel(scope.row.athleteState) }}
               </div>
             </template>
           </el-table-column>
           <el-table-column label="操作" width="160" fixed="right">
             <template #default="scope">
-              <div class="action-btns" v-if="scope.row.status === 'PENDING'">
+              <div class="action-btns" v-if="scope.row.athleteState === 'PENDING'">
                 <el-button
                   size="small"
                   class="action-approve"
@@ -217,14 +217,14 @@ const queryParams = reactive({
 })
 
 const hasPendingSelection = computed(() => {
-  return selectedRows.value.length > 0 && selectedRows.value.every(row => row.status === 'PENDING')
+  return selectedRows.value.length > 0 && selectedRows.value.every(row => row.athleteState === 'PENDING')
 })
 
-const canSelect = (row) => row.status === 'PENDING'
+const canSelect = (row) => row.athleteState === 'PENDING'
 
 const getRowClass = ({ row }) => {
-  if (row.status === 'APPROVED') return 'row-approved'
-  if (row.status === 'REJECTED') return 'row-rejected'
+  if (row.athleteState === 'APPROVED') return 'row-approved'
+  if (row.athleteState === 'REJECTED') return 'row-rejected'
   return ''
 }
 
@@ -267,9 +267,9 @@ const calculateStatsFromList = async () => {
     const res = await getAthleteApplications(queryParams.eventId, { currentPage: 1, pageSize: 10000 })
     if (res.code === 200 && res.data && res.data.records) {
       const records = res.data.records
-      stats.value.pending = records.filter(r => r.status === 'PENDING').length
-      stats.value.approved = records.filter(r => r.status === 'APPROVED').length
-      stats.value.rejected = records.filter(r => r.status === 'REJECTED').length
+      stats.value.pending = records.filter(r => r.athleteState === 'PENDING').length
+      stats.value.approved = records.filter(r => r.athleteState === 'APPROVED').length
+      stats.value.rejected = records.filter(r => r.athleteState === 'REJECTED').length
     }
   } catch (e) {
     console.error(e)

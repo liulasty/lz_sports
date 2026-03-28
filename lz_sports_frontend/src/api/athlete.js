@@ -8,10 +8,11 @@ export function applyAthlete(data) {
   })
 }
 
-export function getAthleteApply(id) {
+export function getAthleteApply(id, eventId) {
   return request({
     url: `/athlete/apply/${id}`,
-    method: 'get'
+    method: 'get',
+    params: { eventId }
   })
 }
 

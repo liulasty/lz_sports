@@ -66,13 +66,6 @@ export function deleteUser(id) {
   })
 }
 
-export function examinePlayer(id) {
-  return request({
-    url: `/auth/examine/${id}`,
-    method: 'put'
-  })
-}
-
 export function getUserNumsByMonth(month) {
   return request({
     url: '/auth/getUserNumsByMonth',

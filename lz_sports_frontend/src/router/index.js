@@ -60,7 +60,7 @@ const routes = [
   {
     path: '/',
     name: 'PortalHome',
-    component: () => import('@/views/Portalhome/index.vue'),
+    component: () => import('@/views/portalhome/index.vue'),
     meta: { title: '首页', requiresAuth: false }
   },
   {

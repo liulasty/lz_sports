@@ -32,6 +32,8 @@ public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> impl
 
     private final UserMapper userMapper;
     private final NotificationService notificationService;
+    private final com.lz.mapper.EventMapper eventMapper;
+    private final com.lz.mapper.RegistrationMapper registrationMapper;
 
     @Override
     public java.util.List<Athlete> getMyApplications() {
@@ -39,9 +41,17 @@ public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> impl
         if (currentUserId == null) {
             throw new BusinessException("用户未登录");
         }
-        return baseMapper.selectList(new LambdaQueryWrapper<Athlete>()
+        java.util.List<Athlete> athletes = baseMapper.selectList(new LambdaQueryWrapper<Athlete>()
                 .eq(Athlete::getUserId, currentUserId)
                 .orderByDesc(Athlete::getApplyTime));
+        
+        for (Athlete athlete : athletes) {
+            com.lz.entity.Event event = eventMapper.selectById(athlete.getEventId());
+            if (event != null) {
+                athlete.setEventName(event.getEventName());
+            }
+        }
+        return athletes;
     }
 
     @Override
@@ -66,9 +76,17 @@ public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> impl
                 .eq(Athlete::getUserId, userId)
                 .eq(Athlete::getEventId, eventId));
                 
-        if (exists != null && exists.getAthleteState() == AthleteStatus.PENDING) {
-            throw new BusinessException("已有待审核申请，请勿重复提交");
+        if (exists != null) {
+            if (exists.getAthleteState() == AthleteStatus.PENDING) {
+                throw new BusinessException("该赛事已有待审核申请，请勿重复提交");
+            } else if (exists.getAthleteState() == AthleteStatus.APPROVED) {
+                throw new BusinessException("您已通过该赛事的运动员资格审核");
+            } else if (exists.getAthleteState() == AthleteStatus.REJECTED) {
+                // 如果之前被拒绝，允许重新申请，但为了避免数据库唯一索引冲突，先删除旧记录
+                removeById(exists.getId());
+            }
         }
+        
         Athlete athlete = new Athlete();
         athlete.setUserId(userId);
         athlete.setEventId(eventId);
@@ -85,8 +103,14 @@ public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> impl
     }
 
     @Override
-    public Athlete selectApply(Long userId) {
-        Athlete athlete = baseMapper.selectByUserId(userId);
+    public Athlete selectApply(Long userId, Long eventId) {
+        LambdaQueryWrapper<Athlete> wrapper = new LambdaQueryWrapper<Athlete>().eq(Athlete::getUserId, userId);
+        if (eventId != null) {
+            wrapper.eq(Athlete::getEventId, eventId);
+        }
+        wrapper.orderByDesc(Athlete::getApplyTime).last("LIMIT 1");
+        
+        Athlete athlete = baseMapper.selectOne(wrapper);
         // If not found, returning null might be handled by controller or throw exception.
         // Old code threw NoAthleteException.
         if (athlete == null) {
@@ -127,12 +151,6 @@ public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> impl
         athlete.setAgreeTime(LocalDateTime.now());
         updateById(athlete);
         
-        User user = userMapper.selectById(athlete.getUserId());
-        if (user != null && user.getUserType() != UserRole.ATHLETE) {
-            user.setUserType(UserRole.ATHLETE);
-            userMapper.updateById(user);
-        }
-        
         notificationService.create(athlete.getUserId(), "运动员资格审核通过", "您在赛事的运动员资格申请已通过", NotificationType.ATHLETE_APPROVED);
     }
 
@@ -162,16 +180,26 @@ public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> impl
     }
 
     @Override
-    public void refusePlayer(Long userId) {
-        baseMapper.refusePlayer(userId);
-        notificationService.create(userId, "运动员审核结果", "您的运动员申请已被拒绝", NotificationType.ATHLETE_REJECTED);
-    }
-
-    @Override
-    public void deleteByUserId(Long userId) {
-        LambdaQueryWrapper<Athlete> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Athlete::getUserId, userId);
-        remove(wrapper);
+    @Transactional(rollbackFor = Exception.class)
+    public void cancelApplication(Long id) {
+        Athlete athlete = getById(id);
+        if (athlete == null) {
+            throw new BusinessException("申请记录不存在");
+        }
+        
+        Long userId = athlete.getUserId();
+        Long eventId = athlete.getEventId();
+        
+        // 检查是否有报名记录
+        long regCount = registrationMapper.selectCount(new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.lz.entity.Registration>()
+                .eq(com.lz.entity.Registration::getAthleteId, userId)
+                .eq(com.lz.entity.Registration::getEventId, eventId));
+                
+        if (regCount > 0) {
+            throw new BusinessException("该申请已有关联的项目报名记录，无法删除");
+        }
+        
+        removeById(id);
     }
 
     @Override
@@ -187,29 +215,15 @@ public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> impl
             throw new BusinessException("运动员不存在");
         }
 
-        // Delete existing record
-        removeById(athleteId);
-
-        // Update User Type to "Student" or "Athlete"
-        User user = userMapper.selectById(athlete.getUserId());
-        if (user != null) {
-            user.setUserType(UserRole.ATHLETE);
-            userMapper.updateById(user);
-        }
-
-        // Create new application
-        Athlete newAthlete = new Athlete();
-        newAthlete.setUserId(athlete.getUserId());
-        newAthlete.setEventId(athlete.getEventId());
-        newAthlete.setName(dto.getName() != null ? dto.getName() : athlete.getName());
-        newAthlete.setAge(dto.getAge() != null ? String.valueOf(dto.getAge()) : athlete.getAge());
-        newAthlete.setGender(dto.getGender() != null ? dto.getGender() : athlete.getGender());
-        newAthlete.setContact(dto.getContact() != null ? dto.getContact() : athlete.getContact());
-        // ... set other fields
-        newAthlete.setGrade(dto.getGrade() != null ? dto.getGrade() : athlete.getGrade());
-        newAthlete.setAthleteState(AthleteStatus.PENDING);
-        newAthlete.setApplyTime(LocalDateTime.now());
+        // 修改申请信息，重置为待审核状态
+        athlete.setName(dto.getName() != null ? dto.getName() : athlete.getName());
+        athlete.setAge(dto.getAge() != null ? String.valueOf(dto.getAge()) : athlete.getAge());
+        athlete.setGender(dto.getGender() != null ? dto.getGender() : athlete.getGender());
+        athlete.setContact(dto.getContact() != null ? dto.getContact() : athlete.getContact());
+        athlete.setGrade(dto.getGrade() != null ? dto.getGrade() : athlete.getGrade());
+        athlete.setAthleteState(AthleteStatus.PENDING);
+        athlete.setApplyTime(LocalDateTime.now());
         
-        save(newAthlete);
+        updateById(athlete);
     }
 }

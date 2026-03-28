@@ -47,12 +47,12 @@ public class AthleteController {
 
     /**
      * 查询申请状态
-     * 根据用户ID查询其当前的运动员申请状态
+     * 根据用户ID和赛事ID查询其当前的运动员申请状态
      */
     @GetMapping("/apply/{id}")
     @Operation(summary = "查询申请状态", description = "根据用户ID查询申请记录")
-    public Result<Athlete> selectApply(@Parameter(description = "用户ID") @PathVariable Long id) {
-        return Result.success(athleteService.selectApply(id));
+    public Result<Athlete> selectApply(@Parameter(description = "用户ID") @PathVariable Long id, @RequestParam(required = false) Long eventId) {
+        return Result.success(athleteService.selectApply(id, eventId));
     }
 
     /**
@@ -61,12 +61,12 @@ public class AthleteController {
      */
     @GetMapping("/{id}")
     @Operation(summary = "查询运动员详情", description = "根据运动员ID或用户ID获取详细信息")
-    public Result<Athlete> selectAthlete(@Parameter(description = "运动员ID或用户ID") @PathVariable Long id) {
+    public Result<Athlete> selectAthlete(@Parameter(description = "运动员ID或用户ID") @PathVariable Long id, @RequestParam(required = false) Long eventId) {
         Athlete athlete = athleteService.selectOne(id);
         if (athlete == null) {
             // 兼容逻辑：如果找不到运动员ID，尝试作为用户ID查询申请记录
             try {
-                athlete = athleteService.selectApply(id);
+                athlete = athleteService.selectApply(id, eventId);
             } catch (Exception e) {
                 // 忽略异常，返回null或抛出业务异常由全局处理
             }
@@ -92,9 +92,9 @@ public class AthleteController {
      * 用户撤销申请或管理员删除记录
      */
     @DeleteMapping("/{id}")
-    @Operation(summary = "删除记录", description = "根据用户ID删除申请记录")
-    public Result<String> deleteRecord(@Parameter(description = "用户ID") @PathVariable Long id) {
-        athleteService.deleteByUserId(id);
+    @Operation(summary = "删除记录", description = "根据运动员ID取消申请记录")
+    public Result<String> deleteRecord(@Parameter(description = "运动员ID") @PathVariable Long id) {
+        athleteService.cancelApplication(id);
         return Result.success("删除成功");
     }
 }

@@ -214,16 +214,29 @@
             reserve-keyword
             placeholder="搜索用户（邮箱 / 姓名）"
             :remote-method="searchUsers"
+            @focus="() => searchUsers('')"
             :loading="userLoading"
             style="width: 320px; margin-right: 12px;"
             value-key="id"
+            popper-class="user-select-popper"
           >
             <el-option
               v-for="item in userOptions"
               :key="item.id"
-              :label="`${item.name} (${item.email || item.username})`"
+              :label="item.name || item.username"
               :value="item"
-            />
+              class="user-option-item"
+            >
+              <div class="user-option-content">
+                <el-avatar :size="28" :src="getAvatarUrl(item.avatar)" class="user-option-avatar">
+                  {{ (item.name || item.username || 'U').charAt(0).toUpperCase() }}
+                </el-avatar>
+                <div class="user-option-info">
+                  <div class="user-option-name">{{ item.name || item.username }}</div>
+                  <div class="user-option-email">{{ item.email || '无邮箱' }}</div>
+                </div>
+              </div>
+            </el-option>
           </el-select>
           <el-button type="primary" class="toolbar-btn" @click="addAdmin" :disabled="!selectedUser">
             <svg viewBox="0 0 24 24" fill="none" class="btn-icon"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M20 8v6M23 11H17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/></svg>
@@ -238,19 +251,23 @@
           <p>暂未添加管理员，请通过搜索框查找并添加</p>
         </div>
 
-        <div v-else class="admin-list">
+        <div v-else class="admin-list-grid">
           <div v-for="(admin, index) in form.adminList" :key="admin.id" class="admin-card">
-            <div class="admin-avatar">{{ (admin.name || 'U').charAt(0).toUpperCase() }}</div>
+            <el-avatar :size="48" :src="getAvatarUrl(admin.avatar)" class="admin-avatar-img">
+              {{ (admin.name || admin.username || 'U').charAt(0).toUpperCase() }}
+            </el-avatar>
             <div class="admin-info">
-              <div class="admin-name">{{ admin.name }}</div>
-              <div class="admin-email">{{ admin.email }}</div>
+              <div class="admin-name">{{ admin.name || admin.username }}</div>
+              <div class="admin-email">{{ admin.email || '无邮箱' }}</div>
             </div>
-            <el-tag class="admin-role-tag">
-              {{ admin.type === 'EVENT_ADMIN' ? '赛事管理员' : (admin.type || '管理员') }}
-            </el-tag>
-            <el-button type="danger" link class="admin-remove-btn" @click="removeAdmin(index)">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-            </el-button>
+            <div class="admin-actions">
+              <el-tag class="admin-role-tag" effect="light" type="primary">
+                {{ admin.type === 'EVENT_ADMIN' ? '赛事管理员' : (admin.type || '管理员') }}
+              </el-tag>
+              <el-button type="danger" circle plain class="admin-remove-btn" @click="removeAdmin(index)">
+                <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              </el-button>
+            </div>
           </div>
         </div>
       </div>
@@ -463,18 +480,23 @@ const userOptions = ref([])
 const userLoading = ref(false)
 const selectedUser = ref(null)
 
-const searchUsers = async (query) => {
-  if (query) {
-    userLoading.value = true
-    try {
-      const res = await getAdminUserList({ keyword: query, page: 1, size: 20 })
-      if (res.code === 200) userOptions.value = res.data.records
-    } finally {
-      userLoading.value = false
+const searchUsers = async (query = '') => {
+  userLoading.value = true
+  try {
+    const res = await getAdminUserList({ keyword: query, page: 1, size: 20 })
+    if (res.code === 200) {
+      userOptions.value = res.data.records || res.data.rows || res.data || []
     }
-  } else {
-    userOptions.value = []
+  } catch (error) {
+    console.error('Failed to fetch users:', error)
+  } finally {
+    userLoading.value = false
   }
+}
+
+const getAvatarUrl = (url) => {
+  if (!url) return ''
+  return url.replace(/[`\s]/g, '')
 }
 
 const addAdmin = () => {
@@ -917,77 +939,114 @@ const submitEvent = async (targetStatus) => {
   height: 16px;
 }
 
-/* ===================== Admin Cards ===================== */
-.admin-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* ===================== Admin Cards Grid ===================== */
+.admin-list-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
 }
 .admin-card {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 14px 18px;
+  padding: 16px;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 12px;
-  transition: box-shadow 0.2s, border-color 0.2s;
+  transition: all 0.3s ease;
 }
 .admin-card:hover {
   border-color: var(--el-color-primary-light-5);
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
 }
-.admin-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+.admin-avatar-img {
   background: linear-gradient(135deg, var(--el-color-primary-light-3), var(--el-color-primary));
   color: #fff;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   flex-shrink: 0;
+  border: 2px solid var(--el-color-primary-light-9);
 }
 .admin-info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 .admin-name {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--el-text-color-primary);
-}
-.admin-email {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  margin-top: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.admin-role-tag {
-  flex-shrink: 0;
+.admin-email {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.admin-remove-btn {
-  width: 32px !important;
-  height: 32px !important;
-  padding: 0 !important;
+.admin-actions {
   display: flex;
   align-items: center;
-  justify-content: center;
-  border-radius: 8px !important;
-  color: var(--el-color-danger-light-3) !important;
-  transition: background 0.2s, color 0.2s;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.admin-role-tag {
+  border-radius: 6px;
+  padding: 0 8px;
+  height: 24px;
+  line-height: 22px;
+  font-size: 12px;
+}
+.admin-remove-btn {
+  padding: 6px !important;
+  height: auto !important;
+  border: none !important;
+  color: var(--el-text-color-placeholder) !important;
+  background: transparent !important;
+  transition: all 0.2s;
 }
 .admin-remove-btn:hover {
-  background: var(--el-color-danger-light-9) !important;
   color: var(--el-color-danger) !important;
+  background-color: var(--el-color-danger-light-9) !important;
+  transform: scale(1.05);
 }
-.admin-remove-btn svg {
-  width: 16px;
-  height: 16px;
+
+/* ===================== Custom Select Option ===================== */
+:deep(.user-select-popper .el-select-dropdown__item) {
+  height: auto !important;
+  padding: 8px 12px;
+}
+.user-option-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.user-option-avatar {
+  background: linear-gradient(135deg, var(--el-color-primary-light-3), var(--el-color-primary));
+  color: #fff;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+.user-option-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.user-option-name {
+  font-size: 14px;
+  color: var(--el-text-color-primary);
+  font-weight: 500;
+}
+.user-option-email {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  margin-top: 4px;
 }
 
 /* ===================== Footer Actions ===================== */

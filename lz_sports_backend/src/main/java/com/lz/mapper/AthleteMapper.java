@@ -20,10 +20,4 @@ public interface AthleteMapper extends BaseMapper<Athlete> {
 
     @Select("SELECT COUNT(*) FROM athlete WHERE YEAR(agree_time) = #{year} AND MONTH(agree_time) = #{month}")
     int getAthleteNumByMonth(int year, int month);
-
-    @Update("UPDATE athlete SET athlete_state = 'REJECTED' WHERE user_id = #{userId}")
-    void refusePlayer(Long userId);
-
-    @Select("SELECT * FROM athlete WHERE user_id = #{userId} ORDER BY create_time DESC LIMIT 1")
-    Athlete selectByUserId(Long userId);
 }

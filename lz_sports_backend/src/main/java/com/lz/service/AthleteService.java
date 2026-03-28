@@ -18,17 +18,12 @@ public interface AthleteService extends IService<Athlete> {
     /**
      * Get application by User ID
      */
-    Athlete selectApply(Long userId);
+    Athlete selectApply(Long userId, Long eventId);
 
     /**
-     * Refuse application (by User ID)
+     * Cancel specific athlete application
      */
-    void refusePlayer(Long userId);
-
-    /**
-     * Delete by User ID
-     */
-    void deleteByUserId(Long userId);
+    void cancelApplication(Long id);
 
     /**
      * Get Athlete by Athlete ID

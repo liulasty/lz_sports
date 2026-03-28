@@ -3,7 +3,7 @@ import request from '@/utils/request'
 // 运动员申请列表（按赛事）
 export function getAthleteApplications(eventId, params) {
   return request({
-    url: `/api/event-admin/${eventId}/athlete-applications`,
+    url: `/event-admin/${eventId}/athlete-applications`,
     method: 'get',
     params
   })
@@ -12,7 +12,7 @@ export function getAthleteApplications(eventId, params) {
 // 审核通过单条运动员申请
 export function approveApplication(eventId, applicationId) {
   return request({
-    url: `/api/event-admin/${eventId}/athlete-applications/${applicationId}/approve`,
+    url: `/event-admin/${eventId}/athlete-applications/${applicationId}/approve`,
     method: 'post'
   })
 }
@@ -29,7 +29,7 @@ export function rejectApplication(eventId, applicationId, rejectReason) {
 // 批量审核通过
 export function batchApproveApplications(eventId, applicationIds) {
   return request({
-    url: `/api/event-admin/${eventId}/athlete-applications/batch-approve`,
+    url: `/event-admin/${eventId}/athlete-applications/batch-approve`,
     method: 'post',
     data: applicationIds
   })
@@ -38,7 +38,7 @@ export function batchApproveApplications(eventId, applicationIds) {
 // 报名统计
 export function getRegistrationStats(eventId) {
   return request({
-    url: `/api/event-admin/${eventId}/registrations/stats`,
+    url: `/event-admin/${eventId}/registrations/stats`,
     method: 'get'
   })
 }
