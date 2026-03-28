@@ -1,16 +1,16 @@
 <template>
   <div class="profile-container">
 
-    <!-- Ambient background blobs -->
+    <!-- 环境背景光斑 -->
     <div class="bg-blob bg-blob-1"></div>
     <div class="bg-blob bg-blob-2"></div>
     <div class="bg-blob bg-blob-3"></div>
 
     <div class="profile-grid">
 
-      <!-- ── Left: User Info Card ── -->
+      <!-- ── 左侧：用户信息卡片 ── -->
       <div class="info-card">
-        <!-- Gradient header band -->
+        <!-- 顶部渐变背景带 -->
         <div class="card-hero">
           <div class="hero-pattern"></div>
           <div class="avatar-float">
@@ -24,7 +24,7 @@
           </div>
         </div>
 
-        <!-- Identity section -->
+        <!-- 身份信息区域 -->
         <div class="identity-section">
           <h3 class="username">{{ userInfo.userName || '—' }}</h3>
           <div class="role-badge">
@@ -33,7 +33,7 @@
           </div>
         </div>
 
-        <!-- Stats strip -->
+        <!-- 统计数据条 -->
         <div class="stats-strip">
           <div class="stat-item">
             <span class="stat-number">{{ myApplications.length }}</span>
@@ -53,7 +53,7 @@
           </div>
         </div>
 
-        <!-- Info rows -->
+        <!-- 详细信息列表 -->
         <div class="info-list">
           <div class="info-row">
             <div class="info-label">
@@ -101,7 +101,7 @@
         </div>
       </div>
 
-      <!-- ── Right: Main Panel ── -->
+      <!-- ── 右侧：主内容面板 ── -->
       <div class="main-card">
         <el-tabs v-model="activeTab" class="profile-tabs">
           <el-tab-pane label="运动员认证" name="apply" v-if="!isAdmin">
@@ -134,7 +134,7 @@
                 </el-table>
               </div>
 
-              <!-- Apply form -->
+              <!-- 赛事申请表单 -->
               <div v-if="availableEvents.length > 0" class="apply-form-wrap">
                 <div class="section-header">
                   <span class="section-badge badge-orange">新申请</span>
@@ -264,52 +264,56 @@
       </div>
 
     </div>
-  </div>
 
-  <!-- Update Athlete Info Dialog -->
-  <el-dialog
-    v-model="updateDialogVisible"
-    title="修改运动员信息"
-    width="500px"
-    class="custom-dialog"
-  >
-    <el-alert
-      title="修改信息后当前赛事的申请状态将重新变为「审核中」，需要重新审核。"
-      type="warning"
-      show-icon
-      :closable="false"
-      style="margin-bottom: 20px;"
-    />
-    <el-form ref="updateFormRef" :model="updateForm" :rules="rules" label-width="80px">
-      <el-form-item label="姓名" prop="name">
-        <el-input v-model="updateForm.name" placeholder="请输入真实姓名" />
-      </el-form-item>
-      <el-form-item label="年龄" prop="age">
-        <el-input-number v-model="updateForm.age" :min="1" :max="100" />
-      </el-form-item>
-      <el-form-item label="性别" prop="gender">
-        <el-radio-group v-model="updateForm.gender">
-          <el-radio label="男">男</el-radio>
-          <el-radio label="女">女</el-radio>
-        </el-radio-group>
-      </el-form-item>
-      <el-form-item label="联系方式" prop="phone">
-        <el-input v-model="updateForm.phone" placeholder="请输入手机号" />
-      </el-form-item>
-      <el-form-item label="年级/班级" prop="grade">
-        <el-input v-model="updateForm.grade" placeholder="例如：21级计科1班" />
-      </el-form-item>
-    </el-form>
-    <template #footer>
-      <span class="dialog-footer">
-        <el-button @click="updateDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitUpdate" :loading="updating">确认修改</el-button>
-      </span>
-    </template>
-  </el-dialog>
+    <!-- 修改运动员信息弹窗 -->
+    <el-dialog
+      v-model="updateDialogVisible"
+      title="修改运动员信息"
+      width="500px"
+      class="custom-dialog"
+    >
+      <el-alert
+        title="修改信息后当前赛事的申请状态将重新变为「审核中」，需要重新审核。"
+        type="warning"
+        show-icon
+        :closable="false"
+        style="margin-bottom: 20px;"
+      />
+      <el-form ref="updateFormRef" :model="updateForm" :rules="rules" label-width="80px">
+        <el-form-item label="姓名" prop="name">
+          <el-input v-model="updateForm.name" placeholder="请输入真实姓名" />
+        </el-form-item>
+        <el-form-item label="年龄" prop="age">
+          <el-input-number v-model="updateForm.age" :min="1" :max="100" />
+        </el-form-item>
+        <el-form-item label="性别" prop="gender">
+          <el-radio-group v-model="updateForm.gender">
+            <el-radio label="男">男</el-radio>
+            <el-radio label="女">女</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="联系方式" prop="phone">
+          <el-input v-model="updateForm.phone" placeholder="请输入手机号" />
+        </el-form-item>
+        <el-form-item label="年级/班级" prop="grade">
+          <el-input v-model="updateForm.grade" placeholder="例如：21级计科1班" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="updateDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="submitUpdate" :loading="updating">确认修改</el-button>
+        </span>
+      </template>
+    </el-dialog>
+  </div>
 </template>
 
 <script setup>
+/**
+ * @file index.vue
+ * @description 个人中心/运动员认证页面组件，包含个人信息展示、赛事认证申请、报名记录查询等功能
+ */
 import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
@@ -321,31 +325,35 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { isSuccess } from '@/utils/result'
 import { normalizeAthleteStatus } from '@/utils/athleteStatus'
 
-const route = useRoute()
-const userStore = useUserStore()
-const userInfo = ref({})
+const route = useRoute() // 路由对象
+const userStore = useUserStore() // 用户状态管理
+const userInfo = ref({}) // 用户详细信息
+// 判断当前用户是否为运动员
 const isAthlete = computed(() => userInfo.value.userType === 'ATHLETE' || userInfo.value.userType === '运动员')
+// 判断当前用户是否为管理员
 const isAdmin = computed(() => ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'EVENT_ADMIN', '管理员'].includes(userInfo.value.userType))
 
-const activeTab = ref('apply')
-const loading = ref(false)
-const registrationList = ref([])
-const total = ref(0)
-const queryParams = reactive({ currentPage: 1, pageSize: 5 })
+const activeTab = ref('apply') // 当前激活的标签页
+const loading = ref(false) // 表格加载状态
+const registrationList = ref([]) // 报名记录列表
+const total = ref(0) // 报名记录总数
+const queryParams = reactive({ currentPage: 1, pageSize: 5 }) // 查询参数
 
-const eventList = ref([])
-const myApplications = ref([])
+const eventList = ref([]) // 赛事列表
+const myApplications = ref([]) // 我的赛事申请列表
+// 计算可申请的赛事（过滤掉已经申请过的）
 const availableEvents = computed(() => {
   return eventList.value.filter(e => !myApplications.value.some(app => app.eventId === e.id))
 })
-const applyFormRef = ref(null)
-const applyForm = reactive({ name: '', age: 18, gender: '', phone: '', grade: '', userId: '', eventId: null })
+const applyFormRef = ref(null) // 申请表单引用
+const applyForm = reactive({ name: '', age: 18, gender: '', phone: '', grade: '', userId: '', eventId: null }) // 申请表单数据
 
-const updateDialogVisible = ref(false)
-const updating = ref(false)
-const updateFormRef = ref(null)
-const updateForm = reactive({ id: null, name: '', age: 18, gender: '', phone: '', grade: '' })
+const updateDialogVisible = ref(false) // 修改信息弹窗显示状态
+const updating = ref(false) // 修改提交状态
+const updateFormRef = ref(null) // 修改表单引用
+const updateForm = reactive({ id: null, name: '', age: 18, gender: '', phone: '', grade: '' }) // 修改表单数据
 
+// 表单校验规则
 const rules = {
   eventId: [{ required: true, message: '请选择要报名的赛事', trigger: 'change' }],
   name:   [{ required: true, message: '请输入姓名', trigger: 'blur' }],
@@ -366,11 +374,21 @@ const headerCellStyle = {
 }
 const rowStyle = { background: 'transparent' }
 
+/**
+ * 获取状态对应的样式类名（通用）
+ * @param {string} status 状态字符串
+ * @returns {string} 样式类名
+ */
 const getPillClass = (status) => {
   if (status === '通过') return 'pill-success'
   if (status === '未通过' || status === '拒绝') return 'pill-danger'
   return 'pill-warning'
 }
+/**
+ * 获取赛事申请状态对应的样式类名
+ * @param {string} status 申请状态
+ * @returns {string} 样式类名
+ */
 const getApplyPillClass = (status) => {
   const normalized = normalizeAthleteStatus(status)
   if (normalized === 'APPROVED') return 'pill-success'
@@ -378,6 +396,9 @@ const getApplyPillClass = (status) => {
   return 'pill-warning'
 }
 
+/**
+ * 获取用户基础信息并初始化页面数据
+ */
 const getInfo = async () => {
   try {
     const res = await getUserInfo()
@@ -398,16 +419,22 @@ const getInfo = async () => {
         await loadEvents()
       }
     }
-  } catch (error) { console.error(error) }
+  } catch (error) { console.error('获取信息失败:', error) }
 }
 
+/**
+ * 获取我的赛事申请列表
+ */
 const loadMyApplications = async () => {
   try {
     const res = await getMyApplications()
     if (isSuccess(res)) { myApplications.value = res.data || [] }
-  } catch (error) { console.error(error) }
+  } catch (error) { console.error('获取信息失败:', error) }
 }
 
+/**
+ * 获取可用赛事列表
+ */
 const loadEvents = async () => {
   try {
     const res = await getEventList({ currentPage: 1, pageSize: 100, status: 'OPEN' })
@@ -421,18 +448,25 @@ const loadEvents = async () => {
         applyForm.eventId = null
       }
     }
-  } catch (error) { console.error(error) }
+  } catch (error) { console.error('获取信息失败:', error) }
 }
 
+/**
+ * 获取报名记录列表
+ */
 const getRegistrations = async () => {
   loading.value = true
   try {
     const res = await getRegistrationList(queryParams)
     if (isSuccess(res)) { registrationList.value = res.data.records; total.value = res.data.total }
-  } catch (error) { console.error(error) }
+  } catch (error) { console.error('获取信息失败:', error) }
   finally { loading.value = false }
 }
 
+/**
+ * 取消赛事申请
+ * @param {number|string} id 申请记录ID
+ */
 const handleCancelApplication = (id) => {
   ElMessageBox.confirm('确认取消该赛事的运动员申请吗？', '提示', {
     confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning'
@@ -440,16 +474,23 @@ const handleCancelApplication = (id) => {
     try {
       const res = await deleteAthleteRecord(id)
       if (isSuccess(res)) { ElMessage.success('取消成功'); await getInfo() }
-    } catch (e) { console.error(e) }
+    } catch (e) { console.error('操作失败:', e) }
   })
 }
 
+/**
+ * 打开修改申请信息弹窗
+ * @param {Object} row 当前行数据
+ */
 const handleUpdateApplication = (row) => {
   updateForm.id = row.id; updateForm.name = row.name; updateForm.age = Number(row.age) || 18
   updateForm.gender = row.gender; updateForm.phone = row.contact; updateForm.grade = row.grade
   updateDialogVisible.value = true
 }
 
+/**
+ * 提交修改申请信息
+ */
 const submitUpdate = async () => {
   if (!updateFormRef.value) return
   await updateFormRef.value.validate(async (valid) => {
@@ -468,12 +509,15 @@ const submitUpdate = async () => {
             updateDialogVisible.value = false
             await getInfo()
           }
-        } catch (error) { console.error(error) } finally { updating.value = false }
+        } catch (error) { console.error('获取信息失败:', error) } finally { updating.value = false }
       }).catch(() => {})
     }
   })
 }
 
+/**
+ * 提交新的赛事认证申请
+ */
 const submitApply = async () => {
   if (!applyFormRef.value) return
   await applyFormRef.value.validate(async (valid) => {
@@ -485,13 +529,26 @@ const submitApply = async () => {
           applyFormRef.value.resetFields()
           await getInfo()
         }
-      } catch (error) { console.error(error) }
+      } catch (error) { console.error('获取信息失败:', error) }
     }
   })
 }
 
+/**
+ * 处理分页大小改变
+ * @param {number} val 每页条数
+ */
 const handleSizeChange = (val) => { queryParams.pageSize = val; getRegistrations() }
+/**
+ * 处理页码改变
+ * @param {number} val 当前页码
+ */
 const handleCurrentChange = (val) => { queryParams.currentPage = val; getRegistrations() }
+/**
+ * 格式化日期字符串
+ * @param {string} dateStr 日期字符串
+ * @returns {string} 格式化后的本地日期时间字符串
+ */
 const formatDate = (dateStr) => {
   if (!dateStr) return ''
   return new Date(dateStr).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
@@ -502,10 +559,10 @@ onMounted(() => getInfo())
 
 <style scoped>
 /* ─────────────────────────────────────────
-   CSS Variables — light & dark adaptive
+   CSS 变量 — 亮色与暗色模式自适应
 ───────────────────────────────────────── */
 .profile-container {
-  /* Light mode defaults */
+  /* 亮色模式默认值 */
   --pc-bg:           #f4f5f9;
   --pc-card:         #ffffff;
   --pc-card-alt:     #fafbff;
@@ -516,7 +573,7 @@ onMounted(() => getInfo())
   --pc-shadow:       0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
   --pc-shadow-lg:    0 12px 48px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
 
-  /* Accent palette — same in both modes */
+  /* 强调色调 — 两种模式下相同 */
   --c-orange:        #FF6B35;
   --c-orange-2:      #FF8F60;
   --c-orange-dim:    rgba(255,107,53,0.12);
@@ -538,7 +595,7 @@ onMounted(() => getInfo())
   --c-amber-dim:     rgba(245,158,11,0.12);
 }
 
-/* Dark mode overrides */
+/* 暗色模式重写 */
 :root.dark .profile-container,
 html.dark .profile-container,
 [data-theme="dark"] .profile-container {
@@ -554,7 +611,7 @@ html.dark .profile-container,
 }
 
 /* ─────────────────────────────────────────
-   Outer container & ambient blobs
+   外部容器与环境光斑
 ───────────────────────────────────────── */
 .profile-container {
   position: relative;
@@ -594,7 +651,7 @@ html.dark .bg-blob { opacity: 0.10; }
 }
 
 /* ─────────────────────────────────────────
-   Grid layout
+   网格布局
 ───────────────────────────────────────── */
 .profile-grid {
   position: relative;
@@ -608,7 +665,7 @@ html.dark .bg-blob { opacity: 0.10; }
 }
 
 /* ─────────────────────────────────────────
-   Info card (left)
+   左侧信息卡片
 ───────────────────────────────────────── */
 .info-card {
   background: var(--pc-card);
@@ -619,7 +676,7 @@ html.dark .bg-blob { opacity: 0.10; }
   transition: background 0.3s, border-color 0.3s;
 }
 
-/* Hero gradient band */
+/* 顶部英雄渐变带 */
 .card-hero {
   position: relative;
   height: 120px;
@@ -676,7 +733,7 @@ html.dark .bg-blob { opacity: 0.10; }
   to { transform: rotate(360deg); }
 }
 
-/* Identity section */
+/* 身份信息区域 */
 .identity-section {
   margin-top: 64px;
   padding: 0 24px 20px;
@@ -722,7 +779,7 @@ html.dark .bg-blob { opacity: 0.10; }
   50%       { transform: scale(1.3); opacity: 0.7; }
 }
 
-/* Stats strip */
+/* 统计数据条 */
 .stats-strip {
   display: flex;
   align-items: center;
@@ -773,7 +830,7 @@ html.dark .bg-blob { opacity: 0.10; }
   flex-shrink: 0;
 }
 
-/* Info list */
+/* 信息列表 */
 .info-list {
   padding: 12px 0 28px;
 }
@@ -801,7 +858,7 @@ html.dark .bg-blob { opacity: 0.10; }
   flex-shrink: 0;
 }
 
-/* Colored icon wraps */
+/* 彩色图标容器 */
 .info-icon-wrap {
   width: 28px; height: 28px;
   border-radius: 8px;
@@ -844,7 +901,7 @@ html.dark .bg-blob { opacity: 0.10; }
 }
 
 /* ─────────────────────────────────────────
-   Main card (right)
+   右侧主卡片
 ───────────────────────────────────────── */
 .main-card {
   background: var(--pc-card);
@@ -855,7 +912,7 @@ html.dark .bg-blob { opacity: 0.10; }
   transition: background 0.3s, border-color 0.3s;
 }
 
-/* ── Tabs override ── */
+/* ── 标签页样式重写 ── */
 :deep(.profile-tabs .el-tabs__header) {
   background: var(--pc-card-alt);
   border-bottom: 1px solid var(--pc-border);
@@ -893,7 +950,7 @@ html.dark .bg-blob { opacity: 0.10; }
   padding: 28px;
 }
 
-/* ── Section headers ── */
+/* ── 区域标题 ── */
 .section-header {
   display: flex;
   align-items: center;
@@ -925,8 +982,8 @@ html.dark .bg-blob { opacity: 0.10; }
   transition: color 0.3s;
 }
 
-/* ── Table ── */
-.table-section { /* padding handled by tab content */ }
+/* ── 表格样式 ── */
+.table-section { /* 内边距由标签页内容处理 */ }
 
 .applications-list {
   margin-bottom: 36px;
@@ -958,7 +1015,7 @@ html.dark .bg-blob { opacity: 0.10; }
   background: var(--c-orange-dim) !important;
 }
 
-/* Status pills */
+/* 状态胶囊标签 */
 .status-pill {
   display: inline-flex;
   align-items: center;
@@ -992,7 +1049,7 @@ html.dark .bg-blob { opacity: 0.10; }
   justify-content: flex-end;
 }
 
-/* ── Apply Form ── */
+/* ── 申请表单 ── */
 .apply-form-wrap { }
 
 .apply-form { }
@@ -1020,7 +1077,7 @@ html.dark .bg-blob { opacity: 0.10; }
 :deep(.el-form-item) { margin-bottom: 4px; }
 :deep(.el-form-item__error) { color: var(--c-red); font-size: 11px; }
 
-/* Input styling — scoped to this component */
+/* 输入框样式 — 仅在当前组件生效 */
 :deep(.custom-input .el-input__wrapper) {
   background: var(--pc-card-alt);
   border: 1.5px solid var(--pc-border);
@@ -1077,7 +1134,7 @@ html.dark .bg-blob { opacity: 0.10; }
   transition: all 0.2s;
 }
 
-/* Gender toggle */
+/* 性别切换按钮 */
 .gender-toggle { display: flex; gap: 10px; width: 100%; }
 
 .gender-btn {
@@ -1117,7 +1174,7 @@ html.dark .bg-blob { opacity: 0.10; }
   background: rgba(232,68,156,0.08);
 }
 
-/* Submit button */
+/* 提交按钮 */
 .form-actions { margin-top: 28px; display: flex; justify-content: flex-end; }
 
 .submit-btn {
@@ -1163,7 +1220,7 @@ html.dark .bg-blob { opacity: 0.10; }
   transform: translateX(4px);
 }
 
-/* Empty state */
+/* 空状态提示 */
 .empty-state {
   padding: 64px 24px;
   text-align: center;
@@ -1181,7 +1238,7 @@ html.dark .bg-blob { opacity: 0.10; }
 }
 
 /* ─────────────────────────────────────────
-   Responsive
+   响应式设计
 ───────────────────────────────────────── */
 @media (max-width: 900px) {
   .profile-grid {
