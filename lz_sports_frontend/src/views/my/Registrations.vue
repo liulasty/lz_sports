@@ -17,7 +17,7 @@
         <el-table-column prop="registrationStatus" label="状态">
           <template #default="scope">
             <el-tag :type="getStatusType(scope.row.registrationStatus)">
-              {{ scope.row.registrationStatus }}
+              {{ getStatusLabel(scope.row.registrationStatus) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -27,7 +27,7 @@
               type="danger" 
               size="small" 
               @click="handleCancel(scope.row)"
-              :disabled="scope.row.registrationStatus === 'CANCELLED' || scope.row.registrationStatus === '已取消'"
+              :disabled="scope.row.registrationStatus === 'CANCELLED'"
             >
               取消报名
             </el-button>
@@ -104,10 +104,20 @@ const formatDate = (dateStr) => {
 }
 
 const getStatusType = (status) => {
-  if (status === 'CONFIRMED' || status === '通过') return 'success'
-  if (status === 'PENDING' || status === '待审核') return 'warning'
-  if (status === 'CANCELLED' || status === '已取消') return 'info'
-  return 'danger'
+  if (status === 'APPROVED') return 'success'
+  if (status === 'REJECTED') return 'danger'
+  if (status === 'CANCELLED') return 'info'
+  if (status === 'CONFIRMED') return 'success'
+  return 'warning'
+}
+
+const getStatusLabel = (status) => {
+  if (status === 'APPROVED') return '审核通过'
+  if (status === 'REJECTED') return '审核拒绝'
+  if (status === 'PENDING') return '审核中'
+  if (status === 'CANCELLED') return '已取消'
+  if (status === 'CONFIRMED') return '已确认'
+  return status
 }
 
 onMounted(() => {

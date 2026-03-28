@@ -235,7 +235,7 @@
                 <el-table-column label="状态" width="100" align="center">
                   <template #default="scope">
                     <span class="status-pill" :class="getPillClass(scope.row.registrationStatus)">
-                      {{ scope.row.registrationStatus }}
+                      {{ getStatusLabel(scope.row.registrationStatus) }}
                     </span>
                   </template>
                 </el-table-column>
@@ -380,9 +380,19 @@ const rowStyle = { background: 'transparent' }
  * @returns {string} 样式类名
  */
 const getPillClass = (status) => {
-  if (status === '通过') return 'pill-success'
-  if (status === '未通过' || status === '拒绝') return 'pill-danger'
+  if (status === 'APPROVED' || status === 'CONFIRMED') return 'pill-success'
+  if (status === 'REJECTED') return 'pill-danger'
+  if (status === 'CANCELLED') return 'pill-info'
   return 'pill-warning'
+}
+
+const getStatusLabel = (status) => {
+  if (status === 'APPROVED') return '审核通过'
+  if (status === 'REJECTED') return '已拒绝'
+  if (status === 'PENDING') return '审核中'
+  if (status === 'CANCELLED') return '已取消'
+  if (status === 'CONFIRMED') return '已确认'
+  return status
 }
 /**
  * 获取赛事申请状态对应的样式类名
@@ -1041,6 +1051,11 @@ html.dark .bg-blob { opacity: 0.10; }
   background: var(--c-amber-dim);
   color: var(--c-amber);
   border: 1px solid rgba(245,158,11,0.25);
+}
+.pill-info {
+  background: rgba(148,163,184,0.15);
+  color: #94a3b8;
+  border: 1px solid rgba(148,163,184,0.25);
 }
 
 .pagination-wrap {

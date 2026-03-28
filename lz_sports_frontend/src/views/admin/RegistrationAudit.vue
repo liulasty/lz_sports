@@ -26,9 +26,9 @@
               </template>
             </el-input>
             <el-select v-model="queryParams.status" placeholder="状态" style="width: 130px" clearable>
-              <el-option label="审核中" value="审核中" />
-              <el-option label="通过" value="通过" />
-              <el-option label="未通过" value="未通过" />
+              <el-option label="审核中" value="PENDING" />
+              <el-option label="通过" value="APPROVED" />
+              <el-option label="未通过" value="REJECTED" />
             </el-select>
             <el-button type="primary" class="query-btn" @click="handleQuery">查询</el-button>
           </div>
@@ -120,13 +120,13 @@
             <template #default="scope">
               <div class="status-badge" :class="'status-' + getStatusKey(scope.row.registrationStatus)">
                 <span class="status-dot"></span>
-                {{ scope.row.registrationStatus }}
+                {{ getStatusLabel(scope.row.registrationStatus) }}
               </div>
             </template>
           </el-table-column>
           <el-table-column label="操作" width="155" fixed="right">
             <template #default="scope">
-              <div class="action-btns" v-if="scope.row.registrationStatus === '审核中'">
+              <div class="action-btns" v-if="scope.row.registrationStatus === 'PENDING'">
                 <el-button
                   size="small"
                   class="action-approve"
@@ -193,25 +193,33 @@ const queryParams = reactive({
   pageSize: 10,
   eventId: null,
   name: '',
-  status: '审核中'
+  status: 'PENDING'
 })
 
 const hasPendingSelection = computed(() => {
-  return selectedRows.value.length > 0 && selectedRows.value.every(row => row.registrationStatus === '审核中')
+  return selectedRows.value.length > 0 && selectedRows.value.every(row => row.registrationStatus === 'PENDING')
 })
 
-const canSelect = (row) => row.registrationStatus === '审核中'
+const canSelect = (row) => row.registrationStatus === 'PENDING'
 
 const getRowClass = ({ row }) => {
-  if (row.registrationStatus === '通过') return 'row-approved'
-  if (row.registrationStatus === '未通过') return 'row-rejected'
+  if (row.registrationStatus === 'APPROVED') return 'row-approved'
+  if (row.registrationStatus === 'REJECTED') return 'row-rejected'
   return ''
 }
 
 const getStatusKey = (status) => {
-  if (status === '通过') return 'approved'
-  if (status === '未通过') return 'rejected'
+  if (status === 'APPROVED') return 'approved'
+  if (status === 'REJECTED') return 'rejected'
   return 'pending'
+}
+
+const getStatusLabel = (status) => {
+  if (status === 'APPROVED') return '通过'
+  if (status === 'REJECTED') return '未通过'
+  if (status === 'PENDING') return '审核中'
+  if (status === 'CANCELLED') return '已取消'
+  return status
 }
 
 const handleSelectionChange = (val) => { selectedRows.value = val }
@@ -312,8 +320,8 @@ const formatDate = (dateStr) => {
 }
 
 const getStatusType = (status) => {
-  if (status === '通过') return 'success'
-  if (status === '未通过') return 'danger'
+  if (status === 'APPROVED') return 'success'
+  if (status === 'REJECTED') return 'danger'
   return 'warning'
 }
 

@@ -111,11 +111,6 @@ public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> impl
         wrapper.orderByDesc(Athlete::getApplyTime).last("LIMIT 1");
         
         Athlete athlete = baseMapper.selectOne(wrapper);
-        // If not found, returning null might be handled by controller or throw exception.
-        // Old code threw NoAthleteException.
-        if (athlete == null) {
-            throw new BusinessException("未找到运动员申请记录");
-        }
         return athlete;
     }
 
