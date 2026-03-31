@@ -11,7 +11,7 @@
             e.name as eventName,
             p.name as itemName,
             u.name as athleteName,
-            g.name as grade,
+            g.name as deptName,
             s.score_value as scoreValue,
             s.score_rank as scoreRank,
             s.is_published as isPublished,
@@ -20,7 +20,7 @@
         LEFT JOIN event e ON s.event_id = e.id
         LEFT JOIN event_item p ON s.item_id = p.id
         LEFT JOIN sys_user u ON s.user_id = u.id
-        LEFT JOIN grade g ON u.grade_id = g.id
+        LEFT JOIN department g ON u.dept_id = g.id
         <where>
             <if test="eventId != null">
                 AND s.event_id = #{eventId}
@@ -56,7 +56,7 @@
             e.name as eventName,
             p.name as itemName,
             u.name as athleteName,
-            g.name as grade,
+            g.name as deptName,
             s.score_value as scoreValue,
             s.score_rank as scoreRank,
             s.is_published as isPublished,
@@ -65,7 +65,7 @@
         LEFT JOIN event e ON s.event_id = e.id
         LEFT JOIN event_item p ON s.item_id = p.id
         LEFT JOIN sys_user u ON s.user_id = u.id
-        LEFT JOIN grade g ON u.grade_id = g.id
+        LEFT JOIN department g ON u.dept_id = g.id
         WHERE s.event_id = #{eventId}
           AND s.is_published = 1
         ORDER BY p.id ASC, s.score_rank ASC

@@ -7,16 +7,18 @@ import com.lz.common.enums.UserStatus;
 import com.lz.common.exception.BusinessException;
 import com.lz.dto.SchoolConfigUpdateDTO;
 import com.lz.dto.SchoolInitDTO;
-import com.lz.entity.Grade;
+import com.lz.entity.Department;
 import com.lz.entity.SchoolConfig;
 import com.lz.entity.User;
-import com.lz.mapper.GradeMapper;
+import com.lz.mapper.DepartmentMapper;
 import com.lz.mapper.SchoolConfigMapper;
 import com.lz.mapper.UserMapper;
 import com.lz.service.SchoolConfigService;
 import com.lz.util.ImageUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,9 +37,19 @@ import java.util.Arrays;
 public class SchoolConfigServiceImpl extends ServiceImpl<SchoolConfigMapper, SchoolConfig> implements SchoolConfigService {
 
     private final UserMapper userMapper;
-    private final GradeMapper gradeMapper;
+    private final DepartmentMapper departmentMapper;
     private final ImageUtils imageUtils;
     private final PasswordEncoder passwordEncoder;
+
+    @Override
+    @Cacheable(value = "school_config_mode", key = "'current_org_mode'")
+    public String getCurrentOrgMode() {
+        SchoolConfig config = this.getOne(new LambdaQueryWrapper<SchoolConfig>().last("LIMIT 1"));
+        if (config != null && config.getOrgMode() != null) {
+            return config.getOrgMode();
+        }
+        return "UNIVERSITY"; // 默认值
+    }
 
     @Override
     public boolean isInitialized() {
@@ -48,6 +60,7 @@ public class SchoolConfigServiceImpl extends ServiceImpl<SchoolConfigMapper, Sch
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = "school_config_mode", key = "'current_org_mode'")
     public void initSystem(SchoolInitDTO schoolInitDTO) {
         // 1. Check if already initialized
         if (isInitialized()) {
@@ -76,6 +89,7 @@ public class SchoolConfigServiceImpl extends ServiceImpl<SchoolConfigMapper, Sch
         schoolConfig.setContactEmail(schoolInitDTO.getContactEmail());
         // Set initialized flag
         schoolConfig.setInitialized(true);
+        schoolConfig.setOrgMode(schoolInitDTO.getOrgMode() != null ? schoolInitDTO.getOrgMode() : "UNIVERSITY");
         schoolConfig.setUpdateTime(LocalDateTime.now());
         
         this.saveOrUpdate(schoolConfig);
@@ -94,16 +108,21 @@ public class SchoolConfigServiceImpl extends ServiceImpl<SchoolConfigMapper, Sch
         adminUser.setUpdateTime(LocalDateTime.now());
         userMapper.insert(adminUser);
 
-        // 4. Create Grades
+        // 4. Create Grades / Departments
         List<String> grades = schoolInitDTO.getGrades();
         if (grades != null && !grades.isEmpty()) {
+            boolean isUniversity = "UNIVERSITY".equals(schoolConfig.getOrgMode());
             for (int i = 0; i < grades.size(); i++) {
                 String gradeName = grades.get(i);
-                Grade grade = new Grade();
-                grade.setName(gradeName);
-                grade.setSchoolId(schoolId);
-                grade.setSortOrder(i + 1);
-                gradeMapper.insert(grade);
+                Department dept = new Department();
+                if (isUniversity) {
+                    dept.setCollege(gradeName);
+                } else {
+                    dept.setGrade(gradeName);
+                }
+                dept.setSchoolId(schoolId);
+                dept.setSortOrder(i + 1);
+                departmentMapper.insert(dept);
             }
         }
         

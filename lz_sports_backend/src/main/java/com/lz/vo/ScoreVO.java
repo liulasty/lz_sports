@@ -11,7 +11,7 @@ public class ScoreVO implements Serializable {
     private String eventName;
     private String itemName;
     private String athleteName;
-    private String grade;
+    private String deptName;
     private String scoreValue;
     private Integer scoreRank;
     private String remark;

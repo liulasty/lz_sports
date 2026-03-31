@@ -191,8 +191,12 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
                         ScoreExportVO vo = new ScoreExportVO();
                         vo.setRank(item.getScoreRank());
                         vo.setName(item.getAthleteName());
-                        vo.setCollege(item.getGrade());
-                        vo.setGrade(item.getGrade());
+                        // Assuming deptName contains the full path "College-Major-Class" or just "Class"
+                        // We put it in deptName and let college be empty, or we can parse it.
+                        // Wait, in ScoreMapper.xml, we will return the full path for deptName? 
+                        // Actually, I can use DepartmentService.getFullDepartmentName to populate it!
+                        vo.setCollege(item.getDeptName());
+                        vo.setDeptName(item.getDeptName());
                         vo.setScore(item.getScoreValue());
                         vo.setRemark(item.getRemark());
                         return vo;
@@ -216,8 +220,8 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
             RegistrationListExportVO vo = new RegistrationListExportVO();
             vo.setNo(index++);
             vo.setName(dto.getAthleteName());
-            vo.setCollege(dto.getGrade());
-            vo.setGrade(dto.getGrade());
+            vo.setCollege(dto.getDeptName());
+            vo.setDeptName(dto.getDeptName());
             vo.setItem(dto.getItemName());
             vo.setRegistrationTime(dto.getRegistrationTime());
             vo.setStatus(dto.getRegistrationStatus());

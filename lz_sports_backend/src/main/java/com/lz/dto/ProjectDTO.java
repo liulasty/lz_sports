@@ -6,6 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
+import java.util.List;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * Project DTO
@@ -19,7 +21,8 @@ public class ProjectDTO implements Serializable {
     private Long event; // Event ID
     private String limitation;
     private String category;
-    private String grade;
+    @Schema(description = "限制部门ID列表", example = "[1,2]")
+    private List<Long> limitDeptIds;
     private Integer maxAttendance;
     private Integer attendance;
     private String[] date;

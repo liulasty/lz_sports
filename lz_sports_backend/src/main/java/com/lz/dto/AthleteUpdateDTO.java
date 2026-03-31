@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.io.Serializable;
 
 /**
@@ -22,5 +24,6 @@ public class AthleteUpdateDTO implements Serializable {
     private Integer age;
     private String gender;
     private String contact;
-    private String grade;
+    @Schema(description = "部门ID")
+    private Long deptId;
 }

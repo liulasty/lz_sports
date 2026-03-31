@@ -24,7 +24,7 @@ public class UserVOTest {
         assertEquals("", vo.getName());
         assertEquals("UNKNOWN", vo.getGender());
         assertEquals("", vo.getStudentId());
-        assertEquals(0L, vo.getGradeId());
+        assertEquals(0L, vo.getDeptId());
         assertEquals("", vo.getEmail());
         assertEquals(0L, vo.getSchoolId());
         assertEquals("https://lz-sports.oss-cn-beijing.aliyuncs.com/default-avatar.png", vo.getAvatar());

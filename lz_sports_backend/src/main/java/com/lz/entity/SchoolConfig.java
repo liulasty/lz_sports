@@ -43,5 +43,8 @@ public class SchoolConfig extends SchoolRelatedEntity<Long> {
      * 是否初始化
      */
     @TableField("is_initialized")
-    private boolean initialized;
+    private boolean isInitialized;
+
+    @TableField("org_mode")
+    private String orgMode;
 }

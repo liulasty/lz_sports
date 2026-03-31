@@ -122,7 +122,7 @@
               </span>
             </template>
           </el-table-column>
-          <el-table-column prop="grade" label="年级" width="100" />
+          <el-table-column prop="deptName" label="部门/年级" width="120" />
           <el-table-column prop="contact" label="联系方式" width="155" />
           <el-table-column prop="applyTime" label="申请时间" min-width="165">
             <template #default="scope">

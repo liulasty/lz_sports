@@ -12,25 +12,19 @@ SET FOREIGN_KEY_CHECKS=0;
 -- ----------------------------
 -- 1. Initial School Configuration
 -- ----------------------------
-INSERT INTO `school_config` (`id`, `school_name`, `logo_url`, `theme_color`, `contact_email`, `is_initialized`, `create_time`) VALUES
-(1, 'LZ Sports University', NULL, '#409EFF', 'admin@lzsports.com', 0, NOW());
+INSERT INTO `school_config` (`id`, `school_name`, `logo_url`, `theme_color`, `contact_email`, `is_initialized`, `org_mode`, `create_time`) VALUES
+(1, 'LZ Sports University', NULL, '#409EFF', 'admin@lzsports.com', 0, 'UNIVERSITY', NOW());
 
 -- ----------------------------
--- 2. Initial Grades / Departments
+-- 2. Initial Department / Organization (Flat Table Demo)
 -- ----------------------------
-INSERT INTO `grade` (`id`, `name`, `school_id`, `sort_order`) VALUES
-(1, '计算机科学与技术学院', 1, 1),
-(2, '软件学院', 1, 2),
-(3, '信息与通信工程学院', 1, 3),
-(4, '电子工程学院', 1, 4),
-(5, '自动化学院', 1, 5),
-(6, '理学院', 1, 6),
-(7, '外国语学院', 1, 7),
-(8, '人文社科学院', 1, 8),
-(9, '经济管理学院', 1, 9),
-(10, '体育部', 1, 10),
-(11, '教工组', 1, 11),
-(12, '研究生院', 1, 12);
+INSERT INTO `department` (`id`, `college`, `major`, `grade`, `class_name`, `dept_name`, `school_id`, `sort_order`) VALUES
+(1, '计算机科学与技术学院', '软件工程', NULL, '软工1班', NULL, 1, 1),
+(2, '计算机科学与技术学院', '软件工程', NULL, '软工2班', NULL, 1, 2),
+(3, '电子工程学院', '通信工程', NULL, '通信1班', NULL, 1, 3),
+(4, NULL, NULL, NULL, NULL, '教工组', 1, 4),
+(5, NULL, NULL, '高一', '1班', NULL, 1, 5),
+(6, NULL, NULL, '高一', '2班', NULL, 1, 6);
 
 -- ----------------------------
 -- 3. Initial Events (Demo Data)
@@ -46,7 +40,7 @@ INSERT INTO `event` (`id`, `name`, `description`, `reg_start_time`, `reg_deadlin
 -- ----------------------------
 -- 4. Initial Event Items (Projects) for Event 1
 -- ----------------------------
-INSERT INTO `event_item` (`id`, `event_id`, `name`, `gender_limit`, `grade_limit`, `max_count`, `current_count`, `school_id`, `create_time`) VALUES
+INSERT INTO `event_item` (`id`, `event_id`, `name`, `gender_limit`, `limit_dept_ids`, `max_count`, `current_count`, `school_id`, `create_time`) VALUES
 (1, 1, '男子100米', '男', NULL, 30, 0, 1, NOW()),
 (2, 1, '女子100米', '女', NULL, 30, 0, 1, NOW()),
 (3, 1, '男子400米', '男', NULL, 20, 0, 1, NOW()),
@@ -55,13 +49,13 @@ INSERT INTO `event_item` (`id`, `event_id`, `name`, `gender_limit`, `grade_limit
 (6, 1, '女子跳远', '女', NULL, 15, 0, 1, NOW()),
 (7, 1, '男子铅球', '男', NULL, 10, 0, 1, NOW()),
 (8, 1, '女子铅球', '女', NULL, 10, 0, 1, NOW()),
-(9, 1, '教工男子100米', '男', '11', 20, 0, 1, NOW()),
-(10, 1, '教工女子100米', '女', '11', 20, 0, 1, NOW());
+(9, 1, '教工男子100米', '男', '[4]', 20, 0, 1, NOW()),
+(10, 1, '教工女子100米', '女', '[4]', 20, 0, 1, NOW());
 
 -- ----------------------------
 -- 5. Initial Event Items (Projects) for Event 2
 -- ----------------------------
-INSERT INTO `event_item` (`id`, `event_id`, `name`, `gender_limit`, `grade_limit`, `max_count`, `current_count`, `school_id`, `create_time`) VALUES
+INSERT INTO `event_item` (`id`, `event_id`, `name`, `gender_limit`, `limit_dept_ids`, `max_count`, `current_count`, `school_id`, `create_time`) VALUES
 (11, 2, '二人三足', '无限制', NULL, 50, 0, 1, NOW()),
 (12, 2, '袋鼠跳', '无限制', NULL, 50, 0, 1, NOW());
 

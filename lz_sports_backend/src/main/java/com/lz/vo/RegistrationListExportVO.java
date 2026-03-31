@@ -12,11 +12,11 @@ public class RegistrationListExportVO {
     @ExcelProperty("姓名")
     private String name;
 
-    @ExcelProperty("院系")
+    @ExcelProperty("学院/年级")
     private String college;
 
-    @ExcelProperty("年级")
-    private String grade;
+    @ExcelProperty("班级")
+    private String deptName;
 
     @ExcelProperty("项目")
     private String item;

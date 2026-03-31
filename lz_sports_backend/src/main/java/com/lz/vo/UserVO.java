@@ -38,9 +38,8 @@ public class UserVO {
     @Schema(description = "学号", example = "20230001")
     private String studentId = "";
     
-    @Builder.Default
-    @Schema(description = "年级ID", example = "1")
-    private Long gradeId = 0L;
+    private Long deptId;
+    private String deptName; // For display
     
     @Builder.Default
     @Schema(description = "邮箱", example = "test@example.com")

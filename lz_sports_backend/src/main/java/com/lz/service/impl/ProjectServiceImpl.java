@@ -137,7 +137,15 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
         Project project = new Project();
         project.setEventId(projectDTO.getEvent());
         project.setItemName(projectDTO.getName());
-        project.setGrade(projectDTO.getGrade());
+        try {
+            if (projectDTO.getLimitDeptIds() != null && !projectDTO.getLimitDeptIds().isEmpty()) {
+                project.setLimitDeptIds(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(projectDTO.getLimitDeptIds()));
+            } else {
+                project.setLimitDeptIds(null);
+            }
+        } catch (Exception e) {
+            project.setLimitDeptIds(null);
+        }
         project.setMaxAttendance(projectDTO.getMaxAttendance() == null ? 0 : projectDTO.getMaxAttendance());
         project.setAttendance(projectDTO.getAttendance() == null ? 0 : projectDTO.getAttendance());
         project.setStartTime(startTime);
@@ -165,7 +173,16 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
             dto.setEvent(project.getEventId());
             dto.setLimitation(project.getLimitation() == null ? null : project.getLimitation().name());
             dto.setCategory(project.getCategory() == null ? null : project.getCategory().name());
-            dto.setGrade(project.getGrade());
+            if (project.getLimitDeptIds() != null && !project.getLimitDeptIds().isEmpty()) {
+                try {
+                    List<Long> ids = new com.fasterxml.jackson.databind.ObjectMapper().readValue(project.getLimitDeptIds(), new com.fasterxml.jackson.core.type.TypeReference<List<Long>>() {});
+                    dto.setLimitDeptIds(ids);
+                } catch (Exception e) {
+                    dto.setLimitDeptIds(List.of());
+                }
+            } else {
+                dto.setLimitDeptIds(List.of());
+            }
             dto.setAttendance(project.getAttendance());
             dto.setMaxAttendance(project.getMaxAttendance());
             dto.setStartTime(project.getStartTime() == null ? null : formatDate(project.getStartTime()));
@@ -218,8 +235,14 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
         if (projectDTO.getLimitation() != null && !projectDTO.getLimitation().isEmpty()) {
             project.setLimitation(GenderLimit.valueOf(projectDTO.getLimitation()));
         }
-        if (projectDTO.getGrade() != null) {
-            project.setGrade(projectDTO.getGrade());
+        try {
+            if (projectDTO.getLimitDeptIds() != null && !projectDTO.getLimitDeptIds().isEmpty()) {
+                project.setLimitDeptIds(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(projectDTO.getLimitDeptIds()));
+            } else {
+                project.setLimitDeptIds(null);
+            }
+        } catch (Exception e) {
+            project.setLimitDeptIds(null);
         }
         if (projectDTO.getMaxAttendance() != null) {
             project.setMaxAttendance(projectDTO.getMaxAttendance());

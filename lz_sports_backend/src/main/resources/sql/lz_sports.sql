@@ -31,7 +31,7 @@ CREATE TABLE `athlete` (
                            `athlete_state` varchar(20) DEFAULT 'PENDING' COMMENT '状态: PENDING/APPROVED/REJECTED',
                            `apply_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '申请时间',
                            `agree_time` datetime DEFAULT NULL COMMENT '审核通过时间',
-                           `grade` varchar(50) DEFAULT NULL COMMENT '年级',
+                           `dept_id` bigint DEFAULT NULL COMMENT '所属部门ID',
                            `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
                            `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                            PRIMARY KEY (`id`),
@@ -81,7 +81,7 @@ CREATE TABLE `event_item` (
                               `event_id` bigint NOT NULL COMMENT '所属赛事ID',
                               `name` varchar(50) NOT NULL COMMENT '项目名称',
                               `gender_limit` varchar(20) DEFAULT '无限制' COMMENT '性别限制',
-                              `grade_limit` varchar(50) DEFAULT NULL COMMENT '年级限制',
+                              `limit_dept_ids` varchar(255) DEFAULT NULL COMMENT '部门限制ID集合(JSON)',
                               `max_count` int DEFAULT '20' COMMENT '最大报名人数',
                               `current_count` int DEFAULT '0' COMMENT '当前报名人数',
                               `school_id` bigint DEFAULT '1' COMMENT '学校ID',
@@ -91,19 +91,23 @@ CREATE TABLE `event_item` (
                               KEY `idx_event_id` (`event_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='比赛项目表';
 
-/*Table structure for table `grade` */
+/*Table structure for table `department` */
 
-DROP TABLE IF EXISTS `grade`;
+DROP TABLE IF EXISTS `department`;
 
-CREATE TABLE `grade` (
+CREATE TABLE `department` (
                          `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-                         `name` varchar(50) NOT NULL COMMENT '年级名称',
+                         `college` varchar(50) DEFAULT NULL COMMENT '学院名称 (大学模式)',
+                         `major` varchar(50) DEFAULT NULL COMMENT '专业名称 (大学模式)',
+                         `grade` varchar(50) DEFAULT NULL COMMENT '年级名称 (K12模式)',
+                         `class_name` varchar(50) DEFAULT NULL COMMENT '班级名称',
+                         `dept_name` varchar(50) DEFAULT NULL COMMENT '行政部门名称 (如体育部/教工组)',
                          `school_id` bigint DEFAULT '1' COMMENT '学校ID',
                          `sort_order` int DEFAULT '0' COMMENT '排序',
                          `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
                          `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                          PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='年级/院系表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='扁平化组织架构宽表';
 
 /*Table structure for table `notification` */
 
@@ -172,6 +176,7 @@ CREATE TABLE `school_config` (
                                  `theme_color` varchar(20) DEFAULT '#409EFF' COMMENT '主题色',
                                  `contact_email` varchar(100) DEFAULT NULL COMMENT '联系邮箱',
                                  `is_initialized` tinyint(1) DEFAULT '0' COMMENT '是否已初始化: 0-否, 1-是',
+                                 `org_mode` varchar(20) DEFAULT 'UNIVERSITY' COMMENT '组织架构模式: UNIVERSITY/K12',
                                  `school_id` bigint DEFAULT '1' COMMENT '学校ID',
                                  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
                                  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
@@ -203,8 +208,9 @@ CREATE TABLE `sys_user` (
                             `name` varchar(50) DEFAULT NULL COMMENT '真实姓名',
                             `gender` varchar(10) DEFAULT NULL COMMENT '性别',
                             `student_id` varchar(50) DEFAULT NULL COMMENT '学号/工号',
-                            `grade_id` bigint DEFAULT NULL COMMENT '所属年级ID',
+                            `dept_id` bigint DEFAULT NULL COMMENT '所属部门ID',
                             `email` varchar(50) NOT NULL COMMENT '邮箱',
+                            `contact` varchar(20) DEFAULT NULL COMMENT '联系电话',
                             `verify_token` varchar(64) DEFAULT NULL COMMENT '验证令牌',
                             `user_type` varchar(20) NOT NULL COMMENT '用户类型：SCHOOL_ADMIN/EVENT_ADMIN/ATHLETE',
                             `is_first_login` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否首次登录：0否1是',

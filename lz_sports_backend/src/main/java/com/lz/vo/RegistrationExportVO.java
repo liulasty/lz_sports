@@ -23,8 +23,8 @@ public class RegistrationExportVO implements Serializable {
     @ExcelProperty("性别")
     private String gender;
 
-    @ExcelProperty("年级")
-    private String grade;
+    @ExcelProperty("部门")
+    private String deptName;
 
     @ExcelProperty("联系方式")
     private String contact;

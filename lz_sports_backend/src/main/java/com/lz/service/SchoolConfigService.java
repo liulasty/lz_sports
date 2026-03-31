@@ -23,4 +23,9 @@ public interface SchoolConfigService extends IService<SchoolConfig> {
     void updateSchoolConfig(SchoolConfigUpdateDTO dto);
 
     String uploadLogo(MultipartFile file);
+
+    /**
+     * 获取当前的组织架构模式 (UNIVERSITY 或 K12)
+     */
+    String getCurrentOrgMode();
 }

@@ -72,11 +72,11 @@ public class Athlete extends BaseEntity<Long> {
     @TableField("agree_time")
     private LocalDateTime agreeTime;
 
-    /**
-     * 年级
-     */
-    @TableField("grade")
-    private String grade;
+    @TableField("dept_id")
+    private Long deptId;
+
+    @TableField(exist = false)
+    private String deptName;
 
     /**
      * 赛事名称 (非表字段)

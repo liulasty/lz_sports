@@ -20,6 +20,12 @@
           <el-form-item label="学校名称" prop="schoolName">
             <el-input v-model="form.schoolName" placeholder="例如：xx大学" />
           </el-form-item>
+          <el-form-item label="组织架构模式" prop="orgMode">
+            <el-radio-group v-model="form.orgMode" @change="handleModeChange">
+              <el-radio value="UNIVERSITY">大学模式 (学院-专业-班级)</el-radio>
+              <el-radio value="K12">K12模式 (年级-班级)</el-radio>
+            </el-radio-group>
+          </el-form-item>
           <el-form-item label="Logo链接" prop="logoUrl">
             <el-input v-model="form.logoUrl" placeholder="Logo图片地址" />
           </el-form-item>
@@ -46,7 +52,7 @@
 
         <!-- Step 3: Grades -->
         <div v-if="active === 2">
-          <p>请确认年级列表（可添加或删除）：</p>
+          <p>请确认顶级部门/院系列表（可添加或删除）：</p>
           <el-tag
             v-for="tag in form.grades"
             :key="tag"
@@ -68,7 +74,7 @@
             style="width: 100px;"
           />
           <el-button v-else class="button-new-tag" size="small" @click="showInput">
-            + New Grade
+            + 添加部门
           </el-button>
         </div>
 
@@ -83,7 +89,7 @@
           <el-descriptions title="配置摘要" :column="1" border style="width: 80%; margin: 0 auto; text-align: left;">
             <el-descriptions-item label="学校名称">{{ form.schoolName }}</el-descriptions-item>
             <el-descriptions-item label="管理员账号">{{ form.adminUsername }}</el-descriptions-item>
-            <el-descriptions-item label="年级数量">{{ form.grades.length }}</el-descriptions-item>
+            <el-descriptions-item label="部门数量">{{ form.grades.length }}</el-descriptions-item>
           </el-descriptions>
         </div>
       </div>
@@ -117,8 +123,17 @@ const form = reactive({
   adminUsername: 'admin',
   adminPassword: '',
   adminEmail: '',
-  grades: ['大一', '大二', '大三', '大四', '研一', '研二', '研三']
+  orgMode: 'UNIVERSITY',
+  grades: ['计算机学院', '理学院', '外国语学院', '体育部']
 })
+
+const handleModeChange = (val) => {
+  if (val === 'UNIVERSITY') {
+    form.grades = ['计算机学院', '理学院', '外国语学院', '体育部']
+  } else {
+    form.grades = ['高一', '高二', '高三']
+  }
+}
 
 const rules = {
   schoolName: [{ required: true, message: '请输入学校名称', trigger: 'blur' }],

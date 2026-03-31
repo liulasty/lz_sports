@@ -45,7 +45,7 @@
             r.user_id as athleteId,
             u.name as athleteName,
             u.gender as gender,
-            g.name as grade,
+            g.name as deptName,
             u.email as contact,
             r.event_id as eventId,
             e.name as eventName,
@@ -55,7 +55,7 @@
             r.status as registrationStatus
         FROM registration r
         LEFT JOIN sys_user u ON r.user_id = u.id
-        LEFT JOIN grade g ON u.grade_id = g.id
+        LEFT JOIN department g ON u.dept_id = g.id
         LEFT JOIN event e ON r.event_id = e.id
         LEFT JOIN event_item p ON r.item_id = p.id
         <where>

@@ -15,6 +15,9 @@ public class SchoolInitDTO {
     private String adminPassword;
     private String adminEmail;
 
+    // Org Mode
+    private String orgMode;
+
     // Grade Info
     private List<String> grades;
 
@@ -74,6 +77,14 @@ public class SchoolInitDTO {
 
     public void setAdminEmail(String adminEmail) {
         this.adminEmail = adminEmail;
+    }
+
+    public String getOrgMode() {
+        return orgMode;
+    }
+
+    public void setOrgMode(String orgMode) {
+        this.orgMode = orgMode;
     }
 
     public List<String> getGrades() {

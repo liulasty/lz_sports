@@ -264,6 +264,37 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (userUpdateDTO.getEmail() != null) {
             user.setEmail(userUpdateDTO.getEmail());
         }
+
+        // 校验是否有已通过的运动员认证
+        boolean hasApprovedAthlete = athleteMapper.selectCount(
+                new LambdaQueryWrapper<com.lz.entity.Athlete>()
+                        .eq(com.lz.entity.Athlete::getUserId, userId)
+                        .eq(com.lz.entity.Athlete::getAthleteState, com.lz.common.enums.AthleteStatus.APPROVED)
+        ) > 0;
+
+        if (userUpdateDTO.getName() != null) {
+            if (hasApprovedAthlete && !userUpdateDTO.getName().equals(user.getName())) {
+                throw new BusinessException("您已有认证通过的运动员记录，无法修改真实姓名");
+            }
+            user.setName(userUpdateDTO.getName());
+        }
+        if (userUpdateDTO.getGender() != null) {
+            if (hasApprovedAthlete && !userUpdateDTO.getGender().equals(user.getGender())) {
+                throw new BusinessException("您已有认证通过的运动员记录，无法修改性别");
+            }
+            user.setGender(userUpdateDTO.getGender());
+        }
+        if (userUpdateDTO.getDeptId() != null) {
+            if (hasApprovedAthlete && !userUpdateDTO.getDeptId().equals(user.getDeptId())) {
+                throw new BusinessException("您已有认证通过的运动员记录，无法修改所属部门");
+            }
+            user.setDeptId(userUpdateDTO.getDeptId());
+        }
+        if (userUpdateDTO.getContact() != null) {
+            // 联系方式允许随时修改，或者根据业务需求也可以锁定。这里假设允许修改。
+            user.setContact(userUpdateDTO.getContact());
+        }
+
         if (userUpdateDTO.getNewPassword() != null) {
              if (userUpdateDTO.getOldPassword() == null
                      || !passwordEncoder.matches(userUpdateDTO.getOldPassword(), user.getPassword())) {

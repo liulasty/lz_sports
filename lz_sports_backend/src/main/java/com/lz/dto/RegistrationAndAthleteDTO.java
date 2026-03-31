@@ -34,7 +34,7 @@ public class RegistrationAndAthleteDTO {
     private Integer num;
     private Integer maxNum;
     private String limitation;
-    private String grade;
+    private String deptName;
     
     private Date applyTime;
     private String status;

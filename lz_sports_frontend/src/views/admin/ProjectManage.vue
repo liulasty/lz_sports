@@ -191,8 +191,16 @@
           </div>
 
           <div class="form-field">
-            <div class="field-label">比赛地点</div>
-            <el-input v-model="form.grade" placeholder="输入地点" class="fi" />
+            <div class="field-label">限制部门</div>
+            <el-cascader
+                v-model="form.limitDeptIds"
+                :options="departmentTree"
+                :props="{ checkStrictly: true, multiple: true, value: 'value', label: 'label', emitPath: false }"
+                clearable
+                placeholder="留空表示不限制部门"
+                class="fi"
+                style="width: 100%"
+            />
           </div>
 
           <div class="form-field">
@@ -257,6 +265,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { getProjectList, addProject, updateProject, deleteProject } from '@/api/project'
 import { getEventTypes } from '@/api/event'
+import { getDepartmentTree } from '@/api/department'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const loading = ref(false)
@@ -266,6 +275,7 @@ const dialogVisible = ref(false)
 const dialogTitle = ref('新增项目')
 const isEdit = ref(false)
 const eventTypes = ref([])
+const departmentTree = ref([])
 
 const limitOptions   = [{ label: '不限', value: 'ALL' }, { label: '男', value: 'MALE' }, { label: '女', value: 'FEMALE' }]
 const categoryOptions = [{ label: '自定义', value: 'CUSTOM' }, { label: '标准项目', value: 'STANDARD' }]
@@ -273,12 +283,12 @@ const categoryOptions = [{ label: '自定义', value: 'CUSTOM' }, { label: '标�
 const queryParams = reactive({ currentPage: 1, pageSize: 5, name: '' })
 
 const form = reactive({
-  id: '', name: '', event: '', grade: '', limitation: 'ALL',
+  id: '', name: '', event: '', limitDeptIds: [], limitation: 'ALL',
   category: 'CUSTOM', maxAttendance: 50, dateRange: [], imageUrlInput: ''
 })
 
 const resetForm = () => {
-  Object.assign(form, { id: '', name: '', event: '', grade: '', limitation: 'ALL', category: 'CUSTOM', maxAttendance: 50, dateRange: [], imageUrlInput: '' })
+  Object.assign(form, { id: '', name: '', event: '', limitDeptIds: [], limitation: 'ALL', category: 'CUSTOM', maxAttendance: 50, dateRange: [], imageUrlInput: '' })
 }
 
 const getList = async () => {
@@ -297,6 +307,13 @@ const getEventOptions = async () => {
   } catch (e) { console.error(e) }
 }
 
+const getDeptTree = async () => {
+  try {
+    const res = await getDepartmentTree()
+    if (res.code === 200) departmentTree.value = res.data
+  } catch (e) { console.error(e) }
+}
+
 const handleQuery       = () => { queryParams.currentPage = 1; getList() }
 const handleSizeChange  = (v) => { queryParams.pageSize = v; getList() }
 const handleCurrentChange = (v) => { queryParams.currentPage = v; getList() }
@@ -308,7 +325,7 @@ const handleAdd = () => {
 const handleEdit = (row) => {
   dialogTitle.value = '编辑项目'; isEdit.value = true
   Object.assign(form, {
-    id: row.id, name: row.itemName, event: row.eventId, grade: row.grade || '',
+    id: row.id, name: row.itemName, event: row.eventId, limitDeptIds: row.limitDeptIds || [],
     limitation: row.limitation || 'ALL', category: row.category || 'CUSTOM',
     maxAttendance: row.maxAttendance, dateRange: [row.startTime, row.endTime], imageUrlInput: ''
   })
@@ -326,7 +343,7 @@ const handleDelete = (row) => {
 
 const submitForm = async () => {
   const data = {
-    name: form.name, event: form.event, grade: form.grade, limitation: form.limitation,
+    name: form.name, event: form.event, limitDeptIds: form.limitDeptIds, limitation: form.limitation,
     category: form.category, maxAttendance: form.maxAttendance, date: form.dateRange,
     addImage: form.imageUrlInput ? form.imageUrlInput.split('\n').filter(s => s.trim()) : []
   }
@@ -360,7 +377,7 @@ const getProgressClass = (item) => {
 const getLimitLabel = (v) => ({ ALL: '不限', MALE: '男', FEMALE: '女' }[v] || v)
 const getLimitClass = (v) => ({ ALL: '', MALE: 'limit-male', FEMALE: 'limit-female' }[v] || '')
 
-onMounted(() => { getList(); getEventOptions() })
+onMounted(() => { getList(); getEventOptions(); getDeptTree() })
 </script>
 
 <style scoped>

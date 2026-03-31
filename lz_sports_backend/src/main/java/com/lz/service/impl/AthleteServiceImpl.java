@@ -12,6 +12,7 @@ import com.lz.common.enums.NotificationType;
 import com.lz.dto.AthleteDTO;
 import com.lz.dto.AthleteUpdateDTO;
 import com.lz.entity.Athlete;
+import com.lz.entity.Event;
 import com.lz.entity.User;
 import com.lz.mapper.AthleteMapper;
 import com.lz.mapper.UserMapper;
@@ -23,6 +24,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
+import java.util.List;
+
 /**
  * Athlete Service Implementation
  */
@@ -32,6 +35,7 @@ public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> impl
 
     private final UserMapper userMapper;
     private final NotificationService notificationService;
+    private final com.lz.service.DepartmentService departmentService;
     private final com.lz.mapper.EventMapper eventMapper;
     private final com.lz.mapper.RegistrationMapper registrationMapper;
 
@@ -44,12 +48,12 @@ public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> impl
         java.util.List<Athlete> athletes = baseMapper.selectList(new LambdaQueryWrapper<Athlete>()
                 .eq(Athlete::getUserId, currentUserId)
                 .orderByDesc(Athlete::getApplyTime));
-        
         for (Athlete athlete : athletes) {
-            com.lz.entity.Event event = eventMapper.selectById(athlete.getEventId());
+            Event event = eventMapper.selectById(athlete.getEventId());
             if (event != null) {
                 athlete.setEventName(event.getEventName());
             }
+            athlete.setDeptName(departmentService.getFullDepartmentName(athlete.getDeptId()));
         }
         return athletes;
     }
@@ -71,6 +75,14 @@ public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> impl
         if (user.getUserType() == UserRole.SUPER_ADMIN || user.getUserType() == UserRole.EVENT_ADMIN) {
             throw new BusinessException("当前角色不可申请运动员", 403);
         }
+
+        // 校验身份信息是否完善
+        if (user.getName() == null || user.getName().trim().isEmpty() ||
+            user.getGender() == null || user.getGender().trim().isEmpty() ||
+            user.getContact() == null || user.getContact().trim().isEmpty() ||
+            user.getDeptId() == null || user.getDeptId() == 0L) {
+            throw new BusinessException("请先在个人中心完善身份信息（姓名、性别、联系方式、部门/班级）后，再申请运动员认证");
+        }
         
         Athlete exists = baseMapper.selectOne(new LambdaQueryWrapper<Athlete>()
                 .eq(Athlete::getUserId, userId)
@@ -90,11 +102,11 @@ public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> impl
         Athlete athlete = new Athlete();
         athlete.setUserId(userId);
         athlete.setEventId(eventId);
-        athlete.setName(athleteDTO.getName());
-        athlete.setAge(String.valueOf(athleteDTO.getAge()));
-        athlete.setGender(athleteDTO.getGender());
-        athlete.setContact(athleteDTO.getPhone());
-        athlete.setGrade(athleteDTO.getGrade());
+        athlete.setName(user.getName());
+        athlete.setAge(null); // 年龄字段暂留空，以基础信息为准
+        athlete.setGender(user.getGender());
+        athlete.setContact(user.getContact());
+        athlete.setDeptId(user.getDeptId());
         athlete.setAthleteState(AthleteStatus.PENDING);
         athlete.setApplyTime(LocalDateTime.now());
         
@@ -129,7 +141,13 @@ public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> impl
         wrapper.orderByDesc(Athlete::getApplyTime);
         
         IPage<Athlete> result = baseMapper.selectPage(pageParam, wrapper);
-        return new PageResult(result.getTotal(), result.getRecords());
+        List<Athlete> records = result.getRecords();
+        if (records != null && !records.isEmpty()) {
+            for (Athlete athlete : records) {
+                athlete.setDeptName(departmentService.getFullDepartmentName(athlete.getDeptId()));
+            }
+        }
+        return new PageResult(result.getTotal(), records);
     }
 
     @Override
@@ -215,7 +233,7 @@ public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> impl
         athlete.setAge(dto.getAge() != null ? String.valueOf(dto.getAge()) : athlete.getAge());
         athlete.setGender(dto.getGender() != null ? dto.getGender() : athlete.getGender());
         athlete.setContact(dto.getContact() != null ? dto.getContact() : athlete.getContact());
-        athlete.setGrade(dto.getGrade() != null ? dto.getGrade() : athlete.getGrade());
+        athlete.setDeptId(dto.getDeptId() != null ? dto.getDeptId() : athlete.getDeptId());
         athlete.setAthleteState(AthleteStatus.PENDING);
         athlete.setApplyTime(LocalDateTime.now());
         

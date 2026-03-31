@@ -53,7 +53,7 @@
           </div>
         </div>
 
-        <!-- 详细信息列表 -->
+        <!-- 用户详细信息列表 -->
         <div class="info-list">
           <div class="info-row">
             <div class="info-label">
@@ -127,7 +127,7 @@
                   </el-table-column>
                   <el-table-column label="操作" width="140" align="center">
                     <template #default="scope">
-                      <el-button type="primary" link size="small" @click="handleUpdateApplication(scope.row)">修改</el-button>
+                      <!-- 隐藏修改按钮，因为不能随意修改认证信息 -->
                       <el-button type="danger" link size="small" @click="handleCancelApplication(scope.row.id)">取消</el-button>
                     </template>
                   </el-table-column>
@@ -156,45 +156,14 @@
                         </el-select>
                       </el-form-item>
                     </div>
-
-                    <div class="form-field">
-                      <div class="field-label">姓名 <span class="required">*</span></div>
-                      <el-form-item prop="name">
-                        <el-input v-model="applyForm.name" placeholder="请输入真实姓名" class="custom-input" />
-                      </el-form-item>
-                    </div>
-
-                    <div class="form-field">
-                      <div class="field-label">年龄 <span class="required">*</span></div>
-                      <el-form-item prop="age">
-                        <el-input-number v-model="applyForm.age" :min="1" :max="100" class="custom-number" controls-position="right" />
-                      </el-form-item>
-                    </div>
-
-                    <div class="form-field">
-                      <div class="field-label">性别 <span class="required">*</span></div>
-                      <el-form-item prop="gender">
-                        <div class="gender-toggle">
-                          <button class="gender-btn" :class="{ active: applyForm.gender === '男' }" type="button" @click="applyForm.gender = '男'">♂ 男</button>
-                          <button class="gender-btn female" :class="{ active: applyForm.gender === '女' }" type="button" @click="applyForm.gender = '女'">♀ 女</button>
-                        </div>
-                      </el-form-item>
-                    </div>
-
-                    <div class="form-field">
-                      <div class="field-label">联系方式 <span class="required">*</span></div>
-                      <el-form-item prop="phone">
-                        <el-input v-model="applyForm.phone" placeholder="请输入手机号码" class="custom-input" />
-                      </el-form-item>
-                    </div>
-
-                    <div class="form-field full-width">
-                      <div class="field-label">年级 / 班级 <span class="required">*</span></div>
-                      <el-form-item prop="grade">
-                        <el-input v-model="applyForm.grade" placeholder="例：高三 2 班" class="custom-input" />
-                      </el-form-item>
-                    </div>
                   </div>
+                  <el-alert
+                    title="注意：申请认证将直接使用您当前个人资料中的姓名、性别、联系方式及部门信息。请确保个人资料已完善，且认证通过后将无法随意修改。"
+                    type="info"
+                    show-icon
+                    :closable="false"
+                    style="margin-bottom: 20px;"
+                  />
 
                   <div class="form-actions">
                     <button class="submit-btn" type="button" @click="submitApply">
@@ -279,25 +248,14 @@
         :closable="false"
         style="margin-bottom: 20px;"
       />
-      <el-form ref="updateFormRef" :model="updateForm" :rules="rules" label-width="80px">
-        <el-form-item label="姓名" prop="name">
-          <el-input v-model="updateForm.name" placeholder="请输入真实姓名" />
-        </el-form-item>
-        <el-form-item label="年龄" prop="age">
-          <el-input-number v-model="updateForm.age" :min="1" :max="100" />
-        </el-form-item>
-        <el-form-item label="性别" prop="gender">
-          <el-radio-group v-model="updateForm.gender">
-            <el-radio label="男">男</el-radio>
-            <el-radio label="女">女</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="联系方式" prop="phone">
-          <el-input v-model="updateForm.phone" placeholder="请输入手机号" />
-        </el-form-item>
-        <el-form-item label="年级/班级" prop="grade">
-          <el-input v-model="updateForm.grade" placeholder="例如：21级计科1班" />
-        </el-form-item>
+      <el-form ref="updateFormRef" :model="updateForm" label-width="80px">
+        <el-alert
+          title="系统已升级，运动员认证直接读取您的个人基础信息。"
+          type="info"
+          show-icon
+          :closable="false"
+          style="margin-bottom: 20px;"
+        />
       </el-form>
       <template #footer>
         <span class="dialog-footer">
@@ -321,6 +279,8 @@ import { getUserInfo } from '@/api/user'
 import { getRegistrationList } from '@/api/registration'
 import { applyAthlete, getMyApplications, deleteAthleteRecord, updateAthlete } from '@/api/athlete'
 import { getEventList } from '@/api/event'
+import { getDepartmentTree } from '@/api/department'
+import { getSchoolConfig } from '@/api/init'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { isSuccess } from '@/utils/result'
 import { normalizeAthleteStatus } from '@/utils/athleteStatus'
@@ -346,20 +306,36 @@ const availableEvents = computed(() => {
   return eventList.value.filter(e => !myApplications.value.some(app => app.eventId === e.id))
 })
 const applyFormRef = ref(null) // 申请表单引用
-const applyForm = reactive({ name: '', age: 18, gender: '', phone: '', grade: '', userId: '', eventId: null }) // 申请表单数据
+const applyForm = reactive({ eventId: null }) // 申请表单数据，仅保留 eventId
 
 const updateDialogVisible = ref(false) // 修改信息弹窗显示状态
 const updating = ref(false) // 修改提交状态
 const updateFormRef = ref(null) // 修改表单引用
-const updateForm = reactive({ id: null, name: '', age: 18, gender: '', phone: '', grade: '' }) // 修改表单数据
+// 由于后端去掉了所有身份字段，修改逻辑可能需要从此处移除或只允许修改某些东西
+// 为适应后端最新接口，移除 updateForm 中的相关字段，或暂保留作其他用途
+const updateForm = reactive({ id: null }) 
+
+const departmentTree = ref([])
+const schoolConfig = ref({ orgMode: 'UNIVERSITY' })
+
+// 获取部门树和学校配置
+const loadBaseData = async () => {
+  try {
+    const [deptRes, configRes] = await Promise.all([getDepartmentTree(), getSchoolConfig()])
+    if (isSuccess(deptRes)) {
+      departmentTree.value = deptRes.data || []
+    }
+    if (isSuccess(configRes)) {
+      schoolConfig.value = configRes.data || { orgMode: 'UNIVERSITY' }
+    }
+  } catch (error) {
+    console.error('获取基础数据失败:', error)
+  }
+}
 
 // 表单校验规则
 const rules = {
-  eventId: [{ required: true, message: '请选择要报名的赛事', trigger: 'change' }],
-  name:   [{ required: true, message: '请输入姓名', trigger: 'blur' }],
-  gender: [{ required: true, message: '请选择性别', trigger: 'change' }],
-  phone:  [{ required: true, message: '请输入联系方式', trigger: 'blur' }],
-  grade:  [{ required: true, message: '请输入年级/班级', trigger: 'blur' }]
+  eventId: [{ required: true, message: '请选择要报名的赛事', trigger: 'change' }]
 }
 
 const headerCellStyle = {
@@ -493,8 +469,7 @@ const handleCancelApplication = (id) => {
  * @param {Object} row 当前行数据
  */
 const handleUpdateApplication = (row) => {
-  updateForm.id = row.id; updateForm.name = row.name; updateForm.age = Number(row.age) || 18
-  updateForm.gender = row.gender; updateForm.phone = row.contact; updateForm.grade = row.grade
+  updateForm.id = row.id
   updateDialogVisible.value = true
 }
 
@@ -510,10 +485,7 @@ const submitUpdate = async () => {
       }).then(async () => {
         updating.value = true
         try {
-          const res = await updateAthlete(updateForm.id, {
-            name: updateForm.name, age: updateForm.age, gender: updateForm.gender,
-            contact: updateForm.phone, grade: updateForm.grade
-          })
+          const res = await updateAthlete(updateForm.id, {})
           if (isSuccess(res)) {
             ElMessage.success('修改成功，请等待重新审核')
             updateDialogVisible.value = false
@@ -532,14 +504,25 @@ const submitApply = async () => {
   if (!applyFormRef.value) return
   await applyFormRef.value.validate(async (valid) => {
     if (valid) {
-      try {
-        const res = await applyAthlete(applyForm)
-        if (isSuccess(res)) {
-          ElMessage.success('申请提交成功')
-          applyFormRef.value.resetFields()
-          await getInfo()
+      ElMessageBox.confirm(
+        '系统将读取您的个人资料进行申请，提交后若审核通过将无法随意修改信息，是否继续？',
+        '提交认证确认',
+        { confirmButtonText: '确定提交', cancelButtonText: '取消', type: 'warning' }
+      ).then(async () => {
+        try {
+          const res = await applyAthlete(applyForm)
+          if (isSuccess(res)) {
+            ElMessage.success('申请提交成功')
+            applyFormRef.value.resetFields()
+            await getInfo()
+          } else {
+            ElMessage.error(res.message || '申请失败')
+          }
+        } catch (error) {
+          console.error('提交申请失败:', error)
+          // 提示由后端抛出的业务异常，如“请先在个人中心完善身份信息”
         }
-      } catch (error) { console.error('获取信息失败:', error) }
+      }).catch(() => {})
     }
   })
 }
@@ -564,7 +547,10 @@ const formatDate = (dateStr) => {
   return new Date(dateStr).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
-onMounted(() => getInfo())
+onMounted(async () => {
+  await loadBaseData()
+  getInfo()
+})
 </script>
 
 <style scoped>

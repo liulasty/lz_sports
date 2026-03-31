@@ -54,13 +54,18 @@ public class User extends SchoolRelatedEntity<Long> {
     /**
      * 年级ID
      */
-    @TableField("grade_id")
-    private Long gradeId;
+    @TableField("dept_id")
+    private Long deptId;
 
     /**
      * 邮箱
      */
     private String email;
+
+    /**
+     * 联系电话
+     */
+    private String contact;
 
     /**
      * 用户角色
@@ -98,7 +103,7 @@ public class User extends SchoolRelatedEntity<Long> {
                 .name(this.getName() != null ? this.getName() : "")
                 .gender(this.getGender() != null ? this.getGender() : "UNKNOWN")
                 .studentId(this.getStudentId() != null ? this.getStudentId() : "")
-                .gradeId(this.getGradeId() != null ? this.getGradeId() : 0L)
+                .deptId(this.getDeptId() != null ? this.getDeptId() : 0L)
                 .email(this.getEmail() != null ? this.getEmail() : "")
                 .schoolId(this.getSchoolId() != null ? this.getSchoolId() : 0L)
                 .avatar(com.lz.util.ImageUtils.getDefaultAvatar()) // FIXME: Add actual avatar fetching logic if available

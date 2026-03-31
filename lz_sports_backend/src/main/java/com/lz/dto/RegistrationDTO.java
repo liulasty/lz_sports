@@ -21,7 +21,7 @@ public class RegistrationDTO implements Serializable {
     private Long athleteId;
     private String athleteName;
     private String gender;
-    private String grade;
+    private String deptName;
     private String contact;
     private Long eventId;
     private String eventName;

@@ -140,7 +140,15 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
                 Project project = new Project();
                 project.setEventId(event.getId());
                 project.setItemName(pDto.getName());
-                project.setGrade(pDto.getGrade());
+                try {
+                    if (pDto.getLimitDeptIds() != null && !pDto.getLimitDeptIds().isEmpty()) {
+                        project.setLimitDeptIds(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(pDto.getLimitDeptIds()));
+                    } else {
+                        project.setLimitDeptIds(null);
+                    }
+                } catch (Exception e) {
+                    project.setLimitDeptIds(null);
+                }
                 project.setMaxAttendance(pDto.getMaxAttendance() == null ? 0 : pDto.getMaxAttendance());
                 project.setAttendance(0);
                 project.setStartTime(pStart);

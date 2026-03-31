@@ -32,10 +32,10 @@ public class Project extends BaseEntity<Long> {
     private String itemName;
 
     /**
-     * 年级限制
+     * 部门限制
      */
-    @TableField("grade_limit")
-    private String grade;
+    @TableField("limit_dept_ids")
+    private String limitDeptIds;
 
     /**
      * 性别限制
