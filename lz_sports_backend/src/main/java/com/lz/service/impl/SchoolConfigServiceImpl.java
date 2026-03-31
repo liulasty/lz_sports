@@ -66,9 +66,11 @@ public class SchoolConfigServiceImpl extends ServiceImpl<SchoolConfigMapper, Sch
         departmentMapper.delete(null);
         
         // 3. (可选) 清空赛事和用户数据，或者只保留超级管理员
-        userMapper.delete(new LambdaQueryWrapper<User>().ne(User::getUserType, UserRole.SUPER_ADMIN));
+        userMapper.delete(new LambdaQueryWrapper<User>()
+                .ne(User::getUserType, UserRole.SUPER_ADMIN)
+                .ne(User::getUserType, UserRole.SCHOOL_ADMIN));
         
-        log.info("System has been reset.");
+        log.info("System has been reset. Non-admin users and departments cleared.");
     }
 
     @Override

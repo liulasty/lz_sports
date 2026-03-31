@@ -2,6 +2,7 @@ package com.lz.controller;
 
 import com.lz.common.result.Result;
 import com.lz.service.DepartmentService;
+import com.lz.service.SchoolConfigService;
 import com.lz.vo.DepartmentTreeVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,7 +19,7 @@ import java.util.List;
 public class DepartmentController {
 
     private final DepartmentService departmentService;
-    private final com.lz.service.SchoolConfigService schoolConfigService;
+    private final SchoolConfigService schoolConfigService;
 
     @GetMapping("/tree")
     @Operation(summary = "获取组织架构选项", description = "返回所有部门的级联结构数据")
