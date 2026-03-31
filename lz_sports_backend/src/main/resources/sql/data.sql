@@ -18,13 +18,13 @@ INSERT INTO `school_config` (`id`, `school_name`, `logo_url`, `theme_color`, `co
 -- ----------------------------
 -- 2. Initial Department / Organization (Flat Table Demo)
 -- ----------------------------
-INSERT INTO `department` (`id`, `college`, `major`, `grade`, `class_name`, `dept_name`, `school_id`, `sort_order`) VALUES
-(1, '计算机科学与技术学院', '软件工程', NULL, '软工1班', NULL, 1, 1),
-(2, '计算机科学与技术学院', '软件工程', NULL, '软工2班', NULL, 1, 2),
-(3, '电子工程学院', '通信工程', NULL, '通信1班', NULL, 1, 3),
-(4, NULL, NULL, NULL, NULL, '教工组', 1, 4),
-(5, NULL, NULL, '高一', '1班', NULL, 1, 5),
-(6, NULL, NULL, '高一', '2班', NULL, 1, 6);
+INSERT INTO `department` (`id`, `college`, `major`, `grade`, `class_name`, `dept_name`, `org_mode`, `school_id`, `sort_order`) VALUES
+(1, '计算机科学与技术学院', '软件工程', NULL, '软工1班', NULL, 'UNIVERSITY', 1, 1),
+(2, '计算机科学与技术学院', '软件工程', NULL, '软工2班', NULL, 'UNIVERSITY', 1, 2),
+(3, '电子工程学院', '通信工程', NULL, '通信1班', NULL, 'UNIVERSITY', 1, 3),
+(4, NULL, NULL, NULL, NULL, '教工组', 'UNIVERSITY', 1, 4),
+(5, NULL, NULL, '高一', '1班', NULL, 'K12', 1, 5),
+(6, NULL, NULL, '高一', '2班', NULL, 'K12', 1, 6);
 
 -- ----------------------------
 -- 3. Initial Events (Demo Data)

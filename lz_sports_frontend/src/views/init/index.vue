@@ -52,6 +52,14 @@
 
         <!-- Step 3: Grades -->
         <div v-if="active === 2">
+          <div style="margin-bottom: 20px;">
+            <span>快速填充模板：</span>
+            <el-radio-group v-model="selectedTemplate" @change="applyTemplate">
+              <el-radio-button v-for="tpl in currentTemplates" :key="tpl.name" :value="tpl.name">
+                {{ tpl.name }}
+              </el-radio-button>
+            </el-radio-group>
+          </div>
           <p>请确认顶级部门/院系列表（可添加或删除）：</p>
           <el-tag
             v-for="tag in form.grades"
@@ -104,7 +112,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, nextTick } from 'vue'
+import { ref, reactive, nextTick, computed } from 'vue'
 import { initSystem } from '@/api/init'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -115,6 +123,20 @@ const step1Form = ref(null)
 const step2Form = ref(null)
 const loading = ref(false)
 
+const templates = {
+  K12: [
+    { name: '小学', grades: ['一年级', '二年级', '三年级', '四年级', '五年级', '六年级'] },
+    { name: '初中', grades: ['初一', '初二', '初三'] },
+    { name: '高中', grades: ['高一', '高二', '高三'] },
+    { name: '九年一贯制', grades: ['一年级', '二年级', '三年级', '四年级', '五年级', '六年级', '初一', '初二', '初三'] }
+  ],
+  UNIVERSITY: [
+    { name: '通用大学', grades: ['计算机学院', '理学院', '外国语学院', '体育部'] },
+    { name: '医科大学', grades: ['基础医学院', '临床医学院', '药学院', '护理学院'] },
+    { name: '师范大学', grades: ['教育学院', '文学院', '历史学院', '马克思主义学院'] }
+  ]
+}
+
 const form = reactive({
   schoolName: '',
   logoUrl: '',
@@ -124,14 +146,29 @@ const form = reactive({
   adminPassword: '',
   adminEmail: '',
   orgMode: 'UNIVERSITY',
-  grades: ['计算机学院', '理学院', '外国语学院', '体育部']
+  grades: [...templates.UNIVERSITY[0].grades]
 })
+
+const selectedTemplate = ref(templates.UNIVERSITY[0].name)
+
+const currentTemplates = computed(() => {
+  return templates[form.orgMode] || []
+})
+
+const applyTemplate = (tplName) => {
+  const tpl = currentTemplates.value.find(t => t.name === tplName)
+  if (tpl) {
+    form.grades = [...tpl.grades]
+  }
+}
 
 const handleModeChange = (val) => {
   if (val === 'UNIVERSITY') {
-    form.grades = ['计算机学院', '理学院', '外国语学院', '体育部']
+    selectedTemplate.value = templates.UNIVERSITY[0].name
+    form.grades = [...templates.UNIVERSITY[0].grades]
   } else {
-    form.grades = ['高一', '高二', '高三']
+    selectedTemplate.value = templates.K12[0].name
+    form.grades = [...templates.K12[0].grades]
   }
 }
 

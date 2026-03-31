@@ -1,11 +1,7 @@
 package com.lz.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.lz.common.enums.EventStatus;
-import com.lz.common.enums.RegistrationStatus;
 import com.lz.entity.Event;
-import com.lz.entity.Registration;
-import com.lz.entity.Score;
 import com.lz.mapper.EventMapper;
 import com.lz.mapper.RegistrationMapper;
 import com.lz.mapper.ScoreMapper;

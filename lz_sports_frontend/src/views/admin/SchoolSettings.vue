@@ -37,17 +37,36 @@
         </el-form-item>
       </el-form>
     </el-card>
+
+    <el-card class="box-card" style="margin-top: 20px;">
+      <template #header>
+        <div class="card-header" style="color: var(--el-color-danger)">
+          <span>危险操作</span>
+        </div>
+      </template>
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div>
+          <h4 style="margin: 0 0 10px 0;">重置系统基本信息</h4>
+          <p style="margin: 0; color: var(--el-text-color-secondary); font-size: 14px;">此操作将清空组织架构等基础数据并重置系统初始化状态，返回初始化引导页。</p>
+        </div>
+        <el-button type="danger" @click="handleResetSystem">重置系统</el-button>
+      </div>
+    </el-card>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { Plus } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { getSchoolConfig } from '@/api/init'
-import { updateSchoolConfig, uploadSchoolLogo } from '@/api/schoolConfig'
+import { updateSchoolConfig, uploadSchoolLogo, resetSystem } from '@/api/schoolConfig'
 import { useConfigStore } from '@/stores/config' // We will create this or just use window.document
+import { useUserStore } from '@/stores/user'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
+const userStore = useUserStore()
 const formRef = ref(null)
 const submitting = ref(false)
 
@@ -170,6 +189,31 @@ const submitForm = async () => {
 const resetForm = () => {
   Object.assign(form, originalConfig)
   applyThemeColor(form.themeColor)
+}
+
+const handleResetSystem = () => {
+  ElMessageBox.confirm(
+    '此操作将清空所有部门架构及非超管用户，并重置系统初始化状态。是否继续？',
+    '警告',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(async () => {
+    try {
+      const res = await resetSystem()
+      if (res.code === 200) {
+        ElMessage.success('系统已重置')
+        userStore.logout()
+        router.push('/init')
+      }
+    } catch (error) {
+      console.error(error)
+    }
+  }).catch(() => {
+    // cancelled
+  })
 }
 
 onMounted(() => {

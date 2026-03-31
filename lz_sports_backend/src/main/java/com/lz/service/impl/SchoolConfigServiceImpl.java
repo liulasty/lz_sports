@@ -52,6 +52,26 @@ public class SchoolConfigServiceImpl extends ServiceImpl<SchoolConfigMapper, Sch
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = "school_config_mode", key = "'current_org_mode'")
+    public void resetSystem() {
+        // 1. 设置 is_initialized 为 false
+        SchoolConfig config = this.getOne(new LambdaQueryWrapper<SchoolConfig>().last("LIMIT 1"));
+        if (config != null) {
+            config.setInitialized(false);
+            this.updateById(config);
+        }
+
+        // 2. 清空 department 数据
+        departmentMapper.delete(null);
+        
+        // 3. (可选) 清空赛事和用户数据，或者只保留超级管理员
+        userMapper.delete(new LambdaQueryWrapper<User>().ne(User::getUserType, UserRole.SUPER_ADMIN));
+        
+        log.info("System has been reset.");
+    }
+
+    @Override
     public boolean isInitialized() {
         // 仅当存在配置且 is_initialized 为 true 时才视为已初始化
         return this.count(new LambdaQueryWrapper<SchoolConfig>()
@@ -115,6 +135,7 @@ public class SchoolConfigServiceImpl extends ServiceImpl<SchoolConfigMapper, Sch
             for (int i = 0; i < grades.size(); i++) {
                 String gradeName = grades.get(i);
                 Department dept = new Department();
+                dept.setOrgMode(schoolConfig.getOrgMode());
                 if (isUniversity) {
                     dept.setCollege(gradeName);
                 } else {

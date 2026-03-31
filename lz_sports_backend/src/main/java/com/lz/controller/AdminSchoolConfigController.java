@@ -33,4 +33,12 @@ public class AdminSchoolConfigController {
     public Result<String> uploadLogo(@RequestParam("file") MultipartFile file) {
         return Result.success(schoolConfigService.uploadLogo(file));
     }
+
+    @PostMapping("/reset")
+    @RequireRole({UserRole.SUPER_ADMIN, UserRole.SCHOOL_ADMIN})
+    @Operation(summary = "重置系统", description = "清空组织架构等基础数据并重置初始化状态")
+    public Result<Void> resetSystem() {
+        schoolConfigService.resetSystem();
+        return Result.success();
+    }
 }

@@ -20,8 +20,10 @@ public class DepartmentServiceImpl extends ServiceImpl<DepartmentMapper, Departm
 
     @Override
     public List<DepartmentTreeVO> getDepartmentTree() {
-        List<Department> allDepts = this.list(new LambdaQueryWrapper<Department>().orderByAsc(Department::getSortOrder));
         String orgMode = schoolConfigService.getCurrentOrgMode();
+        List<Department> allDepts = this.list(new LambdaQueryWrapper<Department>()
+                .eq(Department::getOrgMode, orgMode)
+                .orderByAsc(Department::getSortOrder));
         
         List<DepartmentTreeVO> tree = new ArrayList<>();
         
@@ -131,7 +133,10 @@ public class DepartmentServiceImpl extends ServiceImpl<DepartmentMapper, Departm
             return "";
         }
         
-        String orgMode = schoolConfigService.getCurrentOrgMode();
+        String orgMode = dept.getOrgMode();
+        if (orgMode == null || orgMode.isEmpty()) {
+            orgMode = schoolConfigService.getCurrentOrgMode();
+        }
         List<String> names = new ArrayList<>();
         
         if ("K12".equals(orgMode)) {

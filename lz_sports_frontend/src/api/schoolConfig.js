@@ -20,3 +20,10 @@ export function uploadSchoolLogo(file) {
     }
   })
 }
+
+export function resetSystem() {
+  return request({
+    url: '/admin/school-config/reset',
+    method: 'post'
+  })
+}

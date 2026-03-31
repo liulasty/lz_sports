@@ -18,6 +18,7 @@ import java.util.List;
 public class DepartmentController {
 
     private final DepartmentService departmentService;
+    private final com.lz.service.SchoolConfigService schoolConfigService;
 
     @GetMapping("/tree")
     @Operation(summary = "获取组织架构选项", description = "返回所有部门的级联结构数据")
@@ -28,12 +29,28 @@ public class DepartmentController {
     @PostMapping
     @Operation(summary = "新增部门", description = "新增组织架构节点")
     public Result<Boolean> add(@RequestBody Department department) {
+        String currentMode = schoolConfigService.getCurrentOrgMode();
+        department.setOrgMode(currentMode);
+        if ("K12".equals(currentMode)) {
+            department.setCollege(null);
+            department.setMajor(null);
+        } else {
+            department.setGrade(null);
+        }
         return Result.success(departmentService.save(department));
     }
 
     @PutMapping
     @Operation(summary = "修改部门", description = "修改组织架构节点")
     public Result<Boolean> update(@RequestBody Department department) {
+        String currentMode = schoolConfigService.getCurrentOrgMode();
+        department.setOrgMode(currentMode);
+        if ("K12".equals(currentMode)) {
+            department.setCollege(null);
+            department.setMajor(null);
+        } else {
+            department.setGrade(null);
+        }
         return Result.success(departmentService.updateById(department));
     }
 

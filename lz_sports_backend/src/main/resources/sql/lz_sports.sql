@@ -102,6 +102,7 @@ CREATE TABLE `department` (
                          `grade` varchar(50) DEFAULT NULL COMMENT '年级名称 (K12模式)',
                          `class_name` varchar(50) DEFAULT NULL COMMENT '班级名称',
                          `dept_name` varchar(50) DEFAULT NULL COMMENT '行政部门名称 (如体育部/教工组)',
+                         `org_mode` varchar(20) DEFAULT 'UNIVERSITY' COMMENT '组织架构模式: UNIVERSITY/K12',
                          `school_id` bigint DEFAULT '1' COMMENT '学校ID',
                          `sort_order` int DEFAULT '0' COMMENT '排序',
                          `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',

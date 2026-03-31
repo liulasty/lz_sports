@@ -25,6 +25,9 @@ public class Department extends SchoolRelatedEntity<Long> {
     @TableField("dept_name")
     private String deptName;
 
+    @TableField("org_mode")
+    private String orgMode;
+
     @TableField("sort_order")
     private Integer sortOrder;
 }

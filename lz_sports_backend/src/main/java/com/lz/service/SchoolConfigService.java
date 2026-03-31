@@ -28,4 +28,9 @@ public interface SchoolConfigService extends IService<SchoolConfig> {
      * 获取当前的组织架构模式 (UNIVERSITY 或 K12)
      */
     String getCurrentOrgMode();
+
+    /**
+     * 重置系统基本信息
+     */
+    void resetSystem();
 }
