@@ -31,10 +31,10 @@ public class DepartmentServiceImpl extends ServiceImpl<DepartmentMapper, Departm
             List<Department> independentDepts = new ArrayList<>();
             
             for (Department dept : allDepts) {
-                if (dept.getDeptName() != null && !dept.getDeptName().isEmpty()) {
-                    independentDepts.add(dept);
-                } else if (dept.getGrade() != null && !dept.getGrade().isEmpty()) {
+                if (dept.getGrade() != null && !dept.getGrade().isEmpty() && dept.getClassName() != null && !dept.getClassName().isEmpty()) {
                     gradeMap.computeIfAbsent(dept.getGrade(), k -> new ArrayList<>()).add(dept);
+                } else if (dept.getDeptName() != null && !dept.getDeptName().isEmpty()) {
+                    independentDepts.add(dept);
                 }
             }
             
@@ -71,12 +71,12 @@ public class DepartmentServiceImpl extends ServiceImpl<DepartmentMapper, Departm
             List<Department> independentDepts = new ArrayList<>();
             
             for (Department dept : allDepts) {
-                if (dept.getDeptName() != null && !dept.getDeptName().isEmpty()) {
-                    independentDepts.add(dept);
-                } else if (dept.getCollege() != null && !dept.getCollege().isEmpty()) {
+                if (dept.getCollege() != null && !dept.getCollege().isEmpty() && dept.getClassName() != null && !dept.getClassName().isEmpty()) {
                     collegeMap.computeIfAbsent(dept.getCollege(), k -> new LinkedHashMap<>())
-                             .computeIfAbsent(dept.getMajor() != null ? dept.getMajor() : "无专业", k -> new ArrayList<>())
+                             .computeIfAbsent(dept.getMajor() != null && !dept.getMajor().isEmpty() ? dept.getMajor() : "无专业", k -> new ArrayList<>())
                              .add(dept);
+                } else if (dept.getDeptName() != null && !dept.getDeptName().isEmpty()) {
+                    independentDepts.add(dept);
                 }
             }
             
@@ -131,22 +131,30 @@ public class DepartmentServiceImpl extends ServiceImpl<DepartmentMapper, Departm
             return "";
         }
         
-        if (dept.getDeptName() != null && !dept.getDeptName().isEmpty()) {
-            return dept.getDeptName();
-        }
-        
         String orgMode = schoolConfigService.getCurrentOrgMode();
         List<String> names = new ArrayList<>();
         
         if ("K12".equals(orgMode)) {
-            if (dept.getGrade() != null) names.add(dept.getGrade());
-            if (dept.getClassName() != null) names.add(dept.getClassName());
+            if (dept.getGrade() != null && !dept.getGrade().isEmpty() && dept.getClassName() != null && !dept.getClassName().isEmpty()) {
+                names.add(dept.getGrade());
+                names.add(dept.getClassName());
+                return String.join("-", names);
+            }
         } else {
-            if (dept.getCollege() != null) names.add(dept.getCollege());
-            if (dept.getMajor() != null && !dept.getMajor().equals("无专业")) names.add(dept.getMajor());
-            if (dept.getClassName() != null) names.add(dept.getClassName());
+            if (dept.getCollege() != null && !dept.getCollege().isEmpty() && dept.getClassName() != null && !dept.getClassName().isEmpty()) {
+                names.add(dept.getCollege());
+                if (dept.getMajor() != null && !dept.getMajor().equals("无专业") && !dept.getMajor().isEmpty()) {
+                    names.add(dept.getMajor());
+                }
+                names.add(dept.getClassName());
+                return String.join("-", names);
+            }
         }
         
-        return String.join("-", names);
+        if (dept.getDeptName() != null && !dept.getDeptName().isEmpty()) {
+            return dept.getDeptName();
+        }
+        
+        return "";
     }
 }
