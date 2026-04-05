@@ -1,0 +1,43 @@
+services:
+  backend:
+    depends_on:
+      mysql:
+        condition: service_started
+        required: false
+      redis:
+        condition: service_started
+        required: false
+    environment:
+      DB_URL: jdbc:mysql://host.docker.internal:3306/${DB_NAME:-lz_sports}?serverTimezone=GMT%2B8&characterEncoding=utf-8&useSSL=false
+      REDIS_HOST: host.docker.internal
+  
+  # 覆盖清空 mysql 服务
+  mysql:
+    image: alpine:latest
+    command: ["echo", "Using local MySQL"]
+    restart: "no"
+    networks: []
+    ports: []
+    volumes: []
+    healthcheck:
+      disable: true
+
+  # 覆盖清空 redis 服务
+  redis:
+    image: alpine:latest
+    command: ["echo", "Using local Redis"]
+    restart: "no"
+    networks: []
+    ports: []
+    volumes: []
+    healthcheck:
+      disable: true
+  
+  # 覆盖清空 adminer 服务
+  adminer:
+    image: alpine:latest
+    command: ["echo", "Adminer disabled"]
+    restart: "no"
+    networks: []
+    ports: []
+    depends_on: []

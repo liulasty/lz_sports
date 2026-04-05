@@ -1,0 +1,40 @@
+services:
+  mysql:
+    volumes:
+      - ${DOCKER_DATA_PATH}/mysql:/var/lib/mysql
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  redis:
+    volumes:
+      - ${DOCKER_DATA_PATH}/redis:/data
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  adminer:
+    restart: unless-stopped
+
+  backend:
+    volumes:
+      - ${APP_DATA_PATH}/logs:/app/logs
+      - ${APP_DATA_PATH}/uploads:${APP_UPLOAD_DIR}
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  frontend:
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
+    deploy:
+      resources:
+        limits:
+          memory: 256M

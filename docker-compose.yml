@@ -1,95 +1,98 @@
-# Docker Compose 配置文件，用于编排 lz_sports 项目的后端和前端服务
-# 版本声明（指定 Compose 文件格式版本，适配 Docker 引擎版本）
-# version: '3.8'
-
-# 定义所有服务
 services:
-  # 后端服务配置
-  backend:
-    # 构建镜像相关配置
-    build:
-      # 构建上下文目录（指定 Dockerfile 所在的相对路径）
-      context: ./lz_sports_backend
-      # 指定构建使用的 Dockerfile 文件名
-      dockerfile: Dockerfile
-      # 构建参数（传递给 Dockerfile 的变量）
-      args:
-        # 指定要打包到镜像中的 JAR 包路径
-        JAR_FILE: target/lz_sports_backend-0.0.1-SNAPSHOT.jar
-    # 构建后的镜像名称和标签
-    image: lz-sports-backend:20260328201417
-    # 容器名称（自定义容器名，便于识别和管理）
-    container_name: lz-sports-backend
-    # 端口映射：主机端口 8080 映射到容器内 8080 端口
-    ports:
-      - "8080:8080"
-    # 加载环境变量文件（从指定路径读取 .env 文件中的环境变量）
-    env_file:
-      - ./lz_sports_backend/.env
-    # 直接设置环境变量（优先级高于 env_file）
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
     environment:
-      # Spring 激活的配置文件，默认值为 prod
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
-      # 数据库连接地址，默认使用 host.docker.internal（宿主机）的 3306 端口
-      DB_URL: ${DB_URL_DOCKER:-jdbc:mysql://host.docker.internal:3306/lz_sports?serverTimezone=GMT%2B8&characterEncoding=utf-8&useSSL=false}
-      # Redis 主机地址，默认使用宿主机地址
-      REDIS_HOST: ${REDIS_HOST_DOCKER:-host.docker.internal}
-      # 应用文件上传目录（容器内的路径）
-      APP_UPLOAD_DIR: /app/uploads
-    # 数据卷挂载：将主机的 ./data/uploads 目录挂载到容器内的 /app/uploads
-    # 实现容器内上传文件持久化到宿主机
-    volumes:
-      - ./data/uploads:/app/uploads
-      - D:/lz-sports/docker/logs:/app/logs
-    # 添加额外的主机映射：将 host.docker.internal 解析为宿主机网关地址
-    # 解决容器访问宿主机服务的问题（兼容 Windows/Mac/Linux）
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+    networks:
+      - appnet
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    networks:
+      - appnet
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  adminer:
+    image: adminer:latest
+    container_name: adminer
+    environment:
+      ADMINER_DEFAULT_SERVER: mysql
+      ADMINER_DESIGN: pepa-linha
+    networks:
+      - appnet
+    depends_on:
+      - mysql
+
+  backend:
+    image: lz-sports-backend:${IMAGE_VERSION:-latest}
+    container_name: backend
+    build:
+      context: ./lz_sports_backend
+      dockerfile: Dockerfile
+      args:
+        JAR_FILE: target/lz_sports_backend-0.0.1-SNAPSHOT.jar
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      DB_URL: ${DB_URL}
+      DB_USERNAME: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_DB: ${REDIS_DB}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      SECURITY_USER_NAME: ${SECURITY_USER_NAME}
+      SECURITY_USER_PASSWORD: ${SECURITY_USER_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      OSS_ENDPOINT: ${OSS_ENDPOINT}
+      OSS_ACCESS_KEY_ID: ${OSS_ACCESS_KEY_ID}
+      OSS_ACCESS_KEY_SECRET: ${OSS_ACCESS_KEY_SECRET}
+      OSS_BUCKET_NAME: ${OSS_BUCKET_NAME}
+      APP_UPLOAD_DIR: ${APP_UPLOAD_DIR}
+      MAIL_HOST: ${MAIL_HOST}
+      MAIL_PORT: ${MAIL_PORT}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      SERVER_PORT: ${BACKEND_PORT:-8080}
+      JAVA_OPTS: ${JAVA_OPTS:--Xmx1g -Xms512m}
+      APP_LOG_DIR: ${LOG_PATH}
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    # 重启策略：容器退出时始终自动重启（包括 Docker 服务重启）
-    restart: always
+    networks:
+      - appnet
 
-  # 前端服务配置
   frontend:
-    # 构建镜像相关配置
+    image: lz-sports-frontend:${IMAGE_VERSION:-latest}
+    container_name: frontend
     build:
-      # 前端代码所在目录（构建上下文）
       context: ./lz_sports_frontend
-      # 前端构建使用的 Dockerfile
       dockerfile: Dockerfile
       args:
-        FRONTEND_PORT: ${FRONTEND_PORT:-5173}
-    # 前端镜像名称和标签
-    image: lz-sports-frontend:20260328201417
-    # 前端容器名称
-    container_name: lz-sports-frontend
-    # 端口映射：通过 FRONTEND_PORT 统一控制主机和容器端口
-    ports:
-      - "${FRONTEND_PORT:-5173}:${FRONTEND_PORT:-5173}"
-    # 依赖关系：前端服务启动依赖后端服务（确保后端先启动）
-    # 注意：仅保证启动顺序，不保证后端服务完全就绪
+        FRONTEND_PORT: ${FRONTEND_PORT:-80}
     depends_on:
       - backend
-    # 重启策略：始终自动重启
-    restart: no
+    environment:
+      - BACKEND_URL=http://backend:${BACKEND_PORT:-8080}
+    networks:
+      - appnet
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+networks:
+  appnet:
+    driver: bridge

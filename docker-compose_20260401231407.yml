@@ -17,7 +17,7 @@ services:
         # 指定要打包到镜像中的 JAR 包路径
         JAR_FILE: target/lz_sports_backend-0.0.1-SNAPSHOT.jar
     # 构建后的镜像名称和标签
-    image: lz-sports-backend:20260328170113
+    image: lz-sports-backend:20260401231407
     # 容器名称（自定义容器名，便于识别和管理）
     container_name: lz-sports-backend
     # 端口映射：主机端口 8080 映射到容器内 8080 端口
@@ -59,7 +59,7 @@ services:
       args:
         FRONTEND_PORT: ${FRONTEND_PORT:-5173}
     # 前端镜像名称和标签
-    image: lz-sports-frontend:20260328170113
+    image: lz-sports-frontend:20260401231407
     # 前端容器名称
     container_name: lz-sports-frontend
     # 端口映射：通过 FRONTEND_PORT 统一控制主机和容器端口
@@ -71,6 +71,13 @@ services:
       - backend
     # 重启策略：始终自动重启
     restart: no
+
+
+
+
+
+
+
 
 
 

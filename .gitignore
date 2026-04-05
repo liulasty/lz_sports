@@ -20,3 +20,7 @@ temp/
 .env
 .env.local
 .env.*.local
+
+# 忽略 Docker 相关文件
+docker/
+data/   

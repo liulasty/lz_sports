@@ -1,0 +1,27 @@
+services:
+  mysql:
+    ports:
+      - "${DB_PORT}:3306"
+    volumes:
+      - ${DOCKER_DATA_PATH}/mysql:/var/lib/mysql
+
+  redis:
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - ${DOCKER_DATA_PATH}/redis:/data
+
+  adminer:
+    ports:
+      - "${ADMINER_PORT}:8080"
+
+  backend:
+    ports:
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
+    volumes:
+      - ${APP_DATA_PATH}/logs:/app/logs
+      - ${APP_DATA_PATH}/uploads:${APP_UPLOAD_DIR}
+
+  frontend:
+    ports:
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
