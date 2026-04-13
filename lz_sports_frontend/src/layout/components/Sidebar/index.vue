@@ -84,7 +84,7 @@ const isLoggedIn = computed(() => !!userStore.token)
 
 // 适配新旧角色标识
 const role = computed(() => {
-  return userStore.userInfo?.role || 'USER'
+  return userStore.userInfo?.role || userStore.userInfo?.type || userStore.userInfo?.userType || 'USER'
 })
 
 // 根据后端UserRole枚举定义的权限

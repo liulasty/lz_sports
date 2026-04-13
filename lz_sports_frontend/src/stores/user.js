@@ -10,9 +10,21 @@ export const useUserStore = defineStore('user', () => {
     localStorage.setItem('token', newToken)
   }
 
+  function normalizeUserInfo(info = {}) {
+    const normalized = { ...info }
+    const role = normalized.role || normalized.type || normalized.userType
+    if (role) {
+      normalized.role = role
+      normalized.type = role
+      normalized.userType = role
+    }
+    return normalized
+  }
+
   function setUserInfo(info) {
-    userInfo.value = info
-    localStorage.setItem('userInfo', JSON.stringify(info))
+    const normalized = normalizeUserInfo(info)
+    userInfo.value = normalized
+    localStorage.setItem('userInfo', JSON.stringify(normalized))
   }
 
   function logout() {

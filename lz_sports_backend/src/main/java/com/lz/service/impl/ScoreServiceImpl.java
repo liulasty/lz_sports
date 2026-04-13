@@ -19,10 +19,12 @@ import com.lz.entity.Event;
 import com.lz.entity.Project;
 import com.lz.entity.Registration;
 import com.lz.entity.Score;
+import com.lz.entity.User;
 import com.lz.mapper.EventMapper;
 import com.lz.mapper.ProjectMapper;
 import com.lz.mapper.RegistrationMapper;
 import com.lz.mapper.ScoreMapper;
+import com.lz.mapper.UserMapper;
 import com.lz.service.NotificationService;
 import com.lz.service.ScoreService;
 import com.lz.vo.RegistrationListExportVO;
@@ -55,6 +57,7 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
     private final RegistrationMapper registrationMapper;
     private final EventMapper eventMapper;
     private final ProjectMapper projectMapper;
+    private final UserMapper userMapper;
     private final NotificationService notificationService;
 
     @Override
@@ -327,6 +330,8 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
                 .stream().collect(Collectors.toMap(Event::getId, item -> item));
         Map<Long, Project> itemMap = projectMapper.selectBatchIds(scores.stream().map(Score::getItemId).distinct().toList())
                 .stream().collect(Collectors.toMap(Project::getId, item -> item));
+        Map<Long, User> userMap = userMapper.selectBatchIds(scores.stream().map(Score::getAthleteId).distinct().toList())
+                .stream().collect(Collectors.toMap(User::getId, item -> item));
         return scores.stream().map(score -> {
             ScoreVO vo = new ScoreVO();
             vo.setId(score.getId());
@@ -335,6 +340,7 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
             vo.setRegistrationId(score.getRegistrationId());
             vo.setEventName(eventMap.containsKey(score.getEventId()) ? eventMap.get(score.getEventId()).getEventName() : null);
             vo.setItemName(itemMap.containsKey(score.getItemId()) ? itemMap.get(score.getItemId()).getItemName() : null);
+            vo.setAthleteName(userMap.containsKey(score.getAthleteId()) ? userMap.get(score.getAthleteId()).getName() : null);
             vo.setScoreValue(score.getScoreValue());
             vo.setScoreRank(score.getScoreRank());
             vo.setRemark(score.getRemark());

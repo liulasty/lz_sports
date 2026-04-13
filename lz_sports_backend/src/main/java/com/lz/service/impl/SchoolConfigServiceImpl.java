@@ -77,7 +77,7 @@ public class SchoolConfigServiceImpl extends ServiceImpl<SchoolConfigMapper, Sch
     public boolean isInitialized() {
         // 仅当存在配置且 is_initialized 为 true 时才视为已初始化
         return this.count(new LambdaQueryWrapper<SchoolConfig>()
-                .eq(SchoolConfig::isInitialized, true)) > 0;
+                .eq(SchoolConfig::getInitialized, true)) > 0;
     }
 
     @Override

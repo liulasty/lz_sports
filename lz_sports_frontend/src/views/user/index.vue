@@ -1,79 +1,113 @@
 <template>
-  <div class="user-manage-container">
-    <el-card class="box-card">
-      <template #header>
-        <div class="card-header">
-          <span>用户管理</span>
-          <div class="filter-box">
-            <el-select v-model="queryParams.role" placeholder="角色" clearable style="width: 120px; margin-right: 10px">
-              <el-option label="普通用户" value="USER" />
-              <el-option label="运动员" value="ATHLETE" />
-              <el-option label="赛事管理员" value="EVENT_ADMIN" />
-              <el-option label="系统管理员" value="SCHOOL_ADMIN" />
-            </el-select>
-            <el-select v-model="queryParams.status" placeholder="状态" clearable style="width: 100px; margin-right: 10px">
-              <el-option label="正常" value="ACTIVE" />
-              <el-option label="禁用" value="DISABLED" />
-            </el-select>
-            <el-input v-model="queryParams.keyword" placeholder="邮箱/姓名" clearable style="width: 200px; margin-right: 10px" @keyup.enter="handleQuery" />
-            <el-button type="primary" @click="handleQuery">查询</el-button>
-          </div>
-        </div>
-      </template>
+  <div class="user-page">
+    <div class="user-hero">
+      <div>
+        <p class="user-eyebrow">USER CONSOLE</p>
+        <h1 class="user-title">用户管理</h1>
+        <p class="user-sub">筛选用户、调整角色与启用状态。超级管理员账号不可被修改。</p>
+      </div>
+      <div class="hero-actions lz-actions lz-ep-dark">
+        <el-button @click="resetQuery">重置筛选</el-button>
+        <el-button type="primary" @click="handleQuery">查询</el-button>
+      </div>
+    </div>
 
-      <el-table :data="userList" style="width: 100%" v-loading="loading">
+    <section class="user-stats">
+      <article class="stat-card">
+        <p class="stat-label">总用户</p>
+        <p class="stat-value">{{ total }}</p>
+      </article>
+      <article class="stat-card ok">
+        <p class="stat-label">本页正常</p>
+        <p class="stat-value">{{ pageActiveCount }}</p>
+      </article>
+      <article class="stat-card danger">
+        <p class="stat-label">本页禁用</p>
+        <p class="stat-value">{{ pageDisabledCount }}</p>
+      </article>
+      <article class="stat-card soft">
+        <p class="stat-label">本页管理员</p>
+        <p class="stat-value">{{ pageAdminCount }}</p>
+      </article>
+    </section>
+
+    <section class="user-shell lz-surface lz-ep-dark" v-loading="loading">
+      <div class="toolbar">
+        <div class="filters lz-form">
+          <el-select v-model="queryParams.role" placeholder="角色" clearable class="w-140">
+            <el-option label="普通用户" value="USER" />
+            <el-option label="运动员" value="ATHLETE" />
+            <el-option label="赛事管理员" value="EVENT_ADMIN" />
+            <el-option label="系统管理员" value="SCHOOL_ADMIN" />
+          </el-select>
+          <el-select v-model="queryParams.status" placeholder="状态" clearable class="w-120">
+            <el-option label="正常" value="ACTIVE" />
+            <el-option label="禁用" value="DISABLED" />
+          </el-select>
+          <el-input
+            v-model="queryParams.keyword"
+            placeholder="邮箱 / 姓名"
+            clearable
+            class="w-240"
+            @keyup.enter="handleQuery"
+          />
+        </div>
+        <div class="toolbar-meta">第 {{ queryParams.page }} 页</div>
+      </div>
+
+      <el-table :data="userList" class="user-table" style="width: 100%">
         <el-table-column label="头像" width="80">
           <template #default="scope">
             <el-avatar :size="40" :src="scope.row.avatar" />
           </template>
         </el-table-column>
-        <el-table-column prop="username" label="用户名" />
-        <el-table-column prop="name" label="姓名">
+        <el-table-column prop="username" label="用户名" min-width="140" />
+        <el-table-column prop="name" label="姓名" min-width="120">
           <template #default="scope">
             {{ scope.row.name ?? '未填写' }}
           </template>
         </el-table-column>
-        <el-table-column prop="email" label="邮箱" width="200" />
-        <el-table-column prop="type" label="角色">
+        <el-table-column prop="email" label="邮箱" min-width="200" />
+        <el-table-column prop="type" label="角色" min-width="120">
           <template #default="scope">
             <el-tag :type="getRoleType(scope.row.type)">{{ formatRole(scope.row.type) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="state" label="状态">
+        <el-table-column prop="state" label="状态" min-width="110">
           <template #default="scope">
-            <el-tag :type="scope.row.state === 'ACTIVE' || scope.row.state === '已激活' ? 'success' : 'danger'">
-              {{ scope.row.state === 'ACTIVE' || scope.row.state === '已激活' ? '正常' : '禁用' }}
+            <el-tag :type="isActiveState(scope.row.state) ? 'success' : 'danger'">
+              {{ isActiveState(scope.row.state) ? '正常' : '禁用' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="registerTime" label="注册时间" width="180">
+        <el-table-column prop="registerTime" label="注册时间" min-width="180">
           <template #default="scope">
             {{ formatDate(scope.row.registerTime) }}
           </template>
         </el-table-column>
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="scope">
-            <el-button 
-                type="primary" 
-                link 
-                @click="handleEditRole(scope.row)"
-                :disabled="scope.row.type === 'SUPER_ADMIN'"
+            <el-button
+              type="primary"
+              link
+              @click="handleEditRole(scope.row)"
+              :disabled="scope.row.type === 'SUPER_ADMIN'"
             >
               修改角色
             </el-button>
-            <el-button 
-                :type="scope.row.state === 'ACTIVE' || scope.row.state === '已激活' ? 'danger' : 'success'" 
-                link 
-                @click="handleToggleStatus(scope.row)"
-                :disabled="scope.row.type === 'SUPER_ADMIN'"
+            <el-button
+              :type="isActiveState(scope.row.state) ? 'danger' : 'success'"
+              link
+              @click="handleToggleStatus(scope.row)"
+              :disabled="scope.row.type === 'SUPER_ADMIN'"
             >
-              {{ scope.row.state === 'ACTIVE' || scope.row.state === '已激活' ? '禁用' : '启用' }}
+              {{ isActiveState(scope.row.state) ? '禁用' : '启用' }}
             </el-button>
           </template>
         </el-table-column>
       </el-table>
 
-      <div class="pagination-container">
+      <div class="pagination-container lz-actions">
         <el-pagination
           v-model:current-page="queryParams.page"
           v-model:page-size="queryParams.size"
@@ -84,10 +118,10 @@
           @current-change="handleCurrentChange"
         />
       </div>
-    </el-card>
+    </section>
 
-    <el-dialog v-model="dialogVisible" title="修改角色" width="400px">
-      <el-form :model="roleForm" label-width="80px">
+    <el-dialog v-model="dialogVisible" title="修改角色" width="420px" class="lz-ep-dark">
+      <el-form :model="roleForm" label-position="top" class="lz-form">
         <el-form-item label="角色分配">
           <el-select v-model="roleForm.role" style="width: 100%">
             <el-option label="普通用户" value="USER" />
@@ -96,7 +130,7 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <span class="dialog-footer">
+        <span class="dialog-footer lz-actions">
           <el-button @click="dialogVisible = false">取消</el-button>
           <el-button type="primary" @click="submitRoleForm" :loading="submitLoading">确定</el-button>
         </span>
@@ -106,7 +140,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { getAdminUserList, changeUserRole, disableUser, enableUser } from '@/api/adminUser'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -141,6 +175,12 @@ const roleForm = reactive({
   role: ''
 })
 
+const isActiveState = (state: string) => state === 'ACTIVE' || state === '已激活'
+
+const pageActiveCount = computed(() => (userList.value || []).filter(u => isActiveState(u.state)).length)
+const pageDisabledCount = computed(() => (userList.value || []).filter(u => !isActiveState(u.state)).length)
+const pageAdminCount = computed(() => (userList.value || []).filter(u => ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'EVENT_ADMIN'].includes(u.type)).length)
+
 const getList = async () => {
   loading.value = true
   try {
@@ -157,6 +197,14 @@ const getList = async () => {
 }
 
 const handleQuery = () => {
+  queryParams.page = 1
+  getList()
+}
+
+const resetQuery = () => {
+  queryParams.keyword = ''
+  queryParams.role = ''
+  queryParams.status = ''
   queryParams.page = 1
   getList()
 }
@@ -198,10 +246,10 @@ const submitRoleForm = async () => {
 }
 
 const handleToggleStatus = (row: UserData) => {
-  const isActive = row.state === 'ACTIVE' || row.state === '已激活'
+  const isActive = isActiveState(row.state)
   const actionText = isActive ? '禁用' : '启用'
   const targetId = row.id || row.userId
-  
+
   ElMessageBox.confirm(`确认${actionText}该用户吗?`, '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
@@ -249,32 +297,116 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.user-manage-container {
-  padding: 20px;
+.user-page {
+  padding: 24px;
 }
-.card-header {
+
+.user-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.user-eyebrow {
+  margin: 0 0 10px;
+  color: var(--accent);
+  letter-spacing: 0.18em;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.user-title {
+  margin: 0 0 8px;
+  font-size: 32px;
+  color: var(--text-primary);
+}
+
+.user-sub {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.hero-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.user-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.stat-card {
+  background: color-mix(in srgb, var(--bg-card) 92%, var(--bg-soft));
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.12);
+}
+
+.stat-card.ok { border-color: color-mix(in srgb, #4fb77a 35%, var(--border)); }
+.stat-card.danger { border-color: color-mix(in srgb, #f43f5e 35%, var(--border)); }
+.stat-card.soft { border-color: color-mix(in srgb, var(--accent) 25%, var(--border)); }
+
+.stat-label {
+  margin: 0 0 8px;
+  color: color-mix(in srgb, var(--text-secondary) 92%, transparent);
+  font-size: 12px;
+}
+
+.stat-value {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.user-shell {
+  padding: 14px;
+}
+
+.toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
 }
-.filter-box {
+
+.filters {
   display: flex;
   align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
+
+.toolbar-meta {
+  color: color-mix(in srgb, var(--text-secondary) 90%, transparent);
+  font-size: 12px;
+}
+
+.w-120 { width: 120px; }
+.w-140 { width: 140px; }
+.w-240 { width: 240px; }
+
 .pagination-container {
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
 }
 
-:deep(.el-table) {
-  background: var(--el-bg-color) !important;
-  color: var(--el-text-color-primary);
-}
-:deep(.el-table__inner-wrapper) {
-  background: var(--el-bg-color) !important;
-}
-:deep(.el-table__body-wrapper td) {
-  background: var(--el-bg-color) !important;
+@media (max-width: 900px) {
+  .user-hero { flex-direction: column; align-items: flex-start; }
+  .user-stats { grid-template-columns: 1fr 1fr; }
+  .toolbar { flex-direction: column; align-items: stretch; }
+  .w-120, .w-140, .w-240 { width: 100%; }
+  .pagination-container { justify-content: center; }
 }
 </style>
+

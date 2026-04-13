@@ -1,0 +1,68 @@
+---
+description: LZ Sports 前端暗色主题：容器 tokens 优先 + Element Plus 覆盖规范
+globs: lz_sports_frontend/src/**/*
+alwaysApply: false
+---
+
+# 前端暗色主题规则（必须遵守）
+
+本项目大量页面采用暗色氛围与橙色强调。为避免“暗底 + 默认浅色控件”导致的突兀、糊字、层级混乱，任何涉及 UI 调整/页面改版都必须按以下顺序执行。
+
+## 1) 先定容器级 tokens（再谈组件）
+
+当页面或卡片为暗色背景时，**先在页面根节点/卡片容器**设置 `--el-*` 变量（示例字段）：
+
+- `--el-bg-color`
+- `--el-fill-color-blank`
+- `--el-border-color` / `--el-border-color-hover`
+- `--el-text-color-regular`
+- `--el-text-color-placeholder`
+- `--el-color-primary`
+
+要求：
+- 禁止在暗色容器中遗留 Element Plus 默认浅色输入框/表格底色。
+- tokens 统一放在容器类（如 `.wizard-card` / `.page-shell`）上，避免散落到每个控件上。
+
+## 2) 文字对比度三层体系（避免刺眼白）
+
+暗色页面默认使用三档文字：
+- **Primary**（主标题/关键数字）：柔白但不纯白（例：`#eef4ff`）
+- **Body**（正文/表单值）：灰白（例：`#c9d1de`）
+- **Secondary**（说明/时间/辅助）：灰蓝（例：`#95a0b3`）
+- **Placeholder**（占位）：更深灰（例：`#6f7889`）
+
+要求：
+- 禁止大段正文使用纯白 `#fff`。
+- 任何“背景纹理/网格”必须降低存在感，不能抢正文对比度。
+
+## 3) Element Plus 覆盖策略（可控、可复用）
+
+覆盖顺序：
+1. **tokens**（容器级）
+2. **局部 wrapper**（如 `.setup-form`）
+3. `::deep(...)` 定向覆盖关键部位
+
+要求：
+- `::deep` 必须带边界选择器（例如 `::deep(.setup-form .el-input__wrapper)`），避免污染其他页面。
+- 仅在“背景/边框/文字”等关键冲突点使用 `!important`，并同时校验 hover/focus/error/disabled。
+
+## 4) 状态页/完成态/空态必须自定义层级
+
+要求：
+- 暗色场景不要直接依赖默认 `el-result` 的视觉表现；需要重做“图标/标题/说明/摘要/主 CTA”层级。
+- 空列表必须有 Empty State（图标 + 一句说明），并与页面风格一致。
+
+## 5) 通知/信息流类页面：优先“中枢布局”
+
+当内容是“时间序列消息/提醒”时：
+- 优先 `Hero 标题区 + Stats 看板 + Filter 胶囊 + 卡片流/时间线`
+- 避免把叙事型内容硬塞表格（可读性差、移动端差）
+
+## 6) 完工前自检（必须做）
+
+- 覆盖：默认 / loading / empty / error / completed（如有）
+- 检查暗色下是否残留浅色块（input/table/pagination/dialog/tag）
+- 检查可读性：主/次/占位层级清晰，不刺眼也不发灰
+- 检查移动端断点
+- 运行 lint & build（或至少确保页面能热更新正常）
+

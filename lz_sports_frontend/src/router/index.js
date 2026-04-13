@@ -235,7 +235,8 @@ router.beforeEach(async (to, from, next) => {
     next('/reset-password')
   } else if (to.meta.roles && to.meta.roles.length > 0) {
     // Check role permission
-    if (userStore.userInfo && to.meta.roles.includes(userStore.userInfo.type)) {
+    const currentRole = userStore.userInfo?.type || userStore.userInfo?.role || userStore.userInfo?.userType
+    if (currentRole && to.meta.roles.includes(currentRole)) {
       next()
     } else {
       next('/403')

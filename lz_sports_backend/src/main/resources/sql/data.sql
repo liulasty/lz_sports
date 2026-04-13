@@ -30,12 +30,12 @@ INSERT INTO `department` (`id`, `college`, `major`, `grade`, `class_name`, `dept
 -- 3. Initial Events (Demo Data)
 -- ----------------------------
 -- Event 1: Spring Sports Meeting (Draft)
-INSERT INTO `event` (`id`, `name`, `description`, `reg_start_time`, `reg_deadline`, `start_time`, `end_time`, `status`, `school_id`, `create_time`) VALUES
-(1, '2026年春季田径运动会', '一年一度的春季运动会，欢迎全校师生踊跃报名！', '2026-03-10 08:00:00', '2026-03-20 18:00:00', '2026-04-01 09:00:00', '2026-04-03 17:00:00', 'DRAFT', 1, NOW());
+INSERT INTO `event` (`id`, `name`, `description`, `reg_start_time`, `reg_deadline`, `start_time`, `end_time`, `max_items_per_athlete`, `status`, `school_id`, `create_time`) VALUES
+(1, '2026年春季田径运动会', '一年一度的春季运动会，欢迎全校师生踊跃报名！', '2026-03-10 08:00:00', '2026-03-20 18:00:00', '2026-04-01 09:00:00', '2026-04-03 17:00:00', 3, 'DRAFT', 1, NOW());
 
 -- Event 2: Autumn Sports Meeting (Published)
-INSERT INTO `event` (`id`, `name`, `description`, `reg_start_time`, `reg_deadline`, `start_time`, `end_time`, `status`, `school_id`, `create_time`) VALUES
-(2, '2025年秋季趣味运动会', '趣味项目为主，重在参与，增进友谊。', '2025-09-01 08:00:00', '2025-09-15 18:00:00', '2025-09-25 09:00:00', '2025-09-26 17:00:00', 'PUBLISHED', 1, NOW());
+INSERT INTO `event` (`id`, `name`, `description`, `reg_start_time`, `reg_deadline`, `start_time`, `end_time`, `max_items_per_athlete`, `status`, `school_id`, `create_time`) VALUES
+(2, '2025年秋季趣味运动会', '趣味项目为主，重在参与，增进友谊。', '2025-09-01 08:00:00', '2025-09-15 18:00:00', '2025-09-25 09:00:00', '2025-09-26 17:00:00', 3, 'PUBLISHED', 1, NOW());
 
 -- ----------------------------
 -- 4. Initial Event Items (Projects) for Event 1

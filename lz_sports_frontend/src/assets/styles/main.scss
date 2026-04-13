@@ -12,6 +12,138 @@ html, body, #app {
   color: var(--text-primary);
 }
 
+/* ─────────────────────────────────────────────────────────────
+ * LZ UI Baseline (reduce per-page overrides)
+ * - Dark surfaces + Element Plus token containers
+ * - Typography levels + consistent borders/shadows
+ * This file is imported globally in `src/main.js`.
+ * ──────────────────────────────────────────────────────────── */
+
+/* Base design tokens (fallbacks; real values come from src/styles/theme.css) */
+:root {
+  --lz-accent: var(--accent, #ff6b35);
+  --lz-border: var(--border, rgba(255, 255, 255, 0.08));
+  --lz-bg-page: var(--bg-page, #0d0f14);
+  --lz-bg-card: var(--bg-card, #161921);
+  --lz-bg-soft: var(--bg-soft, #1e2130);
+  --lz-text-1: var(--text-primary, #eef4ff);
+  --lz-text-2: var(--text-secondary, #aab6ca);
+  --lz-text-3: color-mix(in srgb, var(--lz-text-2) 70%, transparent);
+}
+
+/* Utility: consistent dark surface */
+.lz-surface {
+  background: var(--lz-bg-card);
+  border: 1px solid var(--lz-border);
+  border-radius: 16px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.22);
+}
+
+.lz-surface-soft {
+  background: color-mix(in srgb, var(--lz-bg-card) 82%, var(--lz-bg-soft));
+  border: 1px solid color-mix(in srgb, var(--lz-border) 85%, transparent);
+  border-radius: 14px;
+}
+
+/* Container: enforce Element Plus dark tokens within a subtree */
+.lz-ep-dark {
+  --el-bg-color: var(--lz-bg-card);
+  --el-fill-color-blank: color-mix(in srgb, var(--lz-bg-soft) 70%, transparent);
+  --el-fill-color-light: color-mix(in srgb, var(--lz-bg-soft) 80%, transparent);
+  --el-border-color: color-mix(in srgb, var(--lz-border) 85%, transparent);
+  --el-border-color-hover: color-mix(in srgb, var(--lz-accent) 48%, transparent);
+  --el-text-color-regular: color-mix(in srgb, var(--lz-text-1) 82%, transparent);
+  --el-text-color-placeholder: color-mix(in srgb, var(--lz-text-2) 65%, transparent);
+  --el-color-primary: var(--lz-accent);
+}
+
+/* Form baseline inside dark containers */
+.lz-ep-dark .lz-form {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.lz-ep-dark :deep(.lz-form .el-form-item__label) {
+  color: color-mix(in srgb, var(--lz-text-2) 90%, transparent);
+  font-weight: 600;
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+
+.lz-ep-dark :deep(.lz-form .el-form-item) {
+  margin-bottom: 16px;
+}
+
+.lz-ep-dark :deep(.lz-form .el-input__wrapper) {
+  background: color-mix(in srgb, #ffffff 5%, transparent) !important;
+  box-shadow: none !important;
+  border: 1px solid color-mix(in srgb, #ffffff 12%, transparent) !important;
+  border-radius: 10px;
+  min-height: 42px;
+}
+
+.lz-ep-dark :deep(.lz-form .el-input__wrapper:hover) {
+  border-color: color-mix(in srgb, var(--lz-accent) 45%, transparent) !important;
+}
+
+.lz-ep-dark :deep(.lz-form .el-input__wrapper.is-focus) {
+  border-color: var(--lz-accent) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--lz-accent) 18%, transparent) !important;
+}
+
+.lz-ep-dark :deep(.lz-form .el-input__inner) {
+  color: color-mix(in srgb, var(--lz-text-1) 78%, transparent) !important;
+  background: transparent !important;
+}
+
+.lz-ep-dark :deep(.lz-form .el-input__inner::placeholder) {
+  color: color-mix(in srgb, var(--lz-text-2) 62%, transparent);
+}
+
+.lz-ep-dark :deep(.lz-form .el-radio-group) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.lz-ep-dark :deep(.lz-form .el-radio) {
+  margin-right: 0;
+}
+
+.lz-ep-dark :deep(.lz-form .el-radio__label) {
+  color: color-mix(in srgb, var(--lz-text-2) 85%, transparent);
+}
+
+.lz-ep-dark :deep(.lz-form .el-color-picker__trigger) {
+  border-color: color-mix(in srgb, #ffffff 18%, transparent);
+  background: color-mix(in srgb, #ffffff 5%, transparent);
+}
+
+/* Pagination baseline inside dark containers */
+.lz-ep-dark :deep(.el-pagination) {
+  --el-pagination-bg-color: transparent;
+  --el-pagination-text-color: color-mix(in srgb, var(--lz-text-2) 85%, transparent);
+  --el-pagination-button-color: color-mix(in srgb, var(--lz-text-2) 85%, transparent);
+  --el-pagination-hover-color: var(--lz-accent);
+}
+
+.lz-ep-dark :deep(.el-pager li.is-active) {
+  color: var(--lz-accent) !important;
+}
+
+/* Buttons inside dark action bars */
+.lz-ep-dark :deep(.lz-actions .el-button:not(.el-button--primary)) {
+  background: color-mix(in srgb, #ffffff 4%, transparent);
+  border-color: color-mix(in srgb, #ffffff 20%, transparent);
+  color: color-mix(in srgb, var(--lz-text-2) 88%, transparent);
+}
+
+.lz-ep-dark :deep(.lz-actions .el-button:not(.el-button--primary):hover) {
+  border-color: color-mix(in srgb, var(--lz-accent) 45%, transparent);
+  color: color-mix(in srgb, var(--lz-accent) 65%, #ffffff);
+  background: color-mix(in srgb, var(--lz-accent) 8%, transparent);
+}
+
 /* Global Transitions */
 .fade-transform-leave-active,
 .fade-transform-enter-active {

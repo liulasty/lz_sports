@@ -260,7 +260,7 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
                     .date(event.getRegistrationStartTime() != null ? event.getRegistrationStartTime().toString() : "")
                     .end(event.getRegistrationEndTime() != null ? event.getRegistrationEndTime().toString() : "")
                     .status(eventStatus.name())
-                    .imageUrls(imageUrls)
+                    .imageUrls(imageUtils.get3ImageUrlsOrFallback(imageUrls))
                     .regStartTime(event.getRegistrationStartTime() != null ? event.getRegistrationStartTime().toString() : "")
                     .regEndTime(event.getRegistrationEndTime() != null ? event.getRegistrationEndTime().toString() : "")
                     .eventStartTime(event.getEventStartTime() != null ? event.getEventStartTime().toString() : "")
