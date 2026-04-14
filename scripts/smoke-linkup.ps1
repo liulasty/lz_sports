@@ -96,8 +96,8 @@ if (-not $DryRun) {
     $headers = @{ Authorization = "Bearer $token" }
 
     Invoke-Step -Name "Registration query (key path: 报名)" -Action {
-        $resp = Invoke-RestMethod -Uri "$BackendUrl/api/registration/my" -Method Get -Headers $headers -TimeoutSec 10
-        Assert-ApiSuccess -Name "registration-my" -Resp $resp
+        $resp = Invoke-RestMethod -Uri "$BackendUrl/api/registration/page?currentPage=1&pageSize=10" -Method Get -Headers $headers -TimeoutSec 10
+        Assert-ApiSuccess -Name "registration-page" -Resp $resp
     }
 
     Invoke-Step -Name "Score query (key path: 成绩)" -Action {
