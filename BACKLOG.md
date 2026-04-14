@@ -489,6 +489,48 @@ tasks:
       - "修复 REJECTED 误计入有效报名逻辑并通过基线测试"
       - "运行记录沉淀通知验证与修复细节"
 
+  - id: AUTO-015
+    title: 回放通知已读链路并确认未读数回落
+    priority: P1
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-014
+    block_reason: ""
+    acceptance:
+      - "单条已读接口调用后未读数减少 1"
+      - "全部已读接口调用后未读数归零"
+      - "通知列表中已验证记录 isRead=true"
+
+  - id: AUTO-016
+    title: 回放通知接口鉴权负向场景
+    priority: P1
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-015
+    block_reason: ""
+    acceptance:
+      - "无 token 访问通知接口被拒绝（code=401）"
+      - "无效 token 访问通知接口被拒绝（code=401）"
+      - "运行记录沉淀负向鉴权验证结果"
+
+  - id: AUTO-017
+    title: 验证跨角色通知隔离与越权拦截
+    priority: P1
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-016
+    block_reason: ""
+    acceptance:
+      - "管理员通知列表不包含运动员通知"
+      - "管理员标记他人通知已读被拒绝（code=403）"
+      - "运行记录沉淀跨角色隔离验证结果"
+
   - id: DOC-001
     title: 统一前后端本地联调文档
     priority: P2
