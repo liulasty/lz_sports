@@ -194,4 +194,28 @@
         </plugins>
     </build>
 
+    <profiles>
+        <profile>
+            <id>non-container-baseline</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>3.1.2</version>
+                        <configuration>
+                            <includes>
+                                <include>**/RegistrationServiceImplTest.java</include>
+                                <include>**/ScoreServiceImplTest.java</include>
+                                <include>**/EventServiceImplTest.java</include>
+                                <include>**/SchoolConfigServiceImplTest.java</include>
+                                <include>**/SystemInitControllerTest.java</include>
+                                <include>**/AdminSchoolConfigControllerTest.java</include>
+                            </includes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
