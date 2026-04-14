@@ -207,6 +207,10 @@
                             <includes>
                                 <include>**/RegistrationServiceImplTest.java</include>
                                 <include>**/ScoreServiceImplTest.java</include>
+                                <include>**/EventServiceImplTest.java</include>
+                                <include>**/SchoolConfigServiceImplTest.java</include>
+                                <include>**/SystemInitControllerTest.java</include>
+                                <include>**/AdminSchoolConfigControllerTest.java</include>
                             </includes>
                         </configuration>
                     </plugin>
