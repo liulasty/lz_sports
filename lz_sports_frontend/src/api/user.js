@@ -1,22 +1,22 @@
-import request from '@/utils/request'
+import request, { apiRequest } from '@/utils/request'
 
 export function login(data) {
-  return request({
+  return apiRequest({
     url: '/auth/login',
     method: 'post',
     data
-  })
+  }, '登录')
 }
 
 export function register(data, registerToken) {
-  return request({
+  return apiRequest({
     url: '/auth/register',
     method: 'post',
     data,
     headers: {
       'Authorization': `Bearer ${registerToken}`
     }
-  })
+  }, '注册')
 }
 
 export function auditUser(userId, status, reason) {
