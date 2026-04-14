@@ -320,6 +320,20 @@ tasks:
       - "脚本支持 DryRun 与真实执行两种模式"
       - "提供最小使用说明与运行记录"
 
+  - id: AUTO-006
+    title: 完善 smoke token 使用说明与运行记录模板
+    priority: P2
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-005
+    block_reason: ""
+    acceptance:
+      - "README 明确 smoke 的 DryRun/真实执行/AccessToken 三种用法"
+      - "runs 模板包含 token 来源记录字段"
+      - "新增 1 条运行记录示例覆盖 token 模式"
+
   - id: DOC-001
     title: 统一前后端本地联调文档
     priority: P2

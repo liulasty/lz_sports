@@ -13,6 +13,7 @@ Use this folder to record each automation execution result.
 - issue_inputs
 - root_causes
 - fixes_applied
+- token_source
 - regression_watch
 - repeated_failures
 - next_action
@@ -37,6 +38,8 @@ root_causes:
   - Missing eslint config entry for new folder
 fixes_applied:
   - Added lint include for target folder
+token_source:
+  - none
 regression_watch:
   - verify next run keeps warning count stable
 repeated_failures:
@@ -49,4 +52,5 @@ next_action: Start BE-012 plan entry in plans/
 ## Auto-Capture Rule
 
 - Every new run record must include `issue_inputs/root_causes/fixes_applied/repeated_failures`.
+- For API smoke tasks, record token origin in `token_source` (login response/manual copy/test fixture).
 - If no issue is found, explicitly write `none` to keep records queryable.
