@@ -144,7 +144,8 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
                             .eq(Registration::getItemId, projectId)
                             .last("LIMIT 1"));
                     if (existingRegistration != null
-                            && existingRegistration.getRegistrationStatus() != RegistrationStatus.CANCELLED) {
+                            && existingRegistration.getRegistrationStatus() != RegistrationStatus.CANCELLED
+                            && existingRegistration.getRegistrationStatus() != RegistrationStatus.REJECTED) {
                         throw new BusinessException("您已报名该项目，请勿重复报名");
                     }
 

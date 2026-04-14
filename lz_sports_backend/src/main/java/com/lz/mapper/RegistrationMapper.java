@@ -35,7 +35,7 @@ public interface RegistrationMapper extends BaseMapper<Registration> {
      */
     List<RegistrationDTO> selectRegistrationList(@Param("eventId") Long eventId);
 
-    @Select("SELECT COUNT(*) FROM registration WHERE user_id = #{userId} AND event_id = #{eventId} AND status <> 'CANCELLED'")
+    @Select("SELECT COUNT(*) FROM registration WHERE user_id = #{userId} AND event_id = #{eventId} AND status IN ('PENDING','APPROVED','CONFIRMED')")
     int countActiveByUserAndEvent(@Param("userId") Long userId, @Param("eventId") Long eventId);
 
     @Select("""
@@ -43,7 +43,7 @@ public interface RegistrationMapper extends BaseMapper<Registration> {
         JOIN event_item p ON r.item_id = p.id
         WHERE r.user_id = #{userId}
           AND r.event_id = #{eventId}
-          AND r.status <> 'CANCELLED'
+          AND r.status IN ('PENDING','APPROVED','CONFIRMED')
           AND p.start_time IS NOT NULL
           AND p.end_time IS NOT NULL
           AND p.start_time < #{newEnd}
