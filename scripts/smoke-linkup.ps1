@@ -35,6 +35,22 @@ function Assert-ApiSuccess {
     }
 }
 
+function Resolve-AccessToken {
+    param(
+        [object]$RespData
+    )
+    if ($null -eq $RespData) {
+        return $null
+    }
+    if ($RespData -is [string]) {
+        return $RespData
+    }
+    if ($RespData.PSObject -and $RespData.PSObject.Properties.Name -contains "token") {
+        return $RespData.token
+    }
+    return $null
+}
+
 Write-Host "=== LZ Sports Smoke Linkup ==="
 Write-Host "Frontend: $FrontendUrl"
 Write-Host "Backend : $BackendUrl"
@@ -61,11 +77,15 @@ if (-not $token) {
         } | ConvertTo-Json
 
         $resp = Invoke-RestMethod -Uri "$BackendUrl/api/auth/login" -Method Post -ContentType "application/json" -Body $loginBody -TimeoutSec 10
-        Assert-ApiSuccess -Name "login" -Resp $resp
-        if (-not $resp.data) {
-            throw "login failed: missing token in data"
+        if ($resp.code -eq 409) {
+            throw "login failed: business 409. Use -AccessToken to continue smoke replay."
         }
-        return $resp.data
+        Assert-ApiSuccess -Name "login" -Resp $resp
+        $resolvedToken = Resolve-AccessToken -RespData $resp.data
+        if (-not $resolvedToken) {
+            throw "login failed: missing token in response data"
+        }
+        return $resolvedToken
     }
 } else {
     Write-Host "[SMOKE] Login (key path: 登录)"

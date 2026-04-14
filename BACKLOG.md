@@ -348,6 +348,20 @@ tasks:
       - "scripts/test.sh 支持 smoke 子命令"
       - "提供最小执行示例并在运行记录中留痕"
 
+  - id: AUTO-008
+    title: 提升 smoke 登录与 token 兼容性
+    priority: P2
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-007
+    block_reason: ""
+    acceptance:
+      - "smoke 脚本兼容 data.token 结构返回"
+      - "登录 409 时给出 AccessToken 明确引导"
+      - "新增运行记录留痕脚本兼容性修复"
+
   - id: DOC-001
     title: 统一前后端本地联调文档
     priority: P2
