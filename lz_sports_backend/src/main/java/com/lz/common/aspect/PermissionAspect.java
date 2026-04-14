@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
+import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -101,7 +102,27 @@ public class PermissionAspect {
     }
 
     private Long resolveEventId(JoinPoint joinPoint) {
+        Long eventIdFromRequest = resolveEventIdFromRequest();
+        if (eventIdFromRequest != null) {
+            return eventIdFromRequest;
+        }
+
+        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+        String[] parameterNames = signature.getParameterNames();
         Object[] args = joinPoint.getArgs();
+        for (int i = 0; i < args.length; i++) {
+            Object arg = args[i];
+            String parameterName = parameterNames != null && parameterNames.length > i ? parameterNames[i] : null;
+            if ("eventId".equals(parameterName) && arg != null) {
+                if (arg instanceof Long) {
+                    return (Long) arg;
+                }
+                if (arg instanceof String str && str.matches("\\d+")) {
+                    return Long.valueOf(str);
+                }
+            }
+        }
+
         for (Object arg : args) {
             if (arg instanceof Long) {
                 return (Long) arg;
@@ -126,21 +147,25 @@ public class PermissionAspect {
             }
         }
 
+        return resolveEventIdFromRequest();
+    }
+
+    private Long resolveEventIdFromRequest() {
         try {
             ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-            if (attributes != null) {
-                HttpServletRequest request = attributes.getRequest();
-                String eventIdStr = request.getParameter("eventId");
-                if (eventIdStr == null) {
-                    eventIdStr = request.getParameter("id");
-                }
-                if (eventIdStr != null && eventIdStr.matches("\\d+")) {
-                    return Long.valueOf(eventIdStr);
-                }
+            if (attributes == null) {
+                return null;
+            }
+            HttpServletRequest request = attributes.getRequest();
+            String eventIdStr = request.getParameter("eventId");
+            if (eventIdStr == null) {
+                eventIdStr = request.getParameter("id");
+            }
+            if (eventIdStr != null && eventIdStr.matches("\\d+")) {
+                return Long.valueOf(eventIdStr);
             }
         } catch (Exception ignored) {
         }
-
         return null;
     }
 }

@@ -139,11 +139,12 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
                         throw new BusinessException("不在报名时间范围内");
                     }
             
-                    LambdaQueryWrapper<Registration> lqw = new LambdaQueryWrapper<>();
-                    lqw.eq(Registration::getAthleteId, userId);
-                    lqw.eq(Registration::getItemId, projectId);
-                    lqw.ne(Registration::getRegistrationStatus, RegistrationStatus.CANCELLED);
-                    if (count(lqw) > 0) {
+                    Registration existingRegistration = getOne(new LambdaQueryWrapper<Registration>()
+                            .eq(Registration::getAthleteId, userId)
+                            .eq(Registration::getItemId, projectId)
+                            .last("LIMIT 1"));
+                    if (existingRegistration != null
+                            && existingRegistration.getRegistrationStatus() != RegistrationStatus.CANCELLED) {
                         throw new BusinessException("您已报名该项目，请勿重复报名");
                     }
 
@@ -216,19 +217,27 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
                         }
                     }
             
-                    Registration registration = new Registration();
-                    registration.setAthleteId(userId);
-                    registration.setEventId(event.getId());
-                    registration.setItemId(projectId);
-                    registration.setRegistrationTime(now);
-                    registration.setRegistrationStatus(RegistrationStatus.PENDING);
-                    registration.setSchoolId(event.getSchoolId());
-
                     int updated = projectMapper.incrementAttendance(projectId, project.getMaxAttendance());
                     if (updated == 0) {
                         throw new BusinessException("该项目报名人数已满");
                     }
-                    save(registration);
+                    if (existingRegistration != null) {
+                        existingRegistration.setEventId(event.getId());
+                        existingRegistration.setRegistrationTime(now);
+                        existingRegistration.setRegistrationStatus(RegistrationStatus.PENDING);
+                        existingRegistration.setRejectReason(null);
+                        existingRegistration.setSchoolId(event.getSchoolId());
+                        updateById(existingRegistration);
+                    } else {
+                        Registration registration = new Registration();
+                        registration.setAthleteId(userId);
+                        registration.setEventId(event.getId());
+                        registration.setItemId(projectId);
+                        registration.setRegistrationTime(now);
+                        registration.setRegistrationStatus(RegistrationStatus.PENDING);
+                        registration.setSchoolId(event.getSchoolId());
+                        save(registration);
+                    }
                     syncAthlete = athlete;
                     syncUser = user;
                 } finally {
