@@ -574,6 +574,34 @@ tasks:
       - "pageSize=0/-5 返回稳定 total 与 records（按默认分页策略）"
       - "运行记录沉淀边界回放与修复结果"
 
+  - id: AUTO-020
+    title: 验证通知分页 pageSize 上限归一化
+    priority: P1
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-019
+    block_reason: ""
+    acceptance:
+      - "pageSize=101/999 与 pageSize=100 在结果规模上保持一致"
+      - "分页 total 在不同超限 pageSize 参数下保持一致"
+      - "运行记录沉淀上限归一化验证结果"
+
+  - id: AUTO-021
+    title: 脚本化通知链路 smoke 并接入统一入口
+    priority: P1
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-020
+    block_reason: ""
+    acceptance:
+      - "新增 scripts/smoke-notification.ps1 覆盖通知分页一致性与鉴权负向"
+      - "scripts/test.bat 与 scripts/test.sh 支持 notify-smoke 子命令"
+      - "README 提供通知 smoke 的最小执行示例"
+
   - id: DOC-001
     title: 统一前后端本地联调文档
     priority: P2

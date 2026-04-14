@@ -102,6 +102,19 @@ powershell -ExecutionPolicy Bypass -File scripts/smoke-linkup.ps1 -BackendUrl ht
 powershell -ExecutionPolicy Bypass -File scripts/smoke-linkup.ps1 -BackendUrl http://localhost:8081 -AccessToken "<BearerToken>"
 ```
 
+### 通知 smoke（分页一致性/鉴权/隔离）
+```bash
+# 默认账号（smoke_user_447613714）回放通知链路
+powershell -ExecutionPolicy Bypass -File scripts/smoke-notification.ps1 -BackendUrl http://localhost:8081
+
+# Token 模式：跳过登录，直接验证通知分页一致性
+powershell -ExecutionPolicy Bypass -File scripts/smoke-notification.ps1 -BackendUrl http://localhost:8081 -AccessToken "<BearerToken>"
+
+# 通过统一测试入口执行
+scripts/test.bat notify-smoke http://localhost:8081
+./scripts/test.sh notify-smoke http://localhost:8081
+```
+
 ---
 
 ## 非容器测试基线
