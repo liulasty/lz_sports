@@ -56,8 +56,17 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public PageResult list(Integer currentPage, Integer pageSize, Boolean isRead) {
+        int safePage = (currentPage == null || currentPage < 1) ? 1 : currentPage;
+        int safeSize;
+        if (pageSize == null || pageSize < 1) {
+            safeSize = 10;
+        } else if (pageSize > 100) {
+            safeSize = 100;
+        } else {
+            safeSize = pageSize;
+        }
         Long userId = BaseContext.getCurrentId();
-        Page<Notification> page = new Page<>(currentPage, pageSize);
+        Page<Notification> page = new Page<>(safePage, safeSize);
         LambdaQueryWrapper<Notification> queryWrapper = new LambdaQueryWrapper<Notification>()
                 .eq(Notification::getUserId, userId)
                 .orderByDesc(Notification::getCreateTime);
