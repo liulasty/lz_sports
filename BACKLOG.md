@@ -292,6 +292,20 @@ tasks:
       - "runs 下存在对应执行记录文件"
       - "计划明确验证命令与边界范围"
 
+  - id: AUTO-004
+    title: 建立发现不足输入源并标准化运行记录字段
+    priority: P1
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-003
+    block_reason: ""
+    acceptance:
+      - "git-ai/automation-route/runs 模板包含缺陷来源与修复归因字段"
+      - "策略文件要求每轮运行记录沉淀缺陷输入字段"
+      - "至少 1 条运行记录按新字段规范落地"
+
   - id: DOC-001
     title: 统一前后端本地联调文档
     priority: P2
