@@ -192,4 +192,65 @@ class RegistrationServiceImplTest {
         verify(registrationService, never()).save(any(Registration.class));
         BaseContext.removeCurrentId();
     }
+
+    @Test
+    void addShouldReactivateRejectedRegistrationInsteadOfInsert() throws InterruptedException {
+        Long userId = 8L;
+        Long projectId = 3L;
+        Long eventId = 1L;
+        BaseContext.setCurrentId(userId);
+
+        User user = new User();
+        user.setId(userId);
+        user.setStatus(UserStatus.ACTIVE);
+        user.setUserType(UserRole.ATHLETE);
+
+        Event event = new Event();
+        event.setId(eventId);
+        event.setEventStatus(EventStatus.OPEN);
+        event.setSchoolId(1L);
+        event.setRegistrationStartTime(new Date(System.currentTimeMillis() - 60000));
+        event.setRegistrationEndTime(new Date(System.currentTimeMillis() + 60000));
+        event.setMaxItemsPerAthlete(3);
+
+        Project project = new Project();
+        project.setId(projectId);
+        project.setEventId(eventId);
+        project.setMaxAttendance(20);
+
+        Athlete athlete = new Athlete();
+        athlete.setUserId(userId);
+        athlete.setEventId(eventId);
+        athlete.setAthleteState(AthleteStatus.APPROVED);
+
+        Registration rejected = new Registration();
+        rejected.setId(5L);
+        rejected.setAthleteId(userId);
+        rejected.setEventId(eventId);
+        rejected.setItemId(projectId);
+        rejected.setRegistrationStatus(RegistrationStatus.REJECTED);
+
+        when(redissonClient.getBucket(anyString())).thenReturn(idempotencyBucket);
+        when(idempotencyBucket.trySet(eq("1"), eq(5L), eq(TimeUnit.SECONDS))).thenReturn(true);
+        when(redissonClient.getLock(anyString())).thenReturn(registrationLock);
+        when(registrationLock.tryLock(eq(5L), eq(10L), eq(TimeUnit.SECONDS))).thenReturn(true);
+
+        when(userMapper.selectById(userId)).thenReturn(user);
+        when(projectMapper.selectById(projectId)).thenReturn(project);
+        when(eventMapper.selectById(eventId)).thenReturn(event);
+        when(athleteMapper.selectOne(any())).thenReturn(athlete);
+        doReturn(rejected).when(registrationService).getOne(any());
+        when(registrationMapper.countActiveByUserAndEvent(userId, eventId)).thenReturn(0);
+        when(projectMapper.incrementAttendance(projectId, 20)).thenReturn(1);
+        doReturn(true).when(registrationService).updateById(any(Registration.class));
+        when(applicationContext.getBean(com.lz.service.RegistrationService.class)).thenReturn(registrationService);
+        registrationService.setApplicationContext(applicationContext);
+
+        registrationService.add(projectId);
+
+        verify(registrationService).updateById(argThat(registration ->
+                registration.getId().equals(5L) && registration.getRegistrationStatus() == RegistrationStatus.PENDING));
+        verify(registrationService, never()).save(any(Registration.class));
+        BaseContext.removeCurrentId();
+    }
 }
