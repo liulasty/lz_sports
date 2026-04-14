@@ -3,6 +3,7 @@ param(
     [string]$BackendUrl = "http://localhost:8080",
     [string]$Username = "admin",
     [string]$Password = "password",
+    [string]$AccessToken = "",
     [switch]$DryRun
 )
 
@@ -51,18 +52,24 @@ Invoke-Step -Name "Backend init-status check" -Action {
     Assert-ApiSuccess -Name "init-status" -Resp $resp
 }
 
-$token = Invoke-Step -Name "Login (key path: 登录)" -Action {
-    $loginBody = @{
-        username = $Username
-        password = $Password
-    } | ConvertTo-Json
+$token = $AccessToken
+if (-not $token) {
+    $token = Invoke-Step -Name "Login (key path: 登录)" -Action {
+        $loginBody = @{
+            username = $Username
+            password = $Password
+        } | ConvertTo-Json
 
-    $resp = Invoke-RestMethod -Uri "$BackendUrl/api/auth/login" -Method Post -ContentType "application/json" -Body $loginBody -TimeoutSec 10
-    Assert-ApiSuccess -Name "login" -Resp $resp
-    if (-not $resp.data) {
-        throw "login failed: missing token in data"
+        $resp = Invoke-RestMethod -Uri "$BackendUrl/api/auth/login" -Method Post -ContentType "application/json" -Body $loginBody -TimeoutSec 10
+        Assert-ApiSuccess -Name "login" -Resp $resp
+        if (-not $resp.data) {
+            throw "login failed: missing token in data"
+        }
+        return $resp.data
     }
-    return $resp.data
+} else {
+    Write-Host "[SMOKE] Login (key path: 登录)"
+    Write-Host "  -> AccessToken provided: skipping login request"
 }
 
 if (-not $DryRun) {
