@@ -1,0 +1,60 @@
+name: Monorepo CI
+
+on:
+  push:
+    paths:
+      - 'lz_sports_frontend/**'
+      - 'lz_sports_backend/**'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    paths:
+      - 'lz_sports_frontend/**'
+      - 'lz_sports_backend/**'
+      - '.github/workflows/ci.yml'
+
+jobs:
+  frontend-quality:
+    name: Frontend Lint and Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: lz_sports_frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: lz_sports_frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+  backend-quality:
+    name: Backend Non-Container Baseline Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: lz_sports_backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Run tests
+        run: mvn -Pnon-container-baseline test

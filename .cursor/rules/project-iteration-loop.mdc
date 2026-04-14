@@ -1,0 +1,44 @@
+---
+description: LZ Sports 项目迭代循环与自适应执行规则
+alwaysApply: true
+---
+
+# LZ Sports 迭代代理规则
+
+## project_loop.sources
+- `backlog`: 默认读取 `BACKLOG.md`。
+- `rules`: 当前规则文件为 `.cursor/rules/project-iteration-loop.mdc`。
+- 当 `BACKLOG.md` 缺失时，先创建最小 backlog（P0/P1/P2）再继续。
+
+## project_loop.selection
+- `strategy`: follow_backlog_selection_rule。
+- 若规则可解析为多个可执行项：按优先级与依赖状态选首个可执行任务。
+- 若任务状态为 `BLOCKED` 且 `block_reason` 非空，不可执行。
+
+## project_loop.execution
+- `plan_steps`: 3-5 步。
+- `implement_after_plan`: true（给计划后直接实施，不只停留在建议）。
+- `validate_after_change`: true（改动后立即执行校验命令）。
+
+## project_loop.commands
+- `frontend.cwd`: `lz_sports_frontend`
+- `frontend.lint`: `npm run lint`
+- `frontend.test`: `npm test`
+- `backend.cwd`: `lz_sports_backend`
+- `backend.test`: `mvn test`
+- 同时改动前后端时，先跑前端命令再跑后端命令，并分别报告结果。
+
+## project_loop.retries
+- `auto_fix_before_report`: true
+- `max_retries_before_blocked`: 2
+- 同一问题连续 2 次失败，标记任务为 `BLOCKED` 并填写 `block_reason`。
+
+## project_loop.constraints
+- `forbidden_paths`: `/infra`, `/migrations`（除非用户明确授权）。
+- `forbidden_secrets`: `.env`, `*.key`, `*.pem`（禁止提交与泄露）。
+- `keep_style_and_commit_convention`: true
+- 不主动提交 git commit，除非用户明确要求。
+
+## project_loop.report
+- `required_fields`: `changed_files`, `key_changes`, `test_results`, `risks`, `next_task`。
+- 每轮结束按以上字段输出，默认附带下一项建议。

@@ -66,10 +66,19 @@ LZ Sports 是一个面向校园运动会场景的全流程管理平台，包含�
 
 按场景选择：
 
+- Windows 本地联调（无 Docker）：`docs/启动方式/本地开发/本地联调统一指南.md`
 - Windows 本地：`docs/启动方式/本地开发/Windows本地.md`
 - Linux 本地：`docs/启动方式/本地开发/Linux本地.md`
 - Docker Desktop：`docs/启动方式/容器部署/DockerDesktop.md`
 - Linux Docker：`docs/启动方式/容器部署/LinuxDocker.md`
+
+---
+
+## AI 迭代入口
+
+- 项目迭代循环说明：`PROJECT_LOOP.md`
+- 任务队列：`BACKLOG.md`
+- Cursor 常驻规则：`.cursor/rules/project-iteration-loop.mdc`
 
 ---
 
@@ -86,7 +95,32 @@ npm run preview
 ```bash
 mvn spring-boot:run
 mvn test
+mvn -Pnon-container-baseline test
 ```
+
+---
+
+## 非容器测试基线
+
+在不使用 Docker/Testcontainers 的前提下，后端可执行测试基线如下：
+
+```bash
+cd lz_sports_backend
+mvn -Pnon-container-baseline test
+```
+
+基线说明文档：`lz_sports_backend/src/test/README_NON_CONTAINER_BASELINE.md`
+- 扩展规范文档：`docs/后端非容器测试基线规范.md`
+
+---
+
+## CI 工作流
+
+- 统一前后端基础流水线：`.github/workflows/ci.yml`
+  - 前端：`npm run lint` + `npm test`
+  - 后端：`mvn -Pnon-container-baseline test`
+- 前端独立流水线：`.github/workflows/frontend-ci.yml`
+- 后端定向流水线：`.github/workflows/backend-smoke-ci.yml`
 
 ---
 
@@ -136,6 +170,6 @@ lz_sports/
 
 ## 说明
 
-- 本项目当前前端 `package.json` 未配置 lint/typecheck 脚本。
+- 本项目前端已配置 `lint` 与 `test` 脚本，`typecheck` 仍未单独配置。
 - 后端与前端通过 `/api` 代理联调，默认同机开发即可直接启动。
 - 项目仅供学习与交流使用。

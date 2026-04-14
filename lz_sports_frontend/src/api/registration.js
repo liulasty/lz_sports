@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+import request, { apiRequest } from '@/utils/request'
 
 export function getRegistrationList(params) {
   return request({
@@ -25,17 +25,17 @@ export function refuseRegistration(id, eventId) {
 }
 
 export function applyProject(projectId) {
-  return request({
+  return apiRequest({
     url: `/registration/apply/${projectId}`,
     method: 'post'
-  })
+  }, '提交报名')
 }
 
 export function cancelRegistration(id) {
-  return request({
+  return apiRequest({
     url: `/registration/${id}`,
     method: 'delete'
-  })
+  }, '取消报名')
 }
 
 export function batchAuditRegistration(ids, approve, eventId) {

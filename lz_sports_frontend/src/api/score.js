@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+import request, { apiRequest } from '@/utils/request'
 
 export function exportRegistration(eventId) {
   return request({
@@ -67,11 +67,11 @@ export function updateScore(scoreId, data) {
 }
 
 export function getMyScores(params) {
-  return request({
+  return apiRequest({
     url: '/score/my',
     method: 'get',
     params
-  })
+  }, '查询我的成绩')
 }
 
 export function getPublicScores(eventId) {
