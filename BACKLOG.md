@@ -292,6 +292,20 @@ tasks:
       - "报名上限与冲突校验只统计 PENDING/APPROVED/CONFIRMED"
       - "mvn -Pnon-container-baseline test 可通过"
 
+  - id: BE-019
+    title: 修复通知分页参数越界导致结果不一致
+    priority: P0
+    status: DONE
+    owner: agent
+    area: backend
+    dependencies:
+      - BE-018
+    block_reason: ""
+    acceptance:
+      - "notification/page 对 currentPage<1 自动归一为 1"
+      - "notification/page 对 pageSize<1 使用默认值并限制上限"
+      - "分页 total 与 records 不再出现越界参数下的不一致"
+
   - id: AUTO-001
     title: 自动化执行限定到 git-ai/automation-route 分治路径
     priority: P0
@@ -530,6 +544,35 @@ tasks:
       - "管理员通知列表不包含运动员通知"
       - "管理员标记他人通知已读被拒绝（code=403）"
       - "运行记录沉淀跨角色隔离验证结果"
+
+  - id: AUTO-018
+    title: 验证通知分页与已读筛选一致性
+    priority: P1
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-017
+    block_reason: ""
+    acceptance:
+      - "notification/page 全量 total 与 read/unread total 可加和"
+      - "notification/unread-count 与 unread 筛选 total 一致"
+      - "运行记录沉淀分页筛选一致性验证结果"
+
+  - id: AUTO-019
+    title: 回放通知分页边界并验证参数归一化
+    priority: P1
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-018
+      - BE-019
+    block_reason: ""
+    acceptance:
+      - "currentPage=0/-1 与 currentPage=1 行为一致"
+      - "pageSize=0/-5 返回稳定 total 与 records（按默认分页策略）"
+      - "运行记录沉淀边界回放与修复结果"
 
   - id: DOC-001
     title: 统一前后端本地联调文档
