@@ -362,6 +362,20 @@ tasks:
       - "登录 409 时给出 AccessToken 明确引导"
       - "新增运行记录留痕脚本兼容性修复"
 
+  - id: AUTO-009
+    title: 固化注册实跑与验证码日志提取回放记录
+    priority: P1
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-008
+    block_reason: ""
+    acceptance:
+      - "形成一条可复盘运行记录，包含 send-verify-code -> verify-code -> register 真实链路"
+      - "记录验证码来源与 token 来源，便于后续联调回放"
+      - "复跑 smoke（登录/报名/成绩）通过"
+
   - id: DOC-001
     title: 统一前后端本地联调文档
     priority: P2
