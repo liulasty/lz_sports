@@ -5,6 +5,10 @@ server:
 spring:
   application:
     name: lz-sports-backend-test
+  security:
+    user:
+      name: test-admin
+      password: test-admin-pass
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/lz_sports_test?serverTimezone=GMT%2B8&characterEncoding=utf-8&useSSL=false&createDatabaseIfNotExist=true
@@ -22,6 +26,7 @@ spring:
   sql:
     init:
       mode: always
+      continue-on-error: true
       schema-locations: classpath:sql/lz_sports.sql
       data-locations: classpath:sql/data.sql
 
