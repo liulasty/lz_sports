@@ -278,6 +278,20 @@ tasks:
       - "RequireEventAdmin 优先按 eventId 参数解析，避免误用报名ID做赛事权限校验"
       - "mvn -Pnon-container-baseline test 可通过"
 
+  - id: BE-018
+    title: 修复驳回记录误计入有效报名导致无法重提
+    priority: P0
+    status: DONE
+    owner: agent
+    area: backend
+    dependencies:
+      - BE-017
+    block_reason: ""
+    acceptance:
+      - "REJECTED/CANCELLED 记录均可被重新报名复用，不阻塞重提"
+      - "报名上限与冲突校验只统计 PENDING/APPROVED/CONFIRMED"
+      - "mvn -Pnon-container-baseline test 可通过"
+
   - id: AUTO-001
     title: 自动化执行限定到 git-ai/automation-route 分治路径
     priority: P0
@@ -459,6 +473,21 @@ tasks:
       - "event-admin 调用 batch-audit approve=false 回放通过"
       - "目标记录状态由 PENDING 转为 REJECTED"
       - "运行记录沉淀拒绝分支回放结果"
+
+  - id: AUTO-014
+    title: 验证审核通知链路并沉淀重提修复结果
+    priority: P1
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-013
+      - BE-018
+    block_reason: ""
+    acceptance:
+      - "审核通过/拒绝后通知可查询且未读数按预期增长"
+      - "修复 REJECTED 误计入有效报名逻辑并通过基线测试"
+      - "运行记录沉淀通知验证与修复细节"
 
   - id: DOC-001
     title: 统一前后端本地联调文档
