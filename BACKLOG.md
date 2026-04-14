@@ -334,6 +334,20 @@ tasks:
       - "runs 模板包含 token 来源记录字段"
       - "新增 1 条运行记录示例覆盖 token 模式"
 
+  - id: AUTO-007
+    title: 将 smoke 脚本接入统一测试脚本入口
+    priority: P2
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-006
+    block_reason: ""
+    acceptance:
+      - "scripts/test.bat 支持 smoke 子命令"
+      - "scripts/test.sh 支持 smoke 子命令"
+      - "提供最小执行示例并在运行记录中留痕"
+
   - id: DOC-001
     title: 统一前后端本地联调文档
     priority: P2
