@@ -236,6 +236,21 @@ tasks:
       - "保留 imageUtils.upload 接口占位，不依赖真实图床"
       - "mvn test 可通过"
 
+  - id: BE-015
+    title: 补齐系统初始化到配置更新的业务流集成测试
+    priority: P1
+    status: DONE
+    owner: agent
+    area: backend
+    dependencies:
+      - BE-014
+      - AUTO-003
+    block_reason: ""
+    acceptance:
+      - "新增至少 2 条业务流集成测试，覆盖 初始化→更新配置→上传校徽→查询"
+      - "外部依赖保持 Mock/占位，不引入真实图床依赖"
+      - "mvn test 可通过"
+
   - id: AUTO-001
     title: 自动化执行限定到 git-ai/automation-route 分治路径
     priority: P0
