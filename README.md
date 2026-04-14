@@ -115,6 +115,16 @@ scripts/test.bat notify-smoke http://localhost:8081
 ./scripts/test.sh notify-smoke http://localhost:8081
 ```
 
+### 全链路 smoke（报名/成绩 + 通知）
+```bash
+# 一次性串行执行 linkup + notification 两段 smoke
+powershell -ExecutionPolicy Bypass -File scripts/smoke-full.ps1 -BackendUrl http://localhost:8081
+
+# 通过统一测试入口执行
+scripts/test.bat full-smoke http://localhost:8081
+./scripts/test.sh full-smoke http://localhost:8081
+```
+
 ---
 
 ## 非容器测试基线

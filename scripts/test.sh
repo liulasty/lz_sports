@@ -25,6 +25,17 @@ if [ "${1:-}" = "notify-smoke" ]; then
   exit $?
 fi
 
+if [ "${1:-}" = "full-smoke" ]; then
+  BACKEND_URL=${2:-http://localhost:8080}
+  ACCESS_TOKEN=${3:-}
+  if [ -n "$ACCESS_TOKEN" ]; then
+    powershell -ExecutionPolicy Bypass -File "scripts/smoke-full.ps1" -BackendUrl "$BACKEND_URL" -AccessToken "$ACCESS_TOKEN"
+  else
+    powershell -ExecutionPolicy Bypass -File "scripts/smoke-full.ps1" -BackendUrl "$BACKEND_URL"
+  fi
+  exit $?
+fi
+
 ENV=${1:-dev}
 
 if [ "$ENV" = "prod" ]; then

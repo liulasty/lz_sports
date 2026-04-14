@@ -602,6 +602,34 @@ tasks:
       - "scripts/test.bat 与 scripts/test.sh 支持 notify-smoke 子命令"
       - "README 提供通知 smoke 的最小执行示例"
 
+  - id: AUTO-022
+    title: 提供一键全链路 smoke 串行入口
+    priority: P1
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-021
+    block_reason: ""
+    acceptance:
+      - "新增 scripts/smoke-full.ps1 串行执行 linkup 与 notification smoke"
+      - "scripts/test.bat 与 scripts/test.sh 支持 full-smoke 子命令"
+      - "README 补充全链路 smoke 执行示例"
+
+  - id: AUTO-023
+    title: 固化自动化分支与路径约束策略
+    priority: P2
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-022
+    block_reason: ""
+    acceptance:
+      - "新增分支范围策略文档，明确自动化默认在 git-ai/automation-route 执行"
+      - "策略覆盖 worktree 占用时的安全迁移流程"
+      - "新增对应运行记录，沉淀问题来源与修复措施"
+
   - id: DOC-001
     title: 统一前后端本地联调文档
     priority: P2
@@ -681,6 +709,31 @@ tasks:
     acceptance:
       - "后端定向测试在 CI 自动执行"
       - "不依赖 Docker/Testcontainers"
+
+  - id: CI-004
+    title: 统一仓库根目录构建产物忽略规则
+    priority: P0
+    status: DONE
+    owner: agent
+    area: ci
+    dependencies: []
+    block_reason: ""
+    acceptance:
+      - "根 .gitignore 显式忽略 lz_sports_backend/target 与 lz_sports_frontend/dist"
+      - "从仓库根执行 git status 不再暴露构建产物未跟踪噪音"
+
+  - id: CI-005
+    title: 统一仓库换行与文本属性策略
+    priority: P0
+    status: DONE
+    owner: agent
+    area: ci
+    dependencies: []
+    block_reason: ""
+    acceptance:
+      - "仓库根新增 .gitattributes 并定义默认文本行尾策略"
+      - "显式约束 Windows 脚本文件保持 CRLF"
+      - "二进制资源采用 binary 属性，避免误判文本"
 ```
 
 ## update_rules

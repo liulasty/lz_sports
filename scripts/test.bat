@@ -27,6 +27,18 @@ if /i "%~1"=="notify-smoke" (
   exit /b !ERRORLEVEL!
 )
 
+if /i "%~1"=="full-smoke" (
+  set BACKEND_URL=%~2
+  set ACCESS_TOKEN=%~3
+  if "!BACKEND_URL!"=="" set BACKEND_URL=http://localhost:8080
+  if "!ACCESS_TOKEN!"=="" (
+    powershell -ExecutionPolicy Bypass -File "scripts/smoke-full.ps1" -BackendUrl "!BACKEND_URL!"
+  ) else (
+    powershell -ExecutionPolicy Bypass -File "scripts/smoke-full.ps1" -BackendUrl "!BACKEND_URL!" -AccessToken "!ACCESS_TOKEN!"
+  )
+  exit /b !ERRORLEVEL!
+)
+
 set ENV=%~1
 if "%ENV%"=="" set ENV=dev
 
