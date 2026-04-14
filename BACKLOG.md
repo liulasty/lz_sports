@@ -306,6 +306,20 @@ tasks:
       - "策略文件要求每轮运行记录沉淀缺陷输入字段"
       - "至少 1 条运行记录按新字段规范落地"
 
+  - id: AUTO-005
+    title: 前后端联调关键场景 smoke 脚本化
+    priority: P2
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-004
+    block_reason: ""
+    acceptance:
+      - "提供可复跑 smoke 脚本覆盖 登录/报名/成绩 关键路径"
+      - "脚本支持 DryRun 与真实执行两种模式"
+      - "提供最小使用说明与运行记录"
+
   - id: DOC-001
     title: 统一前后端本地联调文档
     priority: P2
