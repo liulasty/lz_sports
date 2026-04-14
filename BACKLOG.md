@@ -251,6 +251,33 @@ tasks:
       - "外部依赖保持 Mock/占位，不引入真实图床依赖"
       - "mvn test 可通过"
 
+  - id: BE-016
+    title: 修复本地联调数据中赛事与项目关联断裂
+    priority: P0
+    status: DONE
+    owner: agent
+    area: backend
+    dependencies: []
+    block_reason: ""
+    acceptance:
+      - "报名可见项目的 eventId 在 event 表中可查询到有效赛事"
+      - "运动员调用 /api/registration/apply/{projectId} 不再因赛事不存在失败"
+      - "形成一条可复跑的 报名申请->取消报名 业务记录"
+
+  - id: BE-017
+    title: 修复报名重提与赛事管理员审核权限解析缺陷
+    priority: P0
+    status: DONE
+    owner: agent
+    area: backend
+    dependencies:
+      - BE-016
+    block_reason: ""
+    acceptance:
+      - "取消后再次报名不再触发 registration.uk_user_item 唯一键冲突"
+      - "RequireEventAdmin 优先按 eventId 参数解析，避免误用报名ID做赛事权限校验"
+      - "mvn -Pnon-container-baseline test 可通过"
+
   - id: AUTO-001
     title: 自动化执行限定到 git-ai/automation-route 分治路径
     priority: P0
@@ -375,6 +402,63 @@ tasks:
       - "形成一条可复盘运行记录，包含 send-verify-code -> verify-code -> register 真实链路"
       - "记录验证码来源与 token 来源，便于后续联调回放"
       - "复跑 smoke（登录/报名/成绩）通过"
+
+  - id: AUTO-010
+    title: 记录报名申请链路阻塞并定位根因
+    priority: P1
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-009
+    block_reason: ""
+    acceptance:
+      - "记录本地环境中报名申请失败的接口回放结果"
+      - "明确根因与可执行修复任务"
+      - "形成下一步可落地 backlog 项（BE-016）"
+
+  - id: AUTO-011
+    title: 回放管理员审核链路并沉淀修复结果
+    priority: P1
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-010
+      - BE-017
+    block_reason: ""
+    acceptance:
+      - "event-admin 对报名 approve/refuse 链路回放通过"
+      - "修复过程中出现的代码逻辑问题并补充对应测试"
+      - "运行记录包含请求回放结果、根因和修复措施"
+
+  - id: AUTO-012
+    title: 回放批量审核与越权拦截负向场景
+    priority: P1
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-011
+    block_reason: ""
+    acceptance:
+      - "event-admin 批量审核（batch-audit approve=true）回放通过"
+      - "非管理员调用 batch-audit 被正确拒绝（code=403）"
+      - "运行记录沉淀批量审核前后状态变化"
+
+  - id: AUTO-013
+    title: 回放批量拒绝审核分支并确认状态落库
+    priority: P1
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-012
+    block_reason: ""
+    acceptance:
+      - "event-admin 调用 batch-audit approve=false 回放通过"
+      - "目标记录状态由 PENDING 转为 REJECTED"
+      - "运行记录沉淀拒绝分支回放结果"
 
   - id: DOC-001
     title: 统一前后端本地联调文档
