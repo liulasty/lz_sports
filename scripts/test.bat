@@ -97,8 +97,18 @@ if /i "%~1"=="dev-start" (
   exit /b !ERRORLEVEL!
 )
 
+if /i "%~1"=="aicoding-precheck" (
+  powershell -ExecutionPolicy Bypass -File "scripts/aicoding-precheck.ps1"
+  exit /b !ERRORLEVEL!
+)
+
 if /i "%~1"=="dev-stop" (
   powershell -ExecutionPolicy Bypass -File "scripts/dev-stop.ps1"
+  exit /b !ERRORLEVEL!
+)
+
+if /i "%~1"=="publish" (
+  powershell -ExecutionPolicy Bypass -File "scripts/publish.ps1"
   exit /b !ERRORLEVEL!
 )
 

@@ -39,6 +39,55 @@
 - `D:\soft\lz_sports_git_ai`：执行 AICoding 自动化迭代和整轮回归（默认目录）。
 - `D:\soft\lz_sports`：做主线开发与分支合并，不执行整轮自动化回归。
 
+## 不入库本地配置同步（方案 B 脚本）
+
+当 `.cursor` 下存在不入库的本地文件（例如个人偏好、临时配置）时，使用脚本保持两个目录一致：
+
+```powershell
+# 主仓 -> worktree（开工前推荐）
+powershell -ExecutionPolicy Bypass -File scripts/sync-local-cursor.ps1 -Direction toWorktree
+
+# worktree -> 主仓（收工后如有本地变动）
+powershell -ExecutionPolicy Bypass -File scripts/sync-local-cursor.ps1 -Direction toMain
+
+# 仅预览，不实际写入
+powershell -ExecutionPolicy Bypass -File scripts/sync-local-cursor.ps1 -Direction toWorktree -DryRun
+```
+
+## 懒人开工脚本（AICoding 前置检查）
+
+一键执行分支、文档和本地配置同步检查：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/aicoding-precheck.ps1
+```
+
+或使用统一入口：
+
+```bat
+scripts\test.bat aicoding-precheck
+```
+
+```bash
+./scripts/test.sh aicoding-precheck
+```
+
+## 发布脚本入口（统一到 scripts）
+
+- `scripts/publish.ps1`
+- `scripts/publish.bat`
+- `scripts/publish.sh`
+
+统一入口命令：
+
+```bat
+scripts\test.bat publish
+```
+
+```bash
+./scripts/test.sh publish
+```
+
 ## 结果汇报格式（固定）
 
 - `changed_files`

@@ -9,6 +9,18 @@
 
 ## 1) 开工（启动本地开发环境）
 
+开工前先同步本地 `.cursor`（不入库内容）到 worktree，避免提示词和本地配置漂移：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/sync-local-cursor.ps1 -Direction toWorktree
+```
+
+然后执行 AICoding 前置检查（分支/文档/本地同步）：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/aicoding-precheck.ps1
+```
+
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/dev-start.ps1 -BackendLogPath git-ai/automation-route/runs/backend-dev.log
 ```
@@ -59,6 +71,12 @@ powershell -ExecutionPolicy Bypass -File scripts/smoke-suite.ps1 -BackendUrl htt
 powershell -ExecutionPolicy Bypass -File scripts/dev-stop.ps1
 ```
 
+如本轮在 worktree 修改了 `.cursor` 下本地文件，收工后回写到主仓：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/sync-local-cursor.ps1 -Direction toMain
+```
+
 ## 6) 建议的新对话提示词
 
 ```text
@@ -69,8 +87,9 @@ powershell -ExecutionPolicy Bypass -File scripts/dev-stop.ps1
 3) 优先执行 suite（oneclick + event-workflow），按需要扩展到对应业务域定向验证
 4) 失败先定位接口和根因并直接修复后重跑；连续 2 次失败标记 BLOCKED 并写 block_reason
 5) 通过后回写 runs、BUSINESS_STATUS、FIRST_BATCH、BACKLOG（含 next_task）
-6) 按 changed_files/key_changes/test_results/risks/next_task 汇报
-7) 结束时执行 dev-stop
+6) 执行分支标准 4 步同步，验证 master 与 git-ai/automation-route hash 一致
+7) 按 changed_files/key_changes/test_results/risks/next_task 汇报
+8) 结束时执行 dev-stop（若有本地 .cursor 变更，再执行 sync-local-cursor toMain）
 ```
 
 ## 7) 优化后的可复用提示词（推荐）
@@ -79,6 +98,7 @@ powershell -ExecutionPolicy Bypass -File scripts/dev-stop.ps1
 
 ```text
 在 D:\soft\lz_sports_git_ai 的 git-ai/automation-route worktree 执行（不要在 D:\soft\lz_sports 主仓跑整轮回归）。
+先执行 scripts/aicoding-precheck.ps1（或 scripts/test.bat aicoding-precheck），通过后再继续。
 先读取 PROJECT_LOOP.md、git-ai/automation-route/BACKLOG.md、git-ai/automation-route/WORKFLOW_OPEN_CLOSE_SMOKE.md、git-ai/automation-route/BUSINESS_STATUS.md、git-ai/automation-route/FIRST_BATCH_AUTOMATION_TASKS.md。
 从 FIRST_BATCH + BUSINESS_STATUS 选择最高优先级、未覆盖、无阻塞业务链路（默认 AUTO-042），给出 3-5 步计划后直接实施：
 1) 执行 dev-start
@@ -87,6 +107,15 @@ powershell -ExecutionPolicy Bypass -File scripts/dev-stop.ps1
 4) 通过后回写 runs、BUSINESS_STATUS、FIRST_BATCH、BACKLOG（含 next_task）
 5) 按 changed_files/key_changes/test_results/risks/next_task 汇报
 6) 最后执行 dev-stop
+```
+
+### 7.3 发布提示词（懒人版）
+
+```text
+执行发布流程（脚本已统一到 scripts）：
+1) 先执行 scripts/test.bat aicoding-precheck
+2) 执行 scripts/test.bat publish（或 scripts/publish.ps1）
+3) 汇报发布版本、容器状态和回滚点
 ```
 
 ### 7.2 同步提示词（标准 4 步）

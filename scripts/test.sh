@@ -80,8 +80,18 @@ if [ "${1:-}" = "dev-start" ]; then
   exit $?
 fi
 
+if [ "${1:-}" = "aicoding-precheck" ]; then
+  powershell -ExecutionPolicy Bypass -File "scripts/aicoding-precheck.ps1"
+  exit $?
+fi
+
 if [ "${1:-}" = "dev-stop" ]; then
   powershell -ExecutionPolicy Bypass -File "scripts/dev-stop.ps1"
+  exit $?
+fi
+
+if [ "${1:-}" = "publish" ]; then
+  powershell -ExecutionPolicy Bypass -File "scripts/publish.ps1"
   exit $?
 fi
 
