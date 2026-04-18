@@ -77,6 +77,8 @@ function Resolve-SchoolAdminLogin {
         @{ username = $SchoolAdminUsername; password = "admin123" },
         @{ username = "school_admin_05bea495"; password = "admin123" },
         @{ username = "school_admin_0004b87c"; password = "admin123" },
+        @{ username = "school_admin_96719547"; password = "admin123" },
+        @{ username = "school_admin_62e2507a"; password = "admin123" },
         @{ username = "init_school_admin_01"; password = "Admin12345" },
         @{ username = "init_school_admin_01"; password = "Pass12345" }
     )

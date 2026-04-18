@@ -32,6 +32,30 @@ powershell -ExecutionPolicy Bypass -File scripts/dev-start.ps1 -BackendLogPath g
 - 启动前端（5173）和后端（8080）
 - 可选把后端启动输出落到 `git-ai/automation-route/runs/backend-dev.log`，便于后续从日志提取验证码
 
+### 1.1)（可选）重置数据库 + 允许调用初始化接口（本地开发环境）
+
+本项目在本地联调/自动化迭代阶段 **允许重置数据库**，也 **允许调用初始化接口**。这主要用于解决以下“环境漂移”：
+
+- `suite` 无法自愈账号资产（`register-seed-users.ps1` 报 `Unable to resolve a working SCHOOL_ADMIN seed account.`）
+- 本地跑过 `mvn test` / 集成测试后，非管理员账号被清理，导致 smoke 账号登录 409
+- 组织架构/赛事数据被污染，回归难以稳定复跑
+
+推荐优先级（从“最小破坏”到“最大破坏”）：
+
+1) **优先用 API 重置（需要能登录到 SCHOOL_ADMIN/SUPER_ADMIN）**
+
+- 重置接口：`POST /api/admin/school-config/reset`
+- 初始化接口：`POST /api/system/init`
+
+2) **若已无法登录任何管理员，再执行数据库级别重置**
+
+- 清空/重建本地库（按你的本地 MySQL 管理方式），然后再调用 `POST /api/system/init` 完成首次初始化。
+
+注意：
+
+- reset 会清理组织架构等基础数据，并可能影响当前回归用数据；执行后必须重新跑 `suite` 让账号资产和赛事窗口重新自愈归一化。
+- 初始化接口需要提供新的管理员用户名/密码/邮箱；本地迭代建议用 `school_admin_<suffix>` + `admin123`，便于脚本识别和复用。
+
 ## 2) 整体业务回归（一键）
 
 优先使用 `suite`，而不是只跑 `oneclick`。`suite` 会先执行基础基线回归，再继续执行当前赛事完整业务链路。
@@ -55,6 +79,7 @@ powershell -ExecutionPolicy Bypass -File scripts/smoke-suite.ps1 -BackendUrl htt
 2. 任务选择优先级：先从 `FIRST_BATCH_AUTOMATION_TASKS.md + BUSINESS_STATUS.md` 选“最高优先级、未覆盖、无阻塞”链路，再回落到 backlog 选择规则。
 3. 开工后先跑 `suite` 作为基线；若只涉及局部修复，可先定向验证，但收敛前必须回归 `suite`。
 4. 失败时必须先定位“具体业务接口 + 根因”，直接修复代码或脚本后重跑，不允许只记录失败不修复。
+   - 若失败根因是“本地环境漂移/账号资产不可恢复”，允许执行 **reset/init**（见 1.1），然后重新 `dev-start` + `suite` 走基线回归。
 5. 同一问题连续 2 次失败：将对应任务标记为 `BLOCKED`，并写清 `block_reason`（失败信号、根因假设、解除条件）。
 6. 全部通过后必须回写：`runs`、`git-ai/automation-route/BUSINESS_STATUS.md`、`git-ai/automation-route/FIRST_BATCH_AUTOMATION_TASKS.md`、`git-ai/automation-route/BACKLOG.md`（含 `next_task`）。
 7. 每轮结束统一按 `changed_files/key_changes/test_results/risks/next_task` 输出结果。
@@ -103,7 +128,9 @@ powershell -ExecutionPolicy Bypass -File scripts/sync-local-cursor.ps1 -Directio
 从 FIRST_BATCH + BUSINESS_STATUS 选择最高优先级、未覆盖、无阻塞业务链路（默认 AUTO-042），给出 3-5 步计划后直接实施：
 1) 执行 dev-start
 2) 优先执行 suite（oneclick + event-workflow），按需要补该业务域定向验证
-3) 失败先定位具体接口与根因，直接修复并重跑；同一问题连续 2 次失败则标记 BLOCKED 并写 block_reason
+3) 失败先定位具体接口与根因，直接修复并重跑
+   - 若失败信号为“账号资产无法自愈 / SCHOOL_ADMIN seed 无法登录 / 本地数据污染导致无法稳定复跑”，允许执行 reset/init（见 WORKFLOW 1.1），再重新 dev-start + suite
+   - 同一问题连续 2 次失败则标记 BLOCKED 并写 block_reason
 4) 通过后回写 runs、BUSINESS_STATUS、FIRST_BATCH、BACKLOG（含 next_task）
 5) 按 changed_files/key_changes/test_results/risks/next_task 汇报
 6) 最后执行 dev-stop

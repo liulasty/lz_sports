@@ -1,5 +1,7 @@
 package com.lz.controller;
 
+import com.lz.common.annotation.RequireRole;
+import com.lz.common.enums.UserRole;
 import com.lz.common.result.Result;
 import com.lz.service.DepartmentService;
 import com.lz.service.SchoolConfigService;
@@ -28,6 +30,7 @@ public class DepartmentController {
     }
 
     @PostMapping
+    @RequireRole({UserRole.SCHOOL_ADMIN})
     @Operation(summary = "新增部门", description = "新增组织架构节点")
     public Result<Boolean> add(@RequestBody Department department) {
         String currentMode = schoolConfigService.getCurrentOrgMode();
@@ -42,6 +45,7 @@ public class DepartmentController {
     }
 
     @PutMapping
+    @RequireRole({UserRole.SCHOOL_ADMIN})
     @Operation(summary = "修改部门", description = "修改组织架构节点")
     public Result<Boolean> update(@RequestBody Department department) {
         String currentMode = schoolConfigService.getCurrentOrgMode();
@@ -56,6 +60,7 @@ public class DepartmentController {
     }
 
     @DeleteMapping("/{id}")
+    @RequireRole({UserRole.SCHOOL_ADMIN})
     @Operation(summary = "删除部门", description = "删除组织架构节点")
     public Result<Boolean> delete(@PathVariable Long id) {
         return Result.success(departmentService.removeById(id));

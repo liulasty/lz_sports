@@ -158,7 +158,8 @@
 - `AUTO-039` 已完成
 - `AUTO-040` 已完成
 - `AUTO-041` 已完成：已覆盖 `score upsert -> publish -> my/public` 最小闭环（已接入 `smoke-suite` 的 current-event workflow 回放）
-- 下一条建议执行 `AUTO-042`
+- `AUTO-042` 已完成：已修复 `DepartmentController` 增删改缺失鉴权（限制为 `SCHOOL_ADMIN`），并增加定向回归 `scripts/smoke-org-permission.ps1`
+- 下一条建议执行 `AUTO-043`
 
 ## 与 heartbeat 的关系
 

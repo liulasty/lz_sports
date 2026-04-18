@@ -63,7 +63,7 @@ tasks:
   - id: AUTO-042
     title: 项目/部门接口权限边界与数据污染检查
     priority: P0
-    status: TODO
+    status: DONE
     owner: agent
     area: automation
     dependencies:
@@ -72,6 +72,19 @@ tasks:
     acceptance:
       - "至少产出 1 条清晰的权限或污染风险验证结果"
       - "若发现缺陷，完成最小修复并回归验证"
+
+  - id: AUTO-043
+    title: 部门树可见性与组织模式联动回归
+    priority: P1
+    status: TODO
+    owner: agent
+    area: automation
+    dependencies:
+      - AUTO-042
+    block_reason: ""
+    acceptance:
+      - "覆盖 department/tree 在登录态与匿名态的可见性约束"
+      - "覆盖 orgMode 切换后部门字段裁剪一致性（最小断言）"
 ```
 
 ## update_rules
