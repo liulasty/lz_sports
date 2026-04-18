@@ -467,6 +467,14 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
     }
 
     @Override
+    public List<RegistrationDTO> listScoreEntryCandidates(Long eventId, Long itemId) {
+        if (eventId == null) {
+            throw new BusinessException("赛事ID不能为空", 400);
+        }
+        return registrationMapper.selectScoreEntryCandidates(eventId, itemId);
+    }
+
+    @Override
     @org.springframework.scheduling.annotation.Async
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public void syncAthleteProfileToUser(Athlete athlete, User user) {

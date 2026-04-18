@@ -29,5 +29,10 @@ public class RegistrationDTO implements Serializable {
     private String itemName;
     private Date registrationTime;
     private String registrationStatus;
+    private Long scoreId;
+    private String scoreValue;
+    private Integer scoreRank;
+    private String remark;
+    private Boolean isPublished;
 
 }

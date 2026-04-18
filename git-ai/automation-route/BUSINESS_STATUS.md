@@ -547,8 +547,9 @@ heartbeat 自动化后续应优先围绕以下顺序工作：
 
 ## 6. 最新 smoke 结论（2026-04-19）
 
-- 在 `git-ai/automation-route` worktree 按 `aicoding-precheck -> dev-start -> smoke-suite -> dev-stop` 完成了一轮闭环回归。
-- 本轮定位并修复了 `scripts/smoke-event-workflow.ps1` 的复跑缺陷：当当前批准报名已存在已发布成绩时，旧流程仍再次调用 `POST /api/score/upsert`，会命中后端业务约束 `409 已发布的成绩不可修改`。
-- 修复后，workflow 改为先检查该报名是否已存在已发布成绩；若已发布，则跳过重复 `upsert/publish`，改做 `score/my` 与 `score/public` 查询断言，从而保持 `suite` 在同一赛事上的可重复回放能力。
-- 最新通过基线：`git-ai/automation-route/runs/2026-04-19-auto-046.md`
+- 在 `git-ai/automation-route` worktree 完成了新一轮 `dev-start -> smoke-suite` 基线闭环，最新通过记录：`git-ai/automation-route/runs/2026-04-19-auto-048.md`。
+- 本轮先发现环境漂移：`/api/system/init-status` 返回 `false`，导致 `scripts/register-seed-users.ps1` 无法解析可登录的 `SCHOOL_ADMIN` 种子账号，suite 在账号资产自愈阶段提前失败。
+- 已按 `WORKFLOW_OPEN_CLOSE_SMOKE.md` 的允许路径执行 `POST /api/system/init`，使用固定种子 `init_school_admin_01 / Admin12345` 恢复初始化态。
+- 随后按要求执行 `dev-stop -> dev-start -> smoke-suite` 重跑，`oneclick`、`role-paths`、`current-event workflow` 全部通过，说明本地环境已恢复到可稳定复跑状态。
+- 上一轮对 `scripts/smoke-event-workflow.ps1` 的成绩复跑修复仍然有效，本轮 workflow 再次通过，未出现“已发布成绩不可修改”的回归。
 - next_task: `AUTO-045` 项目管理最小闭环与权限边界回归

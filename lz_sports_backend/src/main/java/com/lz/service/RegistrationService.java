@@ -3,6 +3,7 @@ package com.lz.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lz.common.result.PageResult;
 import com.lz.dto.RegistrationAndAthleteDTO;
+import com.lz.dto.RegistrationDTO;
 import com.lz.entity.Registration;
 
 import java.util.Date;
@@ -65,4 +66,6 @@ public interface RegistrationService extends IService<Registration> {
     void export(Long eventId, jakarta.servlet.http.HttpServletResponse response);
 
     void syncAthleteProfileToUser(com.lz.entity.Athlete athlete, com.lz.entity.User user);
+
+    List<RegistrationDTO> listScoreEntryCandidates(Long eventId, Long itemId);
 }

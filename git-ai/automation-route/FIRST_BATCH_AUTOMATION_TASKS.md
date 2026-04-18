@@ -185,6 +185,7 @@ heartbeat 自动化后续应先读取本文档，再与 `BUSINESS_STATUS.md` 联
 ## 最新回写（2026-04-19）
 
 - 第一批任务状态不变，仍为全部完成。
-- 本轮 smoke 闭环补修了 `scripts/smoke-event-workflow.ps1` 的成绩步骤复跑问题：对已存在已发布成绩的批准报名，改为跳过重复写入，直接校验 `my/public` 查询结果。
-- 基线 `suite` 已在 `git-ai/automation-route/runs/2026-04-19-auto-046.md` 再次通过，说明第一批链路在当前 worktree 下可继续稳定复跑。
+- 本轮 smoke 先暴露环境级问题：本地实例处于 `init-status=false`，导致 `register-seed-users.ps1` 找不到可用 `SCHOOL_ADMIN` 种子而失败。
+- 已通过 `POST /api/system/init` 恢复固定学校管理员种子 `init_school_admin_01 / Admin12345`，随后按 `dev-stop -> dev-start -> smoke-suite` 重跑。
+- 基线 `suite` 已在 `git-ai/automation-route/runs/2026-04-19-auto-048.md` 再次通过，说明第一批链路在当前 worktree 下仍可稳定复跑，且账号资产自愈链路已恢复。
 - next_task: `AUTO-045` 项目管理最小闭环与权限边界回归

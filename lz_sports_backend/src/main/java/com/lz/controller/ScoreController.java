@@ -3,7 +3,9 @@ package com.lz.controller;
 import com.lz.common.annotation.RequireEventAdmin;
 import com.lz.common.result.PageResult;
 import com.lz.common.result.Result;
+import com.lz.dto.RegistrationDTO;
 import com.lz.dto.ScoreUpsertDTO;
+import com.lz.service.RegistrationService;
 import com.lz.service.ScoreService;
 import com.lz.vo.ScoreImportResultVO;
 import com.lz.vo.ScoreVO;
@@ -31,6 +33,7 @@ import java.util.Map;
 public class ScoreController {
 
     private final ScoreService scoreService;
+    private final RegistrationService registrationService;
 
     /**
      * 分页查询成绩列表
@@ -46,6 +49,15 @@ public class ScoreController {
             @Parameter(description = "项目ID") @RequestParam(required = false) Long itemId,
             @Parameter(description = "仅已发布") @RequestParam(required = false) Boolean onlyPublished) {
         return Result.success(scoreService.list(currentPage, pageSize, eventName, eventId, itemId, onlyPublished));
+    }
+
+    @GetMapping("/entry-candidates/{eventId}")
+    @RequireEventAdmin
+    @Operation(summary = "查询手动录入候选名单", description = "返回赛事下可手动录入成绩的报名名单及当前成绩状态")
+    public Result<List<RegistrationDTO>> entryCandidates(
+            @Parameter(description = "赛事ID") @PathVariable Long eventId,
+            @Parameter(description = "项目ID") @RequestParam(required = false) Long itemId) {
+        return Result.success(registrationService.listScoreEntryCandidates(eventId, itemId));
     }
 
     @PostMapping("/upsert")

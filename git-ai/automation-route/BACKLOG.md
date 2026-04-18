@@ -125,3 +125,11 @@ tasks:
 ## next_task
 
 - `AUTO-045` 项目管理最小闭环与权限边界回归
+
+## latest_smoke
+
+- `2026-04-19-auto-048` 已在 `git-ai/automation-route` worktree 通过。
+- 本轮先发现本地环境处于 `init-status=false`，导致 `register-seed-users.ps1` 无法解析可用 `SCHOOL_ADMIN` 种子。
+- 已按 `WORKFLOW_OPEN_CLOSE_SMOKE.md` 允许路径执行 `POST /api/system/init`，使用 `init_school_admin_01 / Admin12345` 恢复初始化态。
+- 随后执行 `dev-stop -> dev-start -> smoke-suite`，基线与 current-event workflow 全部通过。
+- `next_task` 保持为 `AUTO-045`，本轮未进入其实现阶段。

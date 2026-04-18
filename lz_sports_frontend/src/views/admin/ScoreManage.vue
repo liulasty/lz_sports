@@ -11,26 +11,40 @@
             </div>
             <div class="header-text">
               <span class="header-title">成绩管理</span>
-              <span class="header-subtitle">查询、导入、导出并发布赛事成绩</span>
+              <span class="header-subtitle">支持手动录入、Excel 导入、导出与发布赛事成绩</span>
             </div>
           </div>
 
           <div class="header-right">
-            <!-- 筛选区 -->
             <div class="filter-group">
               <el-select v-model="query.eventId" placeholder="选择赛事" style="width: 185px" @change="handleEventChange">
-                <el-option v-for="item in eventOptions" :key="item.id" :label="item.name" :value="item.id" />
+                <el-option
+                  v-for="item in eventOptions"
+                  :key="item.id"
+                  :label="item.name || item.eventName"
+                  :value="item.id"
+                />
               </el-select>
-              <el-select v-model="query.itemId" placeholder="选择项目" clearable style="width: 165px">
-                <el-option v-for="item in itemOptions" :key="item.id" :label="item.name" :value="item.id" />
+              <el-select v-model="query.itemId" placeholder="选择项目" clearable style="width: 165px" @change="loadData">
+                <el-option
+                  v-for="item in itemOptions"
+                  :key="item.id"
+                  :label="item.itemName || item.name"
+                  :value="item.id"
+                />
               </el-select>
-              <el-button type="primary" class="action-btn" @click="loadScores">
+              <el-select v-model="query.entryStatus" placeholder="录入状态" style="width: 150px" @change="applyManualRows">
+                <el-option label="全部记录" value="ALL" />
+                <el-option label="未录入" value="UNENTERED" />
+                <el-option label="待发布" value="DRAFT" />
+                <el-option label="已发布" value="PUBLISHED" />
+              </el-select>
+              <el-button type="primary" class="action-btn" @click="loadData">
                 <svg viewBox="0 0 24 24" fill="none" class="btn-icon"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                 查询
               </el-button>
             </div>
 
-            <!-- 操作区 -->
             <div class="action-divider"></div>
             <div class="op-group">
               <el-tooltip content="下载导入模板" placement="bottom">
@@ -49,8 +63,17 @@
                 <svg viewBox="0 0 24 24" fill="none" class="btn-icon"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><polyline points="17 8 12 3 7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                 导入成绩
               </el-button>
-              <el-button class="op-btn op-publish" :loading="submitting" :disabled="submitting" @click="publishWithConfirm">
-                <svg v-if="!submitting" viewBox="0 0 24 24" fill="none" class="btn-icon"><path d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <el-button
+                class="op-btn op-batch-save"
+                :loading="batchSaving"
+                :disabled="batchSaving || !dirtySavableRows.length"
+                @click="saveDirtyRows"
+              >
+                <svg v-if="!batchSaving" viewBox="0 0 24 24" fill="none" class="btn-icon"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M17 21v-8H7v8" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M7 3v5h8" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+                批量保存 {{ dirtySavableRows.length ? `(${dirtySavableRows.length})` : '' }}
+              </el-button>
+              <el-button class="op-btn op-publish" :loading="publishing" :disabled="publishing || !query.eventId || !summary.draftCount" @click="publishWithConfirm">
+                <svg v-if="!publishing" viewBox="0 0 24 24" fill="none" class="btn-icon"><path d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 发布成绩
               </el-button>
             </div>
@@ -58,41 +81,42 @@
         </div>
       </template>
 
-      <!-- 成绩统计小卡片 -->
-      <div class="score-summary" v-if="scores.length > 0">
+      <div class="score-summary" v-if="summary.total > 0">
         <div class="summary-item">
-          <div class="summary-value">{{ scores.length }}</div>
-          <div class="summary-label">成绩总数</div>
+          <div class="summary-value">{{ summary.total }}</div>
+          <div class="summary-label">可录入名单</div>
         </div>
         <div class="summary-divider"></div>
         <div class="summary-item">
-          <div class="summary-value published">{{ scores.filter(s => s.isPublished).length }}</div>
+          <div class="summary-value published">{{ summary.publishedCount }}</div>
           <div class="summary-label">已发布</div>
         </div>
         <div class="summary-divider"></div>
         <div class="summary-item">
-          <div class="summary-value draft">{{ scores.filter(s => !s.isPublished).length }}</div>
-          <div class="summary-label">草稿</div>
+          <div class="summary-value draft">{{ summary.draftCount }}</div>
+          <div class="summary-label">待发布</div>
         </div>
         <div class="summary-divider"></div>
         <div class="summary-item">
-          <div class="summary-value items">{{ new Set(scores.map(s => s.itemName)).size }}</div>
-          <div class="summary-label">参与项目</div>
+          <div class="summary-value items">{{ summary.itemCount }}</div>
+          <div class="summary-label">涉及项目</div>
         </div>
       </div>
 
-      <!-- 表格 -->
+      <div class="tip-bar" v-if="query.eventId">
+        <div class="tip-copy">
+          <strong>手动录入规则：</strong>
+          仅展示当前赛事已通过报名名单；已发布成绩会锁定输入框，不能再修改。
+        </div>
+        <div class="tip-copy role-copy">
+          <strong>角色职责：</strong>
+          {{ roleScopeText }}
+        </div>
+      </div>
+
       <div class="table-wrapper">
-        <el-table :data="scores" v-loading="loading" :row-class-name="getRowClass">
-          <el-table-column prop="eventName" label="赛事" min-width="160">
-            <template #default="scope">
-              <div class="event-cell">
-                <svg viewBox="0 0 24 24" fill="none" class="cell-icon"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                <span>{{ scope.row.eventName }}</span>
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column prop="itemName" label="项目" min-width="140">
+        <el-table :data="manualRows" v-loading="loading" :row-class-name="getRowClass">
+          <el-table-column prop="itemName" label="项目" min-width="150">
             <template #default="scope">
               <div class="item-tag">{{ scope.row.itemName }}</div>
             </template>
@@ -105,47 +129,86 @@
               </div>
             </template>
           </el-table-column>
-          <el-table-column prop="scoreValue" label="成绩" width="120">
+          <el-table-column prop="deptName" label="部门/班级" min-width="170">
             <template #default="scope">
-              <span class="score-value">{{ scope.row.scoreValue }}</span>
+              <span class="remark-text">{{ scope.row.deptName || '—' }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="scoreRank" label="排名" width="100">
+          <el-table-column prop="registrationStatus" label="报名状态" width="110">
             <template #default="scope">
-              <div class="rank-badge" :class="getRankClass(scope.row.scoreRank)">
-                <span v-if="scope.row.scoreRank <= 3 && scope.row.scoreRank">
-                  <svg viewBox="0 0 24 24" fill="none" class="rank-icon"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor"/></svg>
-                </span>
-                {{ scope.row.scoreRank || '—' }}
+              <div class="status-badge status-approved">
+                <span class="status-dot"></span>
+                {{ scope.row.registrationStatus || 'APPROVED' }}
               </div>
             </template>
           </el-table-column>
-          <el-table-column prop="remark" label="备注" min-width="120">
+          <el-table-column label="成绩" width="150">
             <template #default="scope">
-              <span class="remark-text">{{ scope.row.remark || '—' }}</span>
+              <el-input
+                v-model="scope.row.editScoreValue"
+                placeholder="如 12.34"
+                :disabled="scope.row.isPublished || isRowSaving(scope.row.registrationId)"
+                @input="markRowDirty(scope.row)"
+              />
             </template>
           </el-table-column>
-          <el-table-column label="状态" width="110">
+          <el-table-column label="名次" width="120">
+            <template #default="scope">
+              <el-input-number
+                v-model="scope.row.editScoreRank"
+                :min="1"
+                :step="1"
+                controls-position="right"
+                style="width: 100%"
+                :disabled="scope.row.isPublished || isRowSaving(scope.row.registrationId)"
+                @change="markRowDirty(scope.row)"
+              />
+            </template>
+          </el-table-column>
+          <el-table-column label="备注" min-width="180">
+            <template #default="scope">
+              <el-input
+                v-model="scope.row.editRemark"
+                placeholder="可选备注"
+                :disabled="scope.row.isPublished || isRowSaving(scope.row.registrationId)"
+                @input="markRowDirty(scope.row)"
+              />
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" width="120">
             <template #default="scope">
               <div class="status-badge" :class="scope.row.isPublished ? 'status-published' : 'status-draft'">
                 <span class="status-dot"></span>
-                {{ scope.row.isPublished ? '已发布' : '草稿' }}
+                {{ scope.row.isPublished ? '已发布' : (scope.row.hasScore ? '草稿' : '未录入') }}
               </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="140" fixed="right">
+            <template #default="scope">
+              <el-button
+                class="save-btn"
+                size="small"
+                type="primary"
+                :disabled="scope.row.isPublished || !canSaveRow(scope.row)"
+                :loading="isRowSaving(scope.row.registrationId)"
+                @click="saveRow(scope.row)"
+              >
+                保存
+              </el-button>
             </template>
           </el-table-column>
         </el-table>
       </div>
 
-      <!-- 空状态 -->
-      <div class="empty-state" v-if="!loading && scores.length === 0">
+      <div class="empty-state" v-if="!loading && manualRows.length === 0">
         <div class="empty-icon">
           <svg viewBox="0 0 24 24" fill="none"><path d="M18 20V10M12 20V4M6 20v-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-        <p>暂无成绩数据，请选择赛事和项目后查询，或通过导入功能添加</p>
+        <h3>暂无可录入名单</h3>
+        <p>请先选择赛事，并确保已有审核通过的报名记录；也可以继续使用模板导入成绩。</p>
       </div>
     </el-card>
 
-    <!-- 导入弹窗 -->
     <el-dialog v-model="showImportDialog" title="Excel 导入成绩" width="480px" class="import-dialog">
       <div class="dialog-body">
         <el-upload
@@ -193,67 +256,64 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { UploadFilled } from '@element-plus/icons-vue'
 import { getEventList } from '@/api/event'
 import { getProjectsByEventId } from '@/api/project'
-import { downloadScoreTemplate, exportScore, getScorePage, importScores, publishScores } from '@/api/score'
+import { downloadScoreTemplate, exportScore, getScoreEntryCandidates, importScores, publishScores, upsertScore } from '@/api/score'
+import { useUserStore } from '@/stores/user'
+import { isSuccess } from '@/utils/result'
 
+const userStore = useUserStore()
 const loading = ref(false)
-const submitting = ref(false)
+const publishing = ref(false)
+const batchSaving = ref(false)
 const showImportDialog = ref(false)
 const importResult = ref(null)
 const eventOptions = ref([])
 const itemOptions = ref([])
-const scores = ref([])
+const manualRows = ref([])
+const candidateRows = ref([])
+const rowSavingMap = ref({})
+
 const query = reactive({
   eventId: null,
-  itemId: null
+  itemId: null,
+  entryStatus: 'ALL'
 })
 
-const getRowClass = ({ row }) => {
-  return row.isPublished ? 'row-published' : ''
-}
+const summary = computed(() => {
+  const rows = manualRows.value || []
+  return {
+    total: rows.length,
+    publishedCount: rows.filter(row => row.isPublished).length,
+    draftCount: rows.filter(row => row.hasScore && !row.isPublished).length,
+    itemCount: new Set(rows.map(row => row.itemName)).size
+  }
+})
 
-const getRankClass = (rank) => {
-  if (rank === 1) return 'rank-gold'
-  if (rank === 2) return 'rank-silver'
-  if (rank === 3) return 'rank-bronze'
-  return 'rank-normal'
-}
+const currentRole = computed(() => userStore.userInfo?.role || userStore.userInfo?.type || userStore.userInfo?.userType || '')
 
-const loadEvents = async () => {
-  const res = await getEventList({ currentPage: 1, pageSize: 200 })
-  if (res.code === 200) {
-    eventOptions.value = res.data.records || []
-    if (!query.eventId && eventOptions.value.length) {
-      query.eventId = eventOptions.value[0].id
-      await handleEventChange(query.eventId)
-    }
+const roleScopeText = computed(() => {
+  if (currentRole.value === 'EVENT_ADMIN') {
+    return '赛事管理员只能看到自己被分配的赛事，并仅能录入这些赛事下 APPROVED/CONFIRMED 的报名成绩。'
+  }
+  if (currentRole.value === 'SCHOOL_ADMIN' || currentRole.value === 'SUPER_ADMIN') {
+    return '学校管理员可查看全部赛事；赛事管理员进入本页时，只会看到自己已绑定的赛事。'
+  }
+  return '成绩录入以后台权限为准，赛事管理员只会看到自己有权管理的赛事。'
+})
+
+const dirtySavableRows = computed(() => manualRows.value.filter(row => row.dirty && !row.isPublished && canSaveRow(row)))
+
+const setRowSaving = (registrationId, value) => {
+  rowSavingMap.value = {
+    ...rowSavingMap.value,
+    [registrationId]: value
   }
 }
 
-const handleEventChange = async (eventId) => {
-  query.itemId = null
-  const res = await getProjectsByEventId(eventId)
-  if (res.code === 200) itemOptions.value = res.data || []
-  loadScores()
-}
-
-const loadScores = async () => {
-  if (!query.eventId) return
-  loading.value = true
-  try {
-    const res = await getScorePage({
-      currentPage: 1, pageSize: 500,
-      eventId: query.eventId, itemId: query.itemId
-    })
-    if (res.code === 200) scores.value = res.data.records || []
-  } finally {
-    loading.value = false
-  }
-}
+const isRowSaving = (registrationId) => Boolean(rowSavingMap.value?.[registrationId])
 
 const downloadBlob = (data, filename) => {
   const url = window.URL.createObjectURL(new Blob([data]))
@@ -263,64 +323,229 @@ const downloadBlob = (data, filename) => {
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
+  window.URL.revokeObjectURL(url)
+}
+
+const getRowClass = ({ row }) => (row.isPublished ? 'row-published' : '')
+
+const applyManualRows = () => {
+  const filteredRegistrations = (candidateRows.value || []).filter(row => {
+    if (Number(row.eventId) !== Number(query.eventId)) return false
+    if (query.itemId && Number(row.itemId) !== Number(query.itemId)) return false
+    if (query.entryStatus === 'UNENTERED') return !row.hasScore
+    if (query.entryStatus === 'DRAFT') return row.hasScore && !row.isPublished
+    if (query.entryStatus === 'PUBLISHED') return row.isPublished
+    return true
+  })
+
+  manualRows.value = filteredRegistrations.map(row => {
+    return {
+      ...row,
+      registrationId: Number(row.registrationId || row.id),
+      hasScore: Boolean(row.scoreId),
+      scoreId: row.scoreId || null,
+      scoreValue: row.scoreValue || '',
+      scoreRank: row.scoreRank ?? null,
+      remark: row.remark || '',
+      isPublished: Boolean(row.isPublished),
+      editScoreValue: row.scoreValue || '',
+      editScoreRank: row.scoreRank ?? null,
+      editRemark: row.remark || '',
+      dirty: false
+    }
+  })
+}
+
+const loadEvents = async () => {
+  const res = await getEventList({ currentPage: 1, pageSize: 200 })
+  if (isSuccess(res)) {
+    eventOptions.value = res.data.records || []
+    if (!query.eventId && eventOptions.value.length) {
+      query.eventId = eventOptions.value[0].id
+      await handleEventChange(query.eventId)
+    }
+  }
+}
+
+const loadProjects = async (eventId) => {
+  if (!eventId) {
+    itemOptions.value = []
+    return
+  }
+  const res = await getProjectsByEventId(eventId)
+  if (isSuccess(res)) {
+    itemOptions.value = res.data || []
+  } else {
+    itemOptions.value = []
+  }
+}
+
+const loadCandidates = async () => {
+  if (!query.eventId) {
+    candidateRows.value = []
+    return
+  }
+  const res = await getScoreEntryCandidates(query.eventId, query.itemId || undefined)
+  if (isSuccess(res)) {
+    candidateRows.value = (res.data || []).map(row => ({
+      ...row,
+      hasScore: Boolean(row.scoreId)
+    }))
+  } else {
+    candidateRows.value = []
+  }
+}
+
+const loadData = async () => {
+  if (!query.eventId) return
+  loading.value = true
+  try {
+    await loadCandidates()
+    applyManualRows()
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleEventChange = async (eventId) => {
+  query.itemId = null
+  await loadProjects(eventId)
+  await loadData()
+}
+
+const markRowDirty = (row) => {
+  row.dirty = true
+}
+
+const canSaveRow = (row) => {
+  const hasValue = String(row.editScoreValue || '').trim().length > 0
+  const hasRank = Number(row.editScoreRank) > 0
+  return hasValue && hasRank
+}
+
+const persistRow = async (row, { silent = false } = {}) => {
+  if (row.isPublished || !canSaveRow(row) || isRowSaving(row.registrationId)) return
+  setRowSaving(row.registrationId, true)
+  try {
+    const payload = {
+      registrationId: row.registrationId,
+      scoreValue: String(row.editScoreValue).trim(),
+      scoreRank: Number(row.editScoreRank),
+      remark: String(row.editRemark || '').trim()
+    }
+    const res = await upsertScore(payload)
+    if (isSuccess(res)) {
+      if (!silent) {
+        ElMessage.success('保存成功')
+      }
+      row.dirty = false
+    }
+  } finally {
+    setRowSaving(row.registrationId, false)
+  }
+}
+
+const saveRow = async (row) => {
+  await persistRow(row)
+  await loadData()
+}
+
+const saveDirtyRows = async () => {
+  if (batchSaving.value || !dirtySavableRows.value.length) return
+  batchSaving.value = true
+  let successCount = 0
+  let failedCount = 0
+  try {
+    for (const row of dirtySavableRows.value) {
+      try {
+        await persistRow(row, { silent: true })
+        if (!row.dirty) {
+          successCount += 1
+        }
+      } catch (error) {
+        failedCount += 1
+      }
+    }
+    if (successCount) {
+      ElMessage.success(`批量保存完成，成功 ${successCount} 条`)
+    }
+    if (failedCount) {
+      ElMessage.warning(`有 ${failedCount} 条保存失败，请检查后重试`)
+    }
+    await loadData()
+  } finally {
+    batchSaving.value = false
+  }
 }
 
 const downloadTemplate = async () => {
-  if (!query.eventId) return
+  if (!query.eventId) {
+    ElMessage.warning('请先选择赛事')
+    return
+  }
   const res = await downloadScoreTemplate(query.eventId)
   downloadBlob(res, '成绩导入模板.xlsx')
 }
 
 const exportScores = async () => {
-  if (!query.eventId) return
+  if (!query.eventId) {
+    ElMessage.warning('请先选择赛事')
+    return
+  }
   const res = await exportScore(query.eventId)
   downloadBlob(res, '成绩表.xlsx')
 }
 
 const handleUpload = async (options) => {
-  if (!query.eventId) { ElMessage.error('请先选择赛事'); return }
-  if (submitting.value) return
-  submitting.value = true
+  if (!query.eventId) {
+    ElMessage.error('请先选择赛事')
+    return
+  }
+  if (publishing.value) return
+  publishing.value = true
   try {
     const res = await importScores(query.eventId, options.file)
-    if (res.code === 200) {
+    if (isSuccess(res)) {
       importResult.value = res.data
       ElMessage.success('导入完成')
-      loadScores()
+      await loadData()
     }
   } finally {
-    submitting.value = false
+    publishing.value = false
   }
 }
 
 const publishWithConfirm = async () => {
-  if (!query.eventId || submitting.value) return
+  if (!query.eventId || publishing.value || !summary.value.draftCount) return
   await ElMessageBox.confirm('发布后成绩不可撤回，是否继续？', '二次确认', {
     type: 'warning',
     confirmButtonText: '确认发布',
     cancelButtonText: '取消'
   }).then(async () => {
-    submitting.value = true
+    publishing.value = true
     try {
       const res = await publishScores(query.eventId)
-      if (res.code === 200) { ElMessage.success('发布成功'); loadScores() }
+      if (isSuccess(res)) {
+        ElMessage.success('发布成功')
+        await loadData()
+      }
     } finally {
-      submitting.value = false
+      publishing.value = false
     }
   }).catch(() => {})
 }
 
-onMounted(() => { loadEvents() })
+onMounted(() => {
+  loadEvents()
+})
 </script>
 
 <style scoped>
-/* ===================== Layout ===================== */
 .score-manage-container {
   padding: 24px;
   min-height: 100vh;
 }
 
-/* ===================== Card ===================== */
 .main-card {
   border-radius: 16px !important;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06) !important;
@@ -328,7 +553,6 @@ onMounted(() => { loadEvents() })
   overflow: hidden;
 }
 
-/* ===================== Card Header ===================== */
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -336,12 +560,14 @@ onMounted(() => { loadEvents() })
   flex-wrap: wrap;
   gap: 16px;
 }
+
 .header-left {
   display: flex;
   align-items: center;
   gap: 14px;
   flex-shrink: 0;
 }
+
 .header-icon {
   width: 44px;
   height: 44px;
@@ -354,51 +580,55 @@ onMounted(() => { loadEvents() })
   flex-shrink: 0;
   box-shadow: 0 4px 12px rgba(124, 58, 237, 0.28);
 }
-.header-icon svg { width: 22px; height: 22px; }
+
+.header-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
 .header-text {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
+
 .header-title {
   font-size: 18px;
   font-weight: 700;
   color: var(--el-text-color-primary);
   letter-spacing: -0.3px;
 }
+
 .header-subtitle {
   font-size: 12px;
   color: var(--el-text-color-secondary);
 }
 
-/* Right side */
 .header-right {
   display: flex;
   align-items: center;
-  gap: 0;
   flex-wrap: wrap;
   gap: 10px;
 }
-.filter-group {
+
+.filter-group,
+.op-group {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
+
 .action-divider {
   width: 1px;
   height: 28px;
   background: var(--el-border-color);
   margin: 0 4px;
 }
-.op-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
 
-/* Buttons */
 .action-btn,
-.op-btn {
+.op-btn,
+.save-btn {
   display: inline-flex !important;
   align-items: center;
   gap: 5px;
@@ -407,64 +637,53 @@ onMounted(() => { loadEvents() })
   border-radius: 8px !important;
   font-size: 13px !important;
   font-weight: 600 !important;
-  transition: transform 0.15s, box-shadow 0.15s !important;
 }
+
 .action-btn {
   background: linear-gradient(135deg, var(--el-color-primary-light-3), var(--el-color-primary)) !important;
   border: none !important;
   color: #fff !important;
-  box-shadow: 0 3px 10px rgba(64, 158, 255, 0.3) !important;
 }
-.action-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 5px 14px rgba(64, 158, 255, 0.4) !important;
-}
+
 .op-btn {
   background: var(--el-fill-color) !important;
   border: 1px solid var(--el-border-color) !important;
   color: var(--el-text-color-regular) !important;
 }
-.op-btn:hover {
-  background: var(--el-fill-color-dark) !important;
-  border-color: var(--el-border-color-dark) !important;
-}
+
 .op-import {
   background: linear-gradient(135deg, #34d399, #10b981) !important;
   border: none !important;
   color: #fff !important;
-  box-shadow: 0 3px 10px rgba(16, 185, 129, 0.28) !important;
 }
-.op-import:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 5px 14px rgba(16, 185, 129, 0.38) !important;
+
+.op-batch-save {
+  background: linear-gradient(135deg, #60a5fa, #2563eb) !important;
+  border: none !important;
+  color: #fff !important;
 }
+
 .op-publish {
   background: linear-gradient(135deg, #fbbf24, #f59e0b) !important;
   border: none !important;
   color: #fff !important;
-  box-shadow: 0 3px 10px rgba(245, 158, 11, 0.28) !important;
 }
-.op-publish:not(:disabled):hover {
-  transform: translateY(-1px);
-  box-shadow: 0 5px 14px rgba(245, 158, 11, 0.38) !important;
-}
-.op-publish:disabled {
-  opacity: 0.5 !important;
-  transform: none !important;
-}
-.btn-icon { width: 14px; height: 14px; }
 
-/* ===================== Summary Bar ===================== */
+.btn-icon {
+  width: 14px;
+  height: 14px;
+}
+
 .score-summary {
   display: flex;
   align-items: center;
-  gap: 0;
   margin-bottom: 16px;
   padding: 14px 20px;
   background: var(--el-fill-color-lighter);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 12px;
 }
+
 .summary-item {
   flex: 1;
   display: flex;
@@ -472,45 +691,62 @@ onMounted(() => { loadEvents() })
   align-items: center;
   gap: 3px;
 }
+
 .summary-divider {
   width: 1px;
   height: 36px;
   background: var(--el-border-color-lighter);
 }
+
 .summary-value {
   font-size: 26px;
   font-weight: 800;
   color: var(--el-text-color-primary);
-  letter-spacing: -0.5px;
   line-height: 1;
 }
-.summary-value.published { color: #10b981; }
-.summary-value.draft { color: var(--el-text-color-placeholder); }
-.summary-value.items { color: #7c3aed; }
+
+.summary-value.published {
+  color: #10b981;
+}
+
+.summary-value.draft {
+  color: #f59e0b;
+}
+
+.summary-value.items {
+  color: #7c3aed;
+}
+
 .summary-label {
   font-size: 12px;
   color: var(--el-text-color-secondary);
   font-weight: 500;
 }
 
-/* ===================== Table ===================== */
+.tip-bar {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(59, 130, 246, 0.06));
+  border: 1px solid rgba(124, 58, 237, 0.12);
+}
+
+.tip-copy {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  line-height: 1.6;
+}
+
+.role-copy {
+  margin-top: 4px;
+}
+
 .table-wrapper {
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--el-border-color-lighter);
 }
-.event-cell {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-}
-.cell-icon {
-  width: 13px;
-  height: 13px;
-  color: var(--el-text-color-placeholder);
-  flex-shrink: 0;
-}
+
 .item-tag {
   display: inline-block;
   padding: 3px 10px;
@@ -525,11 +761,13 @@ onMounted(() => { loadEvents() })
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 .name-cell {
   display: flex;
   align-items: center;
   gap: 8px;
 }
+
 .name-avatar {
   width: 28px;
   height: 28px;
@@ -543,36 +781,12 @@ onMounted(() => { loadEvents() })
   justify-content: center;
   flex-shrink: 0;
 }
-.score-value {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--el-text-color-primary);
-  font-variant-numeric: tabular-nums;
-}
+
 .remark-text {
   font-size: 13px;
   color: var(--el-text-color-secondary);
 }
 
-/* Rank Badge */
-.rank-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  min-width: 36px;
-  padding: 3px 8px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 700;
-}
-.rank-icon { width: 12px; height: 12px; }
-.rank-gold   { background: #fef3c7; color: #d97706; border: 1px solid #fde68a; }
-.rank-silver { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
-.rank-bronze { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
-.rank-normal { background: var(--el-fill-color); color: var(--el-text-color-secondary); border: 1px solid var(--el-border-color-lighter); }
-
-/* Status Badge */
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -582,31 +796,46 @@ onMounted(() => { loadEvents() })
   font-size: 12px;
   font-weight: 600;
 }
+
 .status-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
   flex-shrink: 0;
 }
+
+.status-approved {
+  background: var(--el-color-success-light-9);
+  color: var(--el-color-success-dark-2);
+  border: 1px solid var(--el-color-success-light-5);
+}
+
+.status-approved .status-dot,
+.status-published .status-dot {
+  background: var(--el-color-success);
+}
+
 .status-published {
   background: var(--el-color-success-light-9);
   color: var(--el-color-success-dark-2);
   border: 1px solid var(--el-color-success-light-5);
 }
-.status-published .status-dot { background: var(--el-color-success); }
+
 .status-draft {
-  background: var(--el-fill-color);
-  color: var(--el-text-color-secondary);
-  border: 1px solid var(--el-border-color-lighter);
-}
-.status-draft .status-dot { background: var(--el-text-color-placeholder); }
-
-/* Row highlight */
-:deep(.row-published td) {
-  background: var(--el-color-success-light-9) !important;
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
 }
 
-/* ===================== Empty State ===================== */
+.status-draft .status-dot {
+  background: #f59e0b;
+}
+
+.save-btn {
+  min-width: 74px;
+  justify-content: center;
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -615,6 +844,7 @@ onMounted(() => { loadEvents() })
   padding: 56px 20px;
   gap: 12px;
 }
+
 .empty-icon {
   width: 56px;
   height: 56px;
@@ -625,35 +855,50 @@ onMounted(() => { loadEvents() })
   justify-content: center;
   color: var(--el-text-color-placeholder);
 }
-.empty-icon svg { width: 28px; height: 28px; }
+
+.empty-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.empty-state h3,
 .empty-state p {
   margin: 0;
+  text-align: center;
+}
+
+.empty-state h3 {
+  font-size: 18px;
+  color: var(--el-text-color-primary);
+}
+
+.empty-state p {
   font-size: 14px;
   color: var(--el-text-color-placeholder);
-  text-align: center;
   max-width: 360px;
   line-height: 1.6;
 }
 
-/* ===================== Import Dialog ===================== */
-.dialog-body { display: flex; flex-direction: column; gap: 16px; }
+.dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .upload-area :deep(.el-upload-dragger) {
   border-radius: 12px !important;
   border: 2px dashed var(--el-border-color) !important;
   background: var(--el-fill-color-lighter) !important;
   padding: 32px 20px !important;
-  transition: border-color 0.2s, background 0.2s !important;
 }
-.upload-area :deep(.el-upload-dragger:hover) {
-  border-color: #7c3aed !important;
-  background: rgba(124, 58, 237, 0.04) !important;
-}
+
 .upload-content {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
 }
+
 .upload-icon-wrap {
   width: 48px;
   height: 48px;
@@ -664,9 +909,22 @@ onMounted(() => { loadEvents() })
   align-items: center;
   justify-content: center;
 }
-.upload-icon-wrap svg { width: 24px; height: 24px; }
-.upload-main-text { font-size: 14px; font-weight: 600; color: var(--el-text-color-primary); }
-.upload-sub-text { font-size: 12px; color: var(--el-text-color-placeholder); }
+
+.upload-icon-wrap svg {
+  width: 24px;
+  height: 24px;
+}
+
+.upload-main-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.upload-sub-text {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+}
 
 .import-result-card {
   background: var(--el-fill-color-lighter);
@@ -677,11 +935,13 @@ onMounted(() => { loadEvents() })
   flex-direction: column;
   gap: 12px;
 }
+
 .result-row {
   display: flex;
   gap: 20px;
   align-items: center;
 }
+
 .result-item {
   display: flex;
   align-items: center;
@@ -689,28 +949,51 @@ onMounted(() => { loadEvents() })
   font-size: 14px;
   font-weight: 500;
 }
-.result-icon { width: 18px; height: 18px; }
-.success-item { color: var(--el-color-success); }
-.fail-item { color: var(--el-color-danger); }
-.result-item strong { font-weight: 800; font-size: 16px; }
+
+.result-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.success-item {
+  color: var(--el-color-success);
+}
+
+.fail-item {
+  color: var(--el-color-danger);
+}
+
 .failure-table-title {
   font-size: 12px;
   font-weight: 600;
   color: var(--el-text-color-secondary);
   margin-bottom: 6px;
 }
-.failure-table { border-radius: 8px; overflow: hidden; }
 
-.result-fade-enter-active, .result-fade-leave-active { transition: all 0.3s ease; }
-.result-fade-enter-from, .result-fade-leave-to { opacity: 0; transform: translateY(-6px); }
+.result-fade-enter-active,
+.result-fade-leave-active {
+  transition: all 0.3s ease;
+}
 
-/* ===================== Table overrides ===================== */
+.result-fade-enter-from,
+.result-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
 :deep(.el-table) {
   background: var(--el-bg-color) !important;
   color: var(--el-text-color-primary);
 }
-:deep(.el-table__inner-wrapper) { background: var(--el-bg-color) !important; }
-:deep(.el-table__body-wrapper td) { background: var(--el-bg-color) !important; }
+
+:deep(.el-table__inner-wrapper) {
+  background: var(--el-bg-color) !important;
+}
+
+:deep(.el-table__body-wrapper td) {
+  background: var(--el-bg-color) !important;
+}
+
 :deep(.el-table__header th) {
   background: var(--el-fill-color-light) !important;
   font-weight: 700;
@@ -718,10 +1001,18 @@ onMounted(() => { loadEvents() })
   color: var(--el-text-color-secondary);
 }
 
-/* ===================== Responsive ===================== */
+:deep(.row-published td) {
+  background: var(--el-color-success-light-9) !important;
+}
+
 @media (max-width: 1100px) {
-  .card-header { flex-direction: column; align-items: flex-start; }
-  .header-right { flex-wrap: wrap; }
-  .action-divider { display: none; }
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .action-divider {
+    display: none;
+  }
 }
 </style>

@@ -1,4 +1,4 @@
-﻿run_id: business-accounts-213248
+﻿run_id: business-accounts-012722
 purpose: "鏈湴澶氳鑹蹭笟鍔″洖褰掕处鍙疯祫浜?
 warning: "鍖呭惈鏄庢枃璐﹀彿銆佸瘑鐮併€乼oken锛屼粎闄愭湰鍦拌仈璋冧娇鐢紝绂佹澶栦紶"
 
@@ -8,23 +8,23 @@ backend_log:
 
 accounts:
   event_admin:
-    username: "ops_event_admin_213248"
+    username: "ops_event_admin_012722"
     password: "Pass12345"
-    email: "event213248@qq.com"
+    email: "event012722@qq.com"
     role: "EVENT_ADMIN"
     source: "娉ㄥ唽 -> 瀛︽牎绠＄悊鍛樺鏍?-> 瓒呯骇绠＄悊鍛樿涓鸿禌浜嬬鐞嗗憳 -> 缁戝畾璧涗簨"
   user:
-    username: "ops_user_213248"
+    username: "ops_user_012722"
     password: "Pass12345"
-    email: "user213248@qq.com"
+    email: "user012722@qq.com"
     role: "USER"
     source: "娉ㄥ唽 -> 瀛︽牎绠＄悊鍛樺鏍?
   athlete:
-    username: "ops_athlete_213248"
+    username: "ops_athlete_012722"
     password: "Pass12345"
-    email: "athlete213248@qq.com"
+    email: "athlete012722@qq.com"
     role: "ATHLETE"
-    athleteApplicationId: 6
+    athleteApplicationId: 1
     athleteAudit: "APPROVED"
     source: "娉ㄥ唽 -> 瀛︽牎绠＄悊鍛樺鏍?-> 瀹屽杽璧勬枡 -> 鎻愪氦杩愬姩鍛樼敵璇?-> 璧涗簨绠＄悊鍛樺鏍搁€氳繃 -> 瓒呯骇绠＄悊鍛樿涓?ATHLETE"
 
