@@ -292,6 +292,20 @@ tasks:
       - "runs 下存在对应执行记录文件"
       - "计划明确验证命令与边界范围"
 
+  - id: AUTO-004
+    title: 固化开工收工与业务回归闭环脚本及提示词文档
+    priority: P0
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-003
+    block_reason: ""
+    acceptance:
+      - "scripts 提供 dev-start/dev-stop 与 oneclick 回归入口"
+      - "README 与 Windows 本地开发文档包含开工/收工指引"
+      - "git-ai/automation-route/WORKFLOW_OPEN_CLOSE_SMOKE.md 集成新对话可复用提示词"
+
   - id: DOC-001
     title: 统一前后端本地联调文档
     priority: P2
