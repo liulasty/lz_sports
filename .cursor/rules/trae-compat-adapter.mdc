@@ -1,0 +1,25 @@
+---
+description: Trae 目录结构到 Cursor 的兼容适配规则
+alwaysApply: true
+---
+
+# Trae Compat Adapter
+
+## 兼容目标
+- 兼容引用：`@.trae/documents`、`@.trae/skills`、`@.trae/specs`。
+- 若 `.trae` 目录不存在，自动回退到 Cursor 等价入口。
+
+## 路径映射
+- `.trae/documents` -> `PROJECT_LOOP.md`、`README.md`、`docs/`
+- `.trae/skills` -> `.cursor/skills/`
+- `.trae/specs` -> `git-ai/automation-route/BACKLOG.md`、`docs/`、`*.md` 规格文档
+
+## 执行策略
+- 优先读取真实存在的 `.trae/*` 内容。
+- 不存在时，按路径映射读取 Cursor 等价文件并继续执行。
+- 不因 `.trae` 缺失中断任务，除非用户明确要求“必须使用原 `.trae` 文件”。
+
+## 与 project_loop 对齐
+- 任务选择：遵循 `git-ai/automation-route/BACKLOG.md` 的 `selection_rule`。
+- 执行循环：遵循 `PROJECT_LOOP.md` 的 `project_loop` 字段。
+- 输出格式：遵循 `project_loop.report.required_fields`。

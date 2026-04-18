@@ -14,7 +14,7 @@ project_loop:
         stack: "Spring Boot 3 + Java 17"
         working_directory: "lz_sports_backend"
   sources:
-    backlog: "BACKLOG.md"
+    backlog: "git-ai/automation-route/BACKLOG.md"
   selection:
     strategy: "follow_backlog_selection_rule"
     fallback_when_no_executable_todo: "append_minimum_actionable_task_then_pick_first"

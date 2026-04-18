@@ -8,7 +8,7 @@ alwaysApply: true
 ## 提交切分
 - 一次提交只对应一个可验收目标（单一 concern）。
 - 同一目标的代码、测试、文档状态回写应在同一提交内完成。
-- `BACKLOG.md` 的任务状态变更必须与对应实现同批提交。
+- `git-ai/automation-route/BACKLOG.md` 的任务状态变更必须与对应实现同批提交。
 
 ## 提交信息
 - 使用 `type(scope): subject`，如 `test(backend): ...`、`fix(backend): ...`。

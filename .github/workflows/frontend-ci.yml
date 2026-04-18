@@ -1,0 +1,37 @@
+name: Frontend CI
+
+on:
+  push:
+    paths:
+      - 'lz_sports_frontend/**'
+      - '.github/workflows/frontend-ci.yml'
+  pull_request:
+    paths:
+      - 'lz_sports_frontend/**'
+      - '.github/workflows/frontend-ci.yml'
+
+jobs:
+  frontend-quality:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: lz_sports_frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: lz_sports_frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
