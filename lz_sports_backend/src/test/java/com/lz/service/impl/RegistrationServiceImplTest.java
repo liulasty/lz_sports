@@ -104,7 +104,6 @@ class RegistrationServiceImplTest {
         doReturn(true).when(registrationService).updateById(any(Registration.class));
 
         String result = registrationService.batchAudit(List.of(1L, 2L), true);
-
         assertEquals("已处理1条，跳过1条", result);
     }
 
