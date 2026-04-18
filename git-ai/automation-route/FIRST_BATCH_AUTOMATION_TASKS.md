@@ -163,3 +163,20 @@
 ## 与 heartbeat 的关系
 
 heartbeat 自动化后续应先读取本文档，再与 `BUSINESS_STATUS.md` 联合决定当前最优先的未覆盖业务链路。若本批任务全部完成，再启动第二批清单。
+
+## 执行与回写规范（必须遵守）
+
+每轮执行本批任务时，统一按以下约束推进：
+
+1. 执行前读取：`PROJECT_LOOP.md`、`git-ai/automation-route/BACKLOG.md`、`git-ai/automation-route/WORKFLOW_OPEN_CLOSE_SMOKE.md`、`git-ai/automation-route/BUSINESS_STATUS.md`、本文档。
+2. 任务选择：优先选择“最高优先级 + 未覆盖 + 无阻塞”的业务链路。
+3. 验证策略：先跑 `suite` 基线，再补该任务的定向验证；准备收敛前必须回归 `suite`。
+4. 失败处理：先定位到具体接口和根因，直接修复后重跑；同一问题连续失败 2 次则标记 `BLOCKED` 并写明 `block_reason`。
+5. 完成回写：必须同步更新 `runs` 记录、`BUSINESS_STATUS.md` 覆盖现状、本文档任务状态、`BACKLOG.md` 状态与 `next_task`。
+
+## 分支同步检查清单（任务完成后执行）
+
+1. 在 `D:\soft\lz_sports_git_ai` 提交本轮任务变更到 `git-ai/automation-route`。
+2. 在 `D:\soft\lz_sports` 合并：`git checkout master && git merge git-ai/automation-route`。
+3. 回到 `D:\soft\lz_sports_git_ai` 执行：`git merge master`（如冲突按路径真源规则处理）。
+4. 验证对齐：`git rev-parse master` 与 `git rev-parse git-ai/automation-route` 必须一致。

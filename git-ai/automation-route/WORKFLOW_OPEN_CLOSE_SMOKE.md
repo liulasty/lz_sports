@@ -35,16 +35,17 @@ powershell -ExecutionPolicy Bypass -File scripts/smoke-suite.ps1 -BackendUrl htt
 - 当前回归赛事状态或时间窗口不适配时，自动归一化目标赛事到可报名、可回放状态
 - 自动写入 `git-ai/automation-route/runs/*.md` 运行记录
 
-## 3) 统一执行循环
+## 3) 统一执行循环（完整迭代契约）
 
 每轮迭代都按下面的闭环执行，直到“当前已有业务完整性”达到稳定状态：
 
-1. 读取 `PROJECT_LOOP.md` 与 `BACKLOG.md`，选择最高优先级、无阻塞、依赖已完成的任务。
-2. 如果 backlog 没有可执行 TODO，自动追加一条最小任务，默认围绕“当前已有业务完整性回归、缺陷修复、复跑验证”展开。
-3. 开工后优先执行 `suite`；如果失败，先定位失败步骤和根因，再直接修复代码或脚本。
-4. 修复后必须重跑对应最小验证；影响业务链路时，必须再次执行 `suite`。
-5. 连续 2 次修复后仍失败，则将任务标记为 `BLOCKED`，写清 `block_reason`、当前信号和下一步解除条件。
-6. 全部通过后补齐 `runs` 记录，并把下一条最小可执行任务追加回 backlog，继续下一轮。
+1. 先读取固定输入：`PROJECT_LOOP.md`、`git-ai/automation-route/BACKLOG.md`、`git-ai/automation-route/WORKFLOW_OPEN_CLOSE_SMOKE.md`、`git-ai/automation-route/BUSINESS_STATUS.md`、`git-ai/automation-route/FIRST_BATCH_AUTOMATION_TASKS.md`。
+2. 任务选择优先级：先从 `FIRST_BATCH_AUTOMATION_TASKS.md + BUSINESS_STATUS.md` 选“最高优先级、未覆盖、无阻塞”链路，再回落到 backlog 选择规则。
+3. 开工后先跑 `suite` 作为基线；若只涉及局部修复，可先定向验证，但收敛前必须回归 `suite`。
+4. 失败时必须先定位“具体业务接口 + 根因”，直接修复代码或脚本后重跑，不允许只记录失败不修复。
+5. 同一问题连续 2 次失败：将对应任务标记为 `BLOCKED`，并写清 `block_reason`（失败信号、根因假设、解除条件）。
+6. 全部通过后必须回写：`runs`、`git-ai/automation-route/BUSINESS_STATUS.md`、`git-ai/automation-route/FIRST_BATCH_AUTOMATION_TASKS.md`、`git-ai/automation-route/BACKLOG.md`（含 `next_task`）。
+7. 每轮结束统一按 `changed_files/key_changes/test_results/risks/next_task` 输出结果。
 
 ## 4) 基础回归与完整性回归的关系
 
@@ -62,11 +63,38 @@ powershell -ExecutionPolicy Bypass -File scripts/dev-stop.ps1
 
 ```text
 切到 git-ai/automation-route 分支（若主仓库不在该分支，则进入对应 worktree，例如 D:\soft\lz_sports_git_ai）。
-读取 PROJECT_LOOP.md、BACKLOG.md 与 git-ai/automation-route/WORKFLOW_OPEN_CLOSE_SMOKE.md，按统一执行循环开始迭代：
-1) 若无可执行 TODO，则补一条最小可执行任务
+读取 PROJECT_LOOP.md、git-ai/automation-route/BACKLOG.md、git-ai/automation-route/WORKFLOW_OPEN_CLOSE_SMOKE.md、git-ai/automation-route/BUSINESS_STATUS.md、git-ai/automation-route/FIRST_BATCH_AUTOMATION_TASKS.md，按统一执行循环开始迭代：
+1) 先选最高优先级、未覆盖、无阻塞业务链路（默认 AUTO-042）
 2) 执行 dev-start
-3) 优先执行 suite（oneclick + event-workflow）
-4) 失败先自修复并重跑，连续 2 次失败则标记 BLOCKED 并写明 block_reason
-5) 通过后补齐 runs 记录，更新 backlog 状态，并继续下一条任务
-6) 结束时执行 dev-stop
+3) 优先执行 suite（oneclick + event-workflow），按需要扩展到对应业务域定向验证
+4) 失败先定位接口和根因并直接修复后重跑；连续 2 次失败标记 BLOCKED 并写 block_reason
+5) 通过后回写 runs、BUSINESS_STATUS、FIRST_BATCH、BACKLOG（含 next_task）
+6) 按 changed_files/key_changes/test_results/risks/next_task 汇报
+7) 结束时执行 dev-stop
+```
+
+## 7) 优化后的可复用提示词（推荐）
+
+### 7.1 开工 + 执行闭环提示词
+
+```text
+在 D:\soft\lz_sports_git_ai 的 git-ai/automation-route worktree 执行（不要在 D:\soft\lz_sports 主仓跑整轮回归）。
+先读取 PROJECT_LOOP.md、git-ai/automation-route/BACKLOG.md、git-ai/automation-route/WORKFLOW_OPEN_CLOSE_SMOKE.md、git-ai/automation-route/BUSINESS_STATUS.md、git-ai/automation-route/FIRST_BATCH_AUTOMATION_TASKS.md。
+从 FIRST_BATCH + BUSINESS_STATUS 选择最高优先级、未覆盖、无阻塞业务链路（默认 AUTO-042），给出 3-5 步计划后直接实施：
+1) 执行 dev-start
+2) 优先执行 suite（oneclick + event-workflow），按需要补该业务域定向验证
+3) 失败先定位具体接口与根因，直接修复并重跑；同一问题连续 2 次失败则标记 BLOCKED 并写 block_reason
+4) 通过后回写 runs、BUSINESS_STATUS、FIRST_BATCH、BACKLOG（含 next_task）
+5) 按 changed_files/key_changes/test_results/risks/next_task 汇报
+6) 最后执行 dev-stop
+```
+
+### 7.2 同步提示词（标准 4 步）
+
+```text
+按标准 4 步完成分支同步，并在每一步输出结果：
+1) 在 D:\soft\lz_sports_git_ai 完成一轮任务并提交到 git-ai/automation-route
+2) 在 D:\soft\lz_sports 执行 git checkout master && git merge git-ai/automation-route
+3) 回到 D:\soft\lz_sports_git_ai 执行 git merge master，冲突按路径真源规则解决（例如 git-ai/automation-route/BACKLOG.md）
+4) 执行 git rev-parse master 与 git rev-parse git-ai/automation-route，确认 hash 一致
 ```
