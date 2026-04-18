@@ -831,6 +831,162 @@ tasks:
       - "仓库根新增 .gitattributes 并定义默认文本行尾策略"
       - "显式约束 Windows 脚本文件保持 CRLF"
       - "二进制资源采用 binary 属性，避免误判文本"
+  - id: AUTO-031
+    title: 统一执行循环复跑 oneclick 并沉淀最新运行记录
+    priority: P2
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-030
+    block_reason: ""
+    acceptance:
+      - "在 git-ai/automation-route 分支（或对应 worktree）执行 oneclick 回归"
+      - "full-smoke 与 rolepaths 均通过，失败先自修复后重试"
+      - "新增当日 runs 记录并按统一执行循环字段汇报"
+  - id: AUTO-032
+    title: 通过真实注册链重建多角色业务测试账号资产
+    priority: P2
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-031
+    block_reason: ""
+    acceptance:
+      - "使用 send-verify-code -> verify-code -> register 真实注册三类账号"
+      - "学校管理员审核注册账号，超级管理员设置赛事管理员，赛事管理员审核运动员申请"
+      - "产出可复用的明文账号说明与 token 资产文件"
+  - id: AUTO-033
+    title: 统一执行循环下复跑 oneclick 并校验最新角色资产不影响主回归
+    priority: P2
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-032
+    block_reason: ""
+    acceptance:
+      - "在 git-ai/automation-route 分支执行 oneclick 回归"
+      - "full-smoke 与 rolepaths 均通过"
+      - "新增一条 runs 记录沉淀本轮结论"
+  - id: AUTO-034
+    title: 验证当前赛事的完整业务链路
+    priority: P2
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-033
+    block_reason: ""
+    acceptance:
+      - "oneclick 回归通过"
+      - "基于最新 EVENT_ADMIN / USER / ATHLETE 账号回放当前赛事完整链路"
+      - "新增对应 runs 记录沉淀结论"
+  - id: AUTO-035
+    title: 建立业务完整性循环执行闭环并复跑整体验证
+    priority: P0
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-034
+    block_reason: ""
+    acceptance:
+      - "补齐 git-ai/automation-route/WORKFLOW_OPEN_CLOSE_SMOKE.md，明确 dev-start -> suite -> fix -> rerun -> dev-stop 的统一循环"
+      - "在 git-ai/automation-route 分支或对应 worktree 复跑 suite，覆盖基线 oneclick + 当前赛事完整业务链路"
+      - "若 suite 失败，先修复并重跑；若 suite 通过，新增 runs 记录沉淀当前业务完整性结论"
+  - id: AUTO-036
+    title: 盘点主要业务接口现状并将自动化聚焦到业务测试与缺陷修复
+    priority: P0
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-035
+    block_reason: ""
+    acceptance:
+      - "输出一份基于当前控制器实际接口的业务现状文档，覆盖系统初始化、认证、运动员、赛事、项目、报名、成绩、通知、管理端统计等主要业务"
+      - "文档明确当前自动化已覆盖链路、未覆盖链路和优先缺陷入口"
+      - "将 heartbeat 自动化提示词更新为以业务测试和 bug 修复为主，而不只是泛化回归"
+  - id: AUTO-037
+    title: 统一执行循环复跑 suite 并沉淀本轮业务完整性记录
+    priority: P2
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-036
+    block_reason: ""
+    acceptance:
+      - "在 git-ai/automation-route 分支或对应 worktree 执行 dev-start -> suite -> dev-stop"
+      - "若 suite 失败，先修复并重跑；若 suite 通过，新增一条 runs 记录沉淀本轮业务完整性结论"
+      - "回写 backlog 状态，并补下一条最小可执行任务"
+  - id: AUTO-038
+    title: 扩展业务完整性回归到报名拒绝分支
+    priority: P2
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-037
+    block_reason: ""
+    acceptance:
+      - "在现有 suite 或定向 smoke 中覆盖 EVENT_ADMIN 拒绝报名分支"
+      - "验证 REJECTED 后通知与报名状态查询符合预期"
+      - "新增对应 runs 记录并保持主回归可复跑"
+  - id: AUTO-039
+    title: 扩展业务回归到用户禁用启用与登录失败校验
+    priority: P2
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-038
+    block_reason: ""
+    acceptance:
+      - "覆盖 SCHOOL_ADMIN 禁用普通用户后登录失败的定向验证"
+      - "覆盖重新启用后恢复登录成功"
+      - "新增对应 runs 记录并保持账号资产生成流程不被破坏"
+  - id: AUTO-040
+    title: 扩展业务回归到赛事管理最小闭环
+    priority: P2
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-039
+    block_reason: ""
+    acceptance:
+      - "覆盖创建 DRAFT 赛事、绑定管理员、发布 OPEN 的最小管理端闭环"
+      - "验证赛事状态变化对后续报名链路的影响符合当前实现"
+      - "新增对应 runs 记录并形成可复跑脚本或命令"
+  - id: AUTO-041
+    title: 扩展业务回归到成绩录入与发布最小闭环
+    priority: P2
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-040
+    block_reason: ""
+    acceptance:
+      - "覆盖 score upsert 到 publish 的最小正向链路"
+      - "验证 my/public 成绩查询在发布前后符合预期"
+      - "新增对应 runs 记录并保持主回归可复跑"
+  - id: AUTO-042
+    title: 检查项目与部门接口的权限边界和数据污染风险
+    priority: P2
+    status: TODO
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-041
+    block_reason: ""
+    acceptance:
+      - "验证 department 增删改接口的权限与污染风险"
+      - "验证 project 管理接口对非管理员角色的访问边界"
+      - "若发现问题，形成运行记录并补最小修复或明确缺陷项"
 ```
 
 ## update_rules
@@ -839,3 +995,4 @@ tasks:
 - 当任务进入 `BLOCKED`，必须填写 `block_reason`。
 - 当任务从 `BLOCKED` 恢复，必须清空 `block_reason`。
 - 新增任务时，`id` 必须全局唯一，推荐前缀：`FE/BE/DOC/CI`。
+

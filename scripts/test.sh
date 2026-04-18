@@ -44,6 +44,29 @@ if [ "${1:-}" = "oneclick" ]; then
   exit $?
 fi
 
+if [ "${1:-}" = "suite" ]; then
+  BACKEND_URL=${2:-http://localhost:8080}
+  FRONTEND_URL=${3:-http://localhost:5173}
+  EVENT_ID=${4:-1}
+  ACCOUNTS_FILE=${5:-git-ai/automation-route/runs/business-accounts-latest.json}
+  powershell -ExecutionPolicy Bypass -File "scripts/smoke-suite.ps1" -BackendUrl "$BACKEND_URL" -FrontendUrl "$FRONTEND_URL" -EventId "$EVENT_ID" -AccountsFile "$ACCOUNTS_FILE"
+  exit $?
+fi
+
+if [ "${1:-}" = "user-status-smoke" ]; then
+  BACKEND_URL=${2:-http://localhost:8080}
+  ACCOUNTS_FILE=${3:-git-ai/automation-route/runs/business-accounts-latest.json}
+  powershell -ExecutionPolicy Bypass -File "scripts/smoke-user-status.ps1" -BackendUrl "$BACKEND_URL" -AccountsFile "$ACCOUNTS_FILE"
+  exit $?
+fi
+
+if [ "${1:-}" = "event-admin-smoke" ]; then
+  BACKEND_URL=${2:-http://localhost:8080}
+  ACCOUNTS_FILE=${3:-git-ai/automation-route/runs/business-accounts-latest.json}
+  powershell -ExecutionPolicy Bypass -File "scripts/smoke-event-admin.ps1" -BackendUrl "$BACKEND_URL" -AccountsFile "$ACCOUNTS_FILE"
+  exit $?
+fi
+
 if [ "${1:-}" = "forgot-once" ]; then
   BACKEND_URL=${2:-http://localhost:8080}
   USERNAME=${3:-autou_164656_10}

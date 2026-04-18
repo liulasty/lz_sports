@@ -2,6 +2,7 @@ param(
     [string]$EnvFile = "config/.env.dev",
     [int]$BackendPort = 8080,
     [int]$FrontendPort = 5173,
+    [string]$BackendLogPath = "",
     [switch]$SkipPortCleanup,
     [switch]$SkipFrontend,
     [switch]$SkipBackend,
@@ -69,7 +70,7 @@ function Start-Frontend {
 }
 
 function Start-Backend {
-    param([string]$RepoRoot)
+    param([string]$RepoRoot, [string]$LogPath)
     $backendDir = Join-Path $RepoRoot "lz_sports_backend"
     $envKeys = @(
         "DB_URL","DB_USERNAME","DB_PASSWORD",
@@ -87,7 +88,18 @@ function Start-Backend {
         }
     }
     $prefix = ($envAssign -join "; ")
-    $cmd = "$prefix; cd '$backendDir'; mvn spring-boot:run"
+    if ($LogPath) {
+        if (-not [System.IO.Path]::IsPathRooted($LogPath)) {
+            $LogPath = Join-Path $RepoRoot $LogPath
+        }
+        $logDir = Split-Path -Path $LogPath -Parent
+        if ($logDir -and -not (Test-Path $logDir)) {
+            New-Item -ItemType Directory -Force -Path $logDir | Out-Null
+        }
+        $cmd = "$prefix; cd '$backendDir'; mvn spring-boot:run *>> '$LogPath'"
+    } else {
+        $cmd = "$prefix; cd '$backendDir'; mvn spring-boot:run"
+    }
     Start-Process powershell -ArgumentList "-NoExit", "-NoProfile", "-Command", $cmd | Out-Null
 }
 
@@ -99,6 +111,7 @@ Write-Host "Repo        : $repoRoot"
 Write-Host "EnvFile     : $EnvFile"
 Write-Host "BackendPort : $BackendPort"
 Write-Host "FrontendPort: $FrontendPort"
+Write-Host "BackendLog  : $BackendLogPath"
 Write-Host "DryRun      : $DryRun"
 
 $branch = Get-CurrentBranch
@@ -143,10 +156,9 @@ if (-not $SkipBackend) {
     if ($DryRun) {
         Write-Step "DryRun: would start backend on port $BackendPort"
     } else {
-        Start-Backend -RepoRoot $repoRoot
+        Start-Backend -RepoRoot $repoRoot -LogPath $BackendLogPath
         Write-Step "Backend start command launched"
     }
 }
 
 Write-Host "=== Dev Start Script Completed ==="
-

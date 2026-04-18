@@ -168,7 +168,9 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
     @Override
     public void downloadTemplate(Long eventId, HttpServletResponse response) {
         List<RegistrationDTO> registrations = registrationMapper.selectRegistrationList(eventId).stream()
-                .filter(item -> RegistrationStatus.CONFIRMED.getStatus().equals(item.getRegistrationStatus()))
+                .filter(item ->
+                        RegistrationStatus.CONFIRMED.getStatus().equals(item.getRegistrationStatus())
+                                || RegistrationStatus.APPROVED.getStatus().equals(item.getRegistrationStatus()))
                 .toList();
         writeTemplateResponse(eventId, response, registrations, "成绩导入模板");
     }
@@ -261,8 +263,9 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
         if (registration == null) {
             throw new BusinessException("报名记录不存在", 400);
         }
-        if (registration.getRegistrationStatus() != RegistrationStatus.CONFIRMED) {
-            throw new BusinessException("仅CONFIRMED报名可录入成绩");
+        if (registration.getRegistrationStatus() != RegistrationStatus.CONFIRMED
+                && registration.getRegistrationStatus() != RegistrationStatus.APPROVED) {
+            throw new BusinessException("仅APPROVED/CONFIRMED报名可录入成绩");
         }
     }
 
@@ -280,8 +283,9 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
         if (!eventId.equals(registration.getEventId())) {
             throw new BusinessException("报名不属于该赛事");
         }
-        if (registration.getRegistrationStatus() != RegistrationStatus.CONFIRMED) {
-            throw new BusinessException("报名状态不是CONFIRMED");
+        if (registration.getRegistrationStatus() != RegistrationStatus.CONFIRMED
+                && registration.getRegistrationStatus() != RegistrationStatus.APPROVED) {
+            throw new BusinessException("报名状态不是APPROVED/CONFIRMED");
         }
         Score existing = getOne(new LambdaQueryWrapper<Score>().eq(Score::getRegistrationId, row.getRegistrationId()));
         if (existing != null && Boolean.TRUE.equals(existing.getIsPublished())) {

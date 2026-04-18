@@ -50,6 +50,37 @@ if /i "%~1"=="oneclick" (
   exit /b !ERRORLEVEL!
 )
 
+if /i "%~1"=="suite" (
+  set BACKEND_URL=%~2
+  set FRONTEND_URL=%~3
+  set EVENT_ID=%~4
+  set ACCOUNTS_FILE=%~5
+  if "!BACKEND_URL!"=="" set BACKEND_URL=http://localhost:8080
+  if "!FRONTEND_URL!"=="" set FRONTEND_URL=http://localhost:5173
+  if "!EVENT_ID!"=="" set EVENT_ID=1
+  if "!ACCOUNTS_FILE!"=="" set ACCOUNTS_FILE=git-ai/automation-route/runs/business-accounts-latest.json
+  powershell -ExecutionPolicy Bypass -File "scripts/smoke-suite.ps1" -BackendUrl "!BACKEND_URL!" -FrontendUrl "!FRONTEND_URL!" -EventId !EVENT_ID! -AccountsFile "!ACCOUNTS_FILE!"
+  exit /b !ERRORLEVEL!
+)
+
+if /i "%~1"=="user-status-smoke" (
+  set BACKEND_URL=%~2
+  set ACCOUNTS_FILE=%~3
+  if "!BACKEND_URL!"=="" set BACKEND_URL=http://localhost:8080
+  if "!ACCOUNTS_FILE!"=="" set ACCOUNTS_FILE=git-ai/automation-route/runs/business-accounts-latest.json
+  powershell -ExecutionPolicy Bypass -File "scripts/smoke-user-status.ps1" -BackendUrl "!BACKEND_URL!" -AccountsFile "!ACCOUNTS_FILE!"
+  exit /b !ERRORLEVEL!
+)
+
+if /i "%~1"=="event-admin-smoke" (
+  set BACKEND_URL=%~2
+  set ACCOUNTS_FILE=%~3
+  if "!BACKEND_URL!"=="" set BACKEND_URL=http://localhost:8080
+  if "!ACCOUNTS_FILE!"=="" set ACCOUNTS_FILE=git-ai/automation-route/runs/business-accounts-latest.json
+  powershell -ExecutionPolicy Bypass -File "scripts/smoke-event-admin.ps1" -BackendUrl "!BACKEND_URL!" -AccountsFile "!ACCOUNTS_FILE!"
+  exit /b !ERRORLEVEL!
+)
+
 if /i "%~1"=="forgot-once" (
   set BACKEND_URL=%~2
   set USERNAME=%~3

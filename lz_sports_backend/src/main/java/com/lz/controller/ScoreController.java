@@ -50,7 +50,7 @@ public class ScoreController {
 
     @PostMapping("/upsert")
     @RequireEventAdmin
-    @Operation(summary = "录入成绩", description = "仅CONFIRMED报名可录入，重复录入自动更新")
+    @Operation(summary = "录入成绩", description = "仅APPROVED/CONFIRMED报名可录入，重复录入自动更新")
     public Result<String> upsert(@Valid @RequestBody ScoreUpsertDTO dto) {
         scoreService.upsertScore(dto);
         return Result.success("录入成功");

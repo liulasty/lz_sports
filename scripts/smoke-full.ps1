@@ -3,6 +3,8 @@ param(
     [string]$BackendUrl = "http://localhost:8080",
     [string]$Username = "smoke_user_447613714",
     [string]$Password = "Password123",
+    [string]$AdminUsername = "event_admin_smoke",
+    [string]$AdminPassword = "Password123",
     [string]$AccessToken = "",
     [switch]$DryRun
 )
@@ -45,7 +47,9 @@ $notifyArgs = @(
     "-File", $notifyScript,
     "-BackendUrl", $BackendUrl,
     "-Username", $Username,
-    "-Password", $Password
+    "-Password", $Password,
+    "-AdminUsername", $AdminUsername,
+    "-AdminPassword", $AdminPassword
 )
 
 if ($AccessToken) {
