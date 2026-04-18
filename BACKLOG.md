@@ -630,6 +630,103 @@ tasks:
       - "策略覆盖 worktree 占用时的安全迁移流程"
       - "新增对应运行记录，沉淀问题来源与修复措施"
 
+  - id: AUTO-024
+    title: 本地全链路回归（full-smoke + 多角色接口验证）
+    priority: P0
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-023
+    block_reason: ""
+    acceptance:
+      - "前端在 5173、后端在 8080 可访问"
+      - "full-smoke（linkup+notification）以现有账号实跑通过"
+      - "分别以 SUPER_ADMIN / SCHOOL_ADMIN / EVENT_ADMIN / USER / ATHLETE 登录，验证至少 1 条正向权限与 1 条越权拦截（403/401）"
+      - "新增一条 runs 记录包含 token_source 与回归结论"
+
+  - id: AUTO-025
+    title: 固化 EVENT_ADMIN 与 eventId 绑定，使 RequireEventAdmin 正向路径可稳定回归
+    priority: P0
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-024
+    block_reason: ""
+    acceptance:
+      - "role smoke 运行时自动将 EVENT_ADMIN 绑定到指定 eventId（默认 1），然后 batch-audit 正向断言可通过"
+      - "新增对应 runs 记录沉淀绑定与断言结果"
+
+  - id: AUTO-026
+    title: 新增一键回归脚本（分支检查+端口检查+full-smoke+rolepaths+自动runs）
+    priority: P0
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-025
+    block_reason: ""
+    acceptance:
+      - "新增 scripts/smoke-oneclick.ps1，可一键执行 full-smoke + rolepaths 并自动生成 runs 记录"
+      - "scripts/test.bat 与 scripts/test.sh 支持 oneclick 子命令"
+      - "一键脚本在 git-ai/automation-route 分支上实跑通过"
+
+  - id: AUTO-027
+    title: 修复本地启动预检与环境加载，降低下次开工成本
+    priority: P0
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-026
+    block_reason: ""
+    acceptance:
+      - "新增 dev-start 脚本，自动加载 config/.env.dev 并做本地化变量适配"
+      - "启动前自动清理 8080/5173 监听冲突（可关闭）"
+      - "支持 scripts/test.bat 与 scripts/test.sh 子命令直达"
+
+  - id: AUTO-028
+    title: 补齐 dev-stop 与本地文档闭环，并重启业务回归
+    priority: P0
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-027
+    block_reason: ""
+    acceptance:
+      - "新增 scripts/dev-stop.ps1，按端口停止前后端"
+      - "README 与本地开发文档包含 dev-start/dev-stop 指引"
+      - "完成一次 oneclick 业务回归，形成运行记录"
+
+  - id: AUTO-029
+    title: 执行 oneclick 开工回归并沉淀运行记录
+    priority: P2
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-028
+    block_reason: ""
+    acceptance:
+      - "在 git-ai/automation-route 分支（或对应 worktree）执行 oneclick 回归"
+      - "full-smoke 与 rolepaths 均通过"
+      - "新增对应 runs 记录并包含回归结论"
+
+  - id: AUTO-030
+    title: 复跑 oneclick 回归并沉淀最新运行记录
+    priority: P2
+    status: DONE
+    owner: agent
+    area: docs
+    dependencies:
+      - AUTO-029
+    block_reason: ""
+    acceptance:
+      - "再次执行 oneclick 并通过分支/端口/full-smoke/rolepaths 全链路检查"
+      - "新增当日 runs 记录用于本轮统一执行循环留痕"
+
   - id: DOC-001
     title: 统一前后端本地联调文档
     priority: P2

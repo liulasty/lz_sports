@@ -66,7 +66,6 @@ LZ Sports 是一个面向校园运动会场景的全流程管理平台，包含�
 
 按场景选择：
 
-- Windows 本地联调（无 Docker）：`docs/启动方式/本地开发/本地联调统一指南.md`
 - Windows 本地：`docs/启动方式/本地开发/Windows本地.md`
 - Linux 本地：`docs/启动方式/本地开发/Linux本地.md`
 - Docker Desktop：`docs/启动方式/容器部署/DockerDesktop.md`
@@ -123,6 +122,21 @@ powershell -ExecutionPolicy Bypass -File scripts/smoke-full.ps1 -BackendUrl http
 # 通过统一测试入口执行
 scripts/test.bat full-smoke http://localhost:8081
 ./scripts/test.sh full-smoke http://localhost:8081
+```
+
+### 开工/收工闭环（本地开发推荐）
+```bash
+# 开工：自动加载 config/.env.dev、清理 8080/5173 冲突并启动前后端
+powershell -ExecutionPolicy Bypass -File scripts/dev-start.ps1
+# 或
+scripts/test.bat dev-start
+./scripts/test.sh dev-start
+
+# 收工：按端口停止前后端
+powershell -ExecutionPolicy Bypass -File scripts/dev-stop.ps1
+# 或
+scripts/test.bat dev-stop
+./scripts/test.sh dev-stop
 ```
 
 ---

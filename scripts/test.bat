@@ -39,6 +39,38 @@ if /i "%~1"=="full-smoke" (
   exit /b !ERRORLEVEL!
 )
 
+if /i "%~1"=="oneclick" (
+  set BACKEND_URL=%~2
+  set FRONTEND_URL=%~3
+  set EVENT_ID=%~4
+  if "!BACKEND_URL!"=="" set BACKEND_URL=http://localhost:8080
+  if "!FRONTEND_URL!"=="" set FRONTEND_URL=http://localhost:5173
+  if "!EVENT_ID!"=="" set EVENT_ID=1
+  powershell -ExecutionPolicy Bypass -File "scripts/smoke-oneclick.ps1" -BackendUrl "!BACKEND_URL!" -FrontendUrl "!FRONTEND_URL!" -EventId !EVENT_ID!
+  exit /b !ERRORLEVEL!
+)
+
+if /i "%~1"=="forgot-once" (
+  set BACKEND_URL=%~2
+  set USERNAME=%~3
+  set EMAIL=%~4
+  if "!BACKEND_URL!"=="" set BACKEND_URL=http://localhost:8080
+  if "!USERNAME!"=="" set USERNAME=autou_164656_10
+  if "!EMAIL!"=="" set EMAIL=auto16465610@qq.com
+  powershell -ExecutionPolicy Bypass -File "scripts/smoke-forgot-once.ps1" -BackendUrl "!BACKEND_URL!" -Username "!USERNAME!" -Email "!EMAIL!"
+  exit /b !ERRORLEVEL!
+)
+
+if /i "%~1"=="dev-start" (
+  powershell -ExecutionPolicy Bypass -File "scripts/dev-start.ps1"
+  exit /b !ERRORLEVEL!
+)
+
+if /i "%~1"=="dev-stop" (
+  powershell -ExecutionPolicy Bypass -File "scripts/dev-stop.ps1"
+  exit /b !ERRORLEVEL!
+)
+
 set ENV=%~1
 if "%ENV%"=="" set ENV=dev
 

@@ -36,6 +36,32 @@ if [ "${1:-}" = "full-smoke" ]; then
   exit $?
 fi
 
+if [ "${1:-}" = "oneclick" ]; then
+  BACKEND_URL=${2:-http://localhost:8080}
+  FRONTEND_URL=${3:-http://localhost:5173}
+  EVENT_ID=${4:-1}
+  powershell -ExecutionPolicy Bypass -File "scripts/smoke-oneclick.ps1" -BackendUrl "$BACKEND_URL" -FrontendUrl "$FRONTEND_URL" -EventId "$EVENT_ID"
+  exit $?
+fi
+
+if [ "${1:-}" = "forgot-once" ]; then
+  BACKEND_URL=${2:-http://localhost:8080}
+  USERNAME=${3:-autou_164656_10}
+  EMAIL=${4:-auto16465610@qq.com}
+  powershell -ExecutionPolicy Bypass -File "scripts/smoke-forgot-once.ps1" -BackendUrl "$BACKEND_URL" -Username "$USERNAME" -Email "$EMAIL"
+  exit $?
+fi
+
+if [ "${1:-}" = "dev-start" ]; then
+  powershell -ExecutionPolicy Bypass -File "scripts/dev-start.ps1"
+  exit $?
+fi
+
+if [ "${1:-}" = "dev-stop" ]; then
+  powershell -ExecutionPolicy Bypass -File "scripts/dev-stop.ps1"
+  exit $?
+fi
+
 ENV=${1:-dev}
 
 if [ "$ENV" = "prod" ]; then

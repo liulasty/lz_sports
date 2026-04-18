@@ -72,6 +72,24 @@ npm run dev
 ### 3. 启动项目
 分别在 IDEA 和 VS Code 中启动后端和前端即可。
 
+### 4. 推荐脚本化开工/收工
+如果你希望下次直接开工，建议使用仓库脚本统一处理环境加载与端口冲突：
+
+```bat
+:: 开工：加载 config/.env.dev，自动适配本地 mysql/redis 主机名并启动前后端
+powershell -ExecutionPolicy Bypass -File scripts/dev-start.ps1
+
+:: 收工：按端口停止前后端（默认 8080/5173）
+powershell -ExecutionPolicy Bypass -File scripts/dev-stop.ps1
+```
+
+也可走统一入口：
+
+```bat
+scripts\test.bat dev-start
+scripts\test.bat dev-stop
+```
+
 或者，你也可以使用一键部署脚本的 `--local-db` 模式，将前后端打包进容器运行，但直连你的本地数据库：
 ```bat
 .\scripts\build.bat
