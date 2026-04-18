@@ -159,7 +159,7 @@
 - `AUTO-040` 已完成
 - `AUTO-041` 已完成：已覆盖 `score upsert -> publish -> my/public` 最小闭环（已接入 `smoke-suite` 的 current-event workflow 回放）
 - `AUTO-042` 已完成：已修复 `DepartmentController` 增删改缺失鉴权（限制为 `SCHOOL_ADMIN`），并增加定向回归 `scripts/smoke-org-permission.ps1`
-- 下一条建议执行 `AUTO-043`
+- `AUTO-043` 已完成：已新增定向回归 `scripts/smoke-department-tree.ps1`，覆盖匿名态/登录态可见性约束，并修复 HIGH_SCHOOL/K12 组织模式下部门树为空的问题
 
 ## 与 heartbeat 的关系
 
@@ -181,3 +181,10 @@ heartbeat 自动化后续应先读取本文档，再与 `BUSINESS_STATUS.md` 联
 2. 在 `D:\soft\lz_sports` 合并：`git checkout master && git merge git-ai/automation-route`。
 3. 回到 `D:\soft\lz_sports_git_ai` 执行：`git merge master`（如冲突按路径真源规则处理）。
 4. 验证对齐：`git rev-parse master` 与 `git rev-parse git-ai/automation-route` 必须一致。
+
+## 最新回写（2026-04-19）
+
+- 第一批任务状态不变，仍为全部完成。
+- 本轮 smoke 闭环补修了 `scripts/smoke-event-workflow.ps1` 的成绩步骤复跑问题：对已存在已发布成绩的批准报名，改为跳过重复写入，直接校验 `my/public` 查询结果。
+- 基线 `suite` 已在 `git-ai/automation-route/runs/2026-04-19-auto-046.md` 再次通过，说明第一批链路在当前 worktree 下可继续稳定复跑。
+- next_task: `AUTO-045` 项目管理最小闭环与权限边界回归

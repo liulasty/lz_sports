@@ -105,44 +105,75 @@ powershell -ExecutionPolicy Bypass -File scripts/sync-local-cursor.ps1 -Directio
 ## 6) 建议的新对话提示词
 
 ```text
-切到 git-ai/automation-route 分支（若主仓库不在该分支，则进入对应 worktree，例如 D:\soft\lz_sports_git_ai）。
-读取 PROJECT_LOOP.md、git-ai/automation-route/BACKLOG.md、git-ai/automation-route/WORKFLOW_OPEN_CLOSE_SMOKE.md、git-ai/automation-route/BUSINESS_STATUS.md、git-ai/automation-route/FIRST_BATCH_AUTOMATION_TASKS.md，按统一执行循环开始迭代：
-1) 先选最高优先级、未覆盖、无阻塞业务链路（默认 AUTO-042）
-2) 执行 dev-start
-3) 优先执行 suite（oneclick + event-workflow），按需要扩展到对应业务域定向验证
-4) 失败先定位接口和根因并直接修复后重跑；连续 2 次失败标记 BLOCKED 并写 block_reason
-5) 通过后回写 runs、BUSINESS_STATUS、FIRST_BATCH、BACKLOG（含 next_task）
-6) 执行分支标准 4 步同步，验证 master 与 git-ai/automation-route hash 一致
-7) 按 changed_files/key_changes/test_results/risks/next_task 汇报
-8) 结束时执行 dev-stop（若有本地 .cursor 变更，再执行 sync-local-cursor toMain）
+目标：按 “开始（服务重启）-> 执行（可重复：修代码后重启）-> 收工（服务停止）” 完成一次可复跑的 smoke 闭环，并按 changed_files/key_changes/test_results/risks/next_task 汇报。
+
+约束：
+- 只在 D:\soft\lz_sports_git_ai 的 git-ai/automation-route worktree 执行整轮回归（不要在 D:\soft\lz_sports 主仓跑）。
+- 开工先通过 scripts/aicoding-precheck.ps1（或 scripts/test.bat aicoding-precheck）。
+- 先读：PROJECT_LOOP.md、git-ai/automation-route/BACKLOG.md、git-ai/automation-route/WORKFLOW_OPEN_CLOSE_SMOKE.md、git-ai/automation-route/BUSINESS_STATUS.md、git-ai/automation-route/FIRST_BATCH_AUTOMATION_TASKS.md。
+
+开始（服务重启）：
+- 可选：powershell -ExecutionPolicy Bypass -File scripts/sync-local-cursor.ps1 -Direction toWorktree
+- 执行：powershell -ExecutionPolicy Bypass -File scripts/aicoding-precheck.ps1
+- 执行：powershell -ExecutionPolicy Bypass -File scripts/dev-start.ps1 -BackendLogPath git-ai/automation-route/runs/backend-dev.log
+
+执行（可重复闭环）：
+- 任务选择：从 FIRST_BATCH + BUSINESS_STATUS 选“最高优先级、未覆盖、无阻塞”的业务链路（默认 AUTO-042）。
+- 基线回归：优先跑 suite：
+  powershell -ExecutionPolicy Bypass -File scripts/smoke-suite.ps1 -BackendUrl http://localhost:8080 -FrontendUrl http://localhost:5173 -EventId 1 -AccountsFile git-ai/automation-route/runs/business-accounts-latest.json
+- 若 suite/定向验证失败：
+  1) 先定位“具体业务接口 + 根因”，直接修复代码/脚本
+  2) 修复后必须执行 dev-stop -> dev-start（确保服务按新代码重启），再重跑 suite（必要时再补定向验证）
+  3) 若失败信号为“账号资产无法自愈 / SCHOOL_ADMIN seed 无法登录 / 本地数据污染导致无法稳定复跑”，允许执行 reset/init（见 1.1），然后再 dev-stop -> dev-start -> suite
+  4) 同一问题连续 2 次失败：将对应任务标记为 BLOCKED，并写清 block_reason（失败信号、根因假设、解除条件）
+- 若通过：
+  1) 回写 runs、BUSINESS_STATUS、FIRST_BATCH、BACKLOG（含 next_task）
+  2) 若需要做分支同步：按“标准 4 步同步提示词（见 7.2）”执行，并验证 master 与 git-ai/automation-route hash 一致
+  3) 按 changed_files/key_changes/test_results/risks/next_task 汇报
+
+收工（服务停止）：
+- 执行：powershell -ExecutionPolicy Bypass -File scripts/dev-stop.ps1
+- 若本轮修改了 worktree 的 .cursor 本地文件：powershell -ExecutionPolicy Bypass -File scripts/sync-local-cursor.ps1 -Direction toMain
 ```
 
 ## 7) 优化后的可复用提示词（推荐）
 
-### 7.1 开工 + 执行闭环提示词
+### 7.1 开工/执行/收工（三段式，可直接复制）
 
 ```text
-在 D:\soft\lz_sports_git_ai 的 git-ai/automation-route worktree 执行（不要在 D:\soft\lz_sports 主仓跑整轮回归）。
-先执行 scripts/aicoding-precheck.ps1（或 scripts/test.bat aicoding-precheck），通过后再继续。
-先读取 PROJECT_LOOP.md、git-ai/automation-route/BACKLOG.md、git-ai/automation-route/WORKFLOW_OPEN_CLOSE_SMOKE.md、git-ai/automation-route/BUSINESS_STATUS.md、git-ai/automation-route/FIRST_BATCH_AUTOMATION_TASKS.md。
-从 FIRST_BATCH + BUSINESS_STATUS 选择最高优先级、未覆盖、无阻塞业务链路（默认 AUTO-042），给出 3-5 步计划后直接实施：
-1) 执行 dev-start
-2) 优先执行 suite（oneclick + event-workflow），按需要补该业务域定向验证
-3) 失败先定位具体接口与根因，直接修复并重跑
-   - 若失败信号为“账号资产无法自愈 / SCHOOL_ADMIN seed 无法登录 / 本地数据污染导致无法稳定复跑”，允许执行 reset/init（见 WORKFLOW 1.1），再重新 dev-start + suite
-   - 同一问题连续 2 次失败则标记 BLOCKED 并写 block_reason
-4) 通过后回写 runs、BUSINESS_STATUS、FIRST_BATCH、BACKLOG（含 next_task）
-5) 按 changed_files/key_changes/test_results/risks/next_task 汇报
-6) 最后执行 dev-stop
-```
+约束：
+- 只在 D:\soft\lz_sports_git_ai 的 git-ai/automation-route worktree 执行整轮回归（不要在 D:\soft\lz_sports 主仓跑）。
 
-### 7.3 发布提示词（懒人版）
+开始（服务重启）：
+1) （可选）同步本地 .cursor 到 worktree：
+   powershell -ExecutionPolicy Bypass -File scripts/sync-local-cursor.ps1 -Direction toWorktree
+2) 前置检查（必须先过）：
+   powershell -ExecutionPolicy Bypass -File scripts/aicoding-precheck.ps1
+3) 启动/重启服务（确保 5173/8080 起来）：
+   powershell -ExecutionPolicy Bypass -File scripts/dev-start.ps1 -BackendLogPath git-ai/automation-route/runs/backend-dev.log
 
-```text
-执行发布流程（脚本已统一到 scripts）：
-1) 先执行 scripts/test.bat aicoding-precheck
-2) 执行 scripts/test.bat publish（或 scripts/publish.ps1）
-3) 汇报发布版本、容器状态和回滚点
+执行（可重复闭环：修代码后“重启再跑”）：
+1) 读取：PROJECT_LOOP.md、BACKLOG.md、WORKFLOW_OPEN_CLOSE_SMOKE.md、BUSINESS_STATUS.md、FIRST_BATCH_AUTOMATION_TASKS.md
+2) 选择任务：
+   - 优先从 FIRST_BATCH + BUSINESS_STATUS 选“最高优先级、未覆盖、无阻塞”的业务链路
+   - 若 FIRST_BATCH 已完成或无匹配：按 BACKLOG selection_rule 选首个 TODO
+3) 跑基线（必须）：suite（oneclick + event-workflow）
+   powershell -ExecutionPolicy Bypass -File scripts/smoke-suite.ps1 -BackendUrl http://localhost:8080 -FrontendUrl http://localhost:5173 -EventId 1 -AccountsFile git-ai/automation-route/runs/business-accounts-latest.json
+4) 按任务需要补定向验证（优先复用 scripts/smoke-*.ps1；缺失则补最小脚本）
+5) 若失败：必须先定位“具体接口 + 根因”并修复后重跑
+   - 代码/脚本修复后：dev-stop -> dev-start（服务重启）-> suite（必要时再跑定向 smoke）
+   - 环境漂移信号（账号资产无法自愈 / SCHOOL_ADMIN seed 无法登录 / 本地数据污染导致无法稳定复跑）：
+     允许执行 reset/init（见 1.1），然后 dev-stop -> dev-start -> suite 全量基线重跑
+   - 同一问题连续 2 次失败：将任务标记 BLOCKED 并写 block_reason（失败信号、根因假设、解除条件）
+6) 通过后回写（必须）：
+   - runs（git-ai/automation-route/runs/*.md）
+   - BUSINESS_STATUS / FIRST_BATCH / BACKLOG（含 next_task）
+   - 汇报 changed_files/key_changes/test_results/risks/next_task
+
+收工（服务停止）：
+1) powershell -ExecutionPolicy Bypass -File scripts/dev-stop.ps1
+2) 若本轮修改了 worktree 的 .cursor 本地文件：
+   powershell -ExecutionPolicy Bypass -File scripts/sync-local-cursor.ps1 -Direction toMain
 ```
 
 ### 7.2 同步提示词（标准 4 步）
@@ -153,4 +184,13 @@ powershell -ExecutionPolicy Bypass -File scripts/sync-local-cursor.ps1 -Directio
 2) 在 D:\soft\lz_sports 执行 git checkout master && git merge git-ai/automation-route
 3) 回到 D:\soft\lz_sports_git_ai 执行 git merge master，冲突按路径真源规则解决（例如 git-ai/automation-route/BACKLOG.md）
 4) 执行 git rev-parse master 与 git rev-parse git-ai/automation-route，确认 hash 一致
+```
+
+### 7.3 发布提示词（懒人版）
+
+```text
+执行发布流程（脚本已统一到 scripts）：
+1) 先执行 scripts/test.bat aicoding-precheck
+2) 执行 scripts/test.bat publish（或 scripts/publish.ps1）
+3) 汇报发布版本、容器状态和回滚点
 ```

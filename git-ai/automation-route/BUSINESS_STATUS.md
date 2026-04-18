@@ -26,6 +26,7 @@
   - 赛事管理员审核报名
   - 学校管理员禁用/启用普通用户后的登录失败与恢复登录
   - 通知未读数与分页一致性
+  - 通知 read/read-all 与 unread-count 一致性（定向 smoke）
   - 报名结果与成绩查询
 
 自动化尚未系统覆盖的业务：
@@ -36,6 +37,158 @@
 - 成绩导入导出、模板下载、成绩发布后的更细分边界
 - 管理端统计接口与用户列表筛选的业务断言
 - 部门树增删改与组织模式切换后的联动
+
+## 1.5 按角色细分业务视图（建议以此作为自动化断言入口）
+
+> 目标：把“业务地图”落到可复用的 **角色能力矩阵**（谁能做什么、做到哪一步算对、越权/未登录时应该返回什么）。
+> 建议写断言时优先引用本节，再回到 2.x 按业务域查细节。
+>
+> 执行整轮回归/自修复流程统一按 `git-ai/automation-route/WORKFLOW_OPEN_CLOSE_SMOKE.md`（`aicoding-precheck -> dev-start -> suite(oneclick+event-workflow) -> 定向 smoke -> 回写 -> dev-stop`）。
+
+### 1.5.1 ANON（未登录）
+
+能做什么（公开能力）：
+
+- **系统初始化/公开配置**：`GET /api/system/init-status`、`GET /api/system/school-config`
+- **认证入口**：`POST /api/auth/login`、`POST /api/auth/send-verify-code`、`POST /api/auth/verify-code`、`POST /api/auth/register`、`POST /api/auth/reset-password`
+- **公共接口聚合**：`/api/public/**`（以实际代码为准，旧设计稿不完全一致）
+
+必测权限边界（应返回 401）：
+
+- **登录态业务数据**：`/api/department/tree`、赛事/项目/报名/成绩/通知等接口
+
+自动化入口：
+
+- **基线**：`scripts/smoke-oneclick.ps1`（间接覆盖 init-status/school-config 可达）与 `scripts/smoke-notification.ps1`（无 token unread-count=401）
+- **定向**：`scripts/smoke-department-tree.ps1`（匿名态 `/api/department/tree`=401）
+
+典型失败信号与定位点：
+
+- **公开接口不可达**：优先看 `dev-start` 后端启动日志与 `GET /api/system/init-status` 响应
+- **匿名态被误放行**：优先检查 `SecurityConfig` / `JwtAuthenticationFilter` 的 PUBLIC_PATHS 与路径匹配
+
+### 1.5.2 USER（普通用户）
+
+能做什么（主链路动作）：
+
+- **登录后基础浏览**：赛事列表/详情（受状态与可见性影响）、项目列表（含报名视角字段）
+- **负向报名（应失败）**：`POST /api/registration/apply/{projectId}`（无运动员资格/角色时应被拒绝）
+- **通知**：分页、未读数、已读/全部已读
+- **组织架构选择**：`GET /api/department/tree`（登录可访问，用于报名/资料表单类页面）
+
+关键接口（典型）：
+
+- 认证信息：`GET /api/auth/info`
+- 通知：`GET /api/notification/page`、`GET /api/notification/unread-count`、`PUT /api/notification/read/{id}`、`PUT /api/notification/read-all`
+- 报名查询：`GET /api/registration/page`（self view）
+- 赛事项目：`GET /api/project/event/{eventId}`
+- 组织架构：`GET /api/department/tree`（登录可访问）
+
+必测权限边界（应返回 403/401/409）：
+
+- **管理端用户列表**：`GET /api/admin/users`（role-path smoke 已覆盖 403）
+- **部门增删改**：`POST/PUT/DELETE /api/department*`（`smoke-org-permission` 已覆盖 403）
+- **禁用账号登录**：被 `SCHOOL_ADMIN` 禁用后，登录应失败（通常为 409，见 `smoke-user-status`）
+
+自动化入口：
+
+- **event-workflow**：USER 负向报名被拒绝
+- **role-paths**：USER 不能访问 admin users list
+- **定向**：`scripts/smoke-user-status.ps1`（禁用后登录失败/启用后恢复）
+
+### 1.5.3 ATHLETE（运动员）
+
+能做什么（主链路动作）：
+
+- **报名正向路径**：`POST /api/registration/apply/{projectId}` 成功创建待审核记录
+- **报名状态查询**：`GET /api/registration/page`（self view），关注审核后状态变化（REJECTED/APPROVED）
+- **成绩查询**：`GET /api/score/my`、`GET /api/score/public/{eventId}`
+- **通知联动**：审核拒绝/通过后，通知未读数增长与分页一致
+
+关键接口（典型）：
+
+- 运动员资质：`GET /api/athlete/my-applications`、`GET /api/athlete/apply/{id}`
+- 报名：`GET /api/registration/page`、`POST /api/registration/apply/{projectId}`
+- 成绩：`GET /api/score/my`、`GET /api/score/public/{eventId}`
+- 通知：同 USER
+
+自动化覆盖：
+
+- **suite/event-workflow**：ATHLETE 报名、被拒绝后通知检查、拒绝后重报、审核通过、成绩 upsert+publish 后 my/public 查询
+
+典型失败信号与定位点：
+
+- **报名失败/状态不变**：优先看 `RegistrationController` 的状态机与 eventId 参数解析；以及是否绑定了 `EVENT_ADMIN`
+- **通知不增长/未读数不一致**：优先看 `NotificationController` 的 unread-count 与分页 totals
+- **成绩发布后 my/public 不一致**：优先看 `ScoreController publish` 与查询过滤条件（eventId/registrationId/userId）
+
+### 1.5.4 EVENT_ADMIN（赛事管理员）
+
+能做什么（主链路动作）：
+
+- **报名审核**：查询待审核 -> 拒绝/通过 -> 触发运动员通知与状态变化
+- **批量审核（可空跑）**：作为权限与参数解析的回归入口
+
+关键接口（典型）：
+
+- 审核：`PUT /api/registration/attend/{id}?eventId=...`、`PUT /api/registration/refuse/{id}?eventId=...`、`PUT /api/registration/batch-audit?approve=...&eventId=...`
+- 管理视角报名列表：`GET /api/registration/page`（admin view 或特定视图）
+- 运动员申请审核：`GET /api/event-admin/{eventId}/athlete-applications`、`POST .../approve|reject`
+
+权限边界：
+
+- **管理端用户列表**：`GET /api/admin/users` 仍应为 403（role-paths 已覆盖）
+- **赛事管理员绑定**：通常通过 `SCHOOL_ADMIN` 完成绑定，EVENT_ADMIN 自身不应越权绑定
+
+自动化覆盖：
+
+- **suite/event-workflow**：reject + approve 两分支均回放
+- **role-paths**：EVENT_ADMIN 管理视角报名查询、batch-audit no-op、不能访问 admin users list
+
+典型失败信号与定位点：
+
+- **审核接口 403/参数错误**：优先检查 `RequireEventAdmin`/鉴权注解与 eventId 参数解析
+- **审核后运动员无通知/状态未更新**：优先检查审核事务、通知写入与报名状态更新是否同事务提交
+
+### 1.5.5 SCHOOL_ADMIN（学校管理员）
+
+能做什么（主链路动作）：
+
+- **账号资产/权限管理**：用户列表、禁用/启用、角色变更
+- **赛事管理员绑定与赛事管理入口**：绑定 EVENT_ADMIN、部分赛事状态操作（与 SUPER_ADMIN 能力可能存在重叠/降级）
+- **组织架构维护**：部门增删改（受 orgMode 字段裁剪影响）
+- **环境自愈/重置（本地允许）**：必要时执行 reset/init（见 WORKFLOW 1.1，优先 API reset）
+
+关键接口（典型）：
+
+- 用户管理：`GET /api/admin/users`、`PUT /api/admin/users/{id}/role`、`POST /api/admin/users/{id}/disable|enable`
+- 赛事管理员：`POST /api/admin/events/{eventId}/admins`、`DELETE /api/admin/events/{eventId}/admins/{userId}`
+- 学校配置：`PUT /api/admin/school-config`、`POST /api/admin/school-config/logo`、`POST /api/admin/school-config/reset`
+- 组织架构：`POST /api/department`、`PUT /api/department`、`DELETE /api/department/{id}`
+
+自动化覆盖：
+
+- **user-status**：disable -> 登录失败 -> enable -> 登录恢复
+- **role-paths**：SCHOOL_ADMIN 查询 admin users list、dashboard nums
+- **event-admin**：创建 DRAFT -> 绑定 EVENT_ADMIN -> 发布 OPEN -> 撤回限制
+- **org-permission**：SCHOOL_ADMIN 正向创建部门（若可解析 seed）
+
+典型失败信号与定位点：
+
+- **SCHOOL_ADMIN seed 无法登录**：按 WORKFLOW 1.1 允许 reset/init；否则会导致 suite 无法自愈账号资产
+- **部门字段被裁剪/树为空**：优先检查 `SchoolConfig.orgMode` 与 `DepartmentServiceImpl` 的分组逻辑
+
+### 1.5.6 SUPER_ADMIN（可选/可能不可登录）
+
+现状与约束：
+
+- 在本地/自动化环境下可能无法稳定登录（role-paths 会降级跳过 SUPER_ADMIN-only 断言）
+- 若可用，优先用于“系统级”操作与更强权限验证；否则以 SCHOOL_ADMIN 作为本地联调的最高可用管理员角色
+
+建议断言：
+
+- SUPER_ADMIN 可登录时：补充 SUPER_ADMIN-only 接口的最小回放与越权边界断言
+- SUPER_ADMIN 不可用时：所有回归必须不依赖 SUPER_ADMIN
 
 ## 2. 业务域现状
 
@@ -375,7 +528,13 @@ heartbeat 自动化后续应优先围绕以下顺序工作：
 - `AUTO-039` 已完成：已覆盖 `SCHOOL_ADMIN disable/enable USER` 与禁用后登录失败、启用后恢复登录。
 - `AUTO-040` 已完成：已覆盖创建 `DRAFT` 赛事、绑定管理员、发布 `OPEN`、`ATHLETE` 对 `DRAFT/OPEN` 可见性切换，以及报名开始后撤回限制；对应脚本入口为 `scripts/smoke-event-admin.ps1`。
 - `AUTO-041` 已完成：已覆盖 `score upsert -> publish -> my/public` 最小闭环（并已接入 `smoke-suite` 的 current-event workflow 回放）。
-- 当前下一优先级为 `AUTO-042` 项目/部门接口权限边界与数据污染风险检查。
+- `AUTO-042` 已完成：已修复部门增删改鉴权与权限边界问题，并增加定向回归 `scripts/smoke-org-permission.ps1`。
+- `AUTO-043` 已完成：已新增定向回归 `scripts/smoke-department-tree.ps1`，覆盖匿名态 401、登录态可访问，并修复 HIGH_SCHOOL/K12 组织模式下部门树为空的问题。
+
+结论：
+
+- 第一批 5 条未覆盖链路（`AUTO-038` ~ `AUTO-043`）已全部完成并已接入/不破坏 `suite` 主链。
+- 下一优先级：按 `git-ai/automation-route/BACKLOG.md` 的 selection_rule 选择下一条 `TODO`（或拆出“第二批未覆盖链路”清单后继续推进）。
 
 ## 5. 与旧接口设计文档的差异
 
@@ -385,3 +544,11 @@ heartbeat 自动化后续应优先围绕以下顺序工作：
 - 当前认证更偏 `username` 登录，而非纯邮箱登录
 - 当前接口命名和粒度与设计稿并非一一对应
 - 当前权限模型里 `SCHOOL_ADMIN` 在本地联调中承担了大量原本设计上属于 `SUPER_ADMIN` 的操作
+
+## 6. 最新 smoke 结论（2026-04-19）
+
+- 在 `git-ai/automation-route` worktree 按 `aicoding-precheck -> dev-start -> smoke-suite -> dev-stop` 完成了一轮闭环回归。
+- 本轮定位并修复了 `scripts/smoke-event-workflow.ps1` 的复跑缺陷：当当前批准报名已存在已发布成绩时，旧流程仍再次调用 `POST /api/score/upsert`，会命中后端业务约束 `409 已发布的成绩不可修改`。
+- 修复后，workflow 改为先检查该报名是否已存在已发布成绩；若已发布，则跳过重复 `upsert/publish`，改做 `score/my` 与 `score/public` 查询断言，从而保持 `suite` 在同一赛事上的可重复回放能力。
+- 最新通过基线：`git-ai/automation-route/runs/2026-04-19-auto-046.md`
+- next_task: `AUTO-045` 项目管理最小闭环与权限边界回归

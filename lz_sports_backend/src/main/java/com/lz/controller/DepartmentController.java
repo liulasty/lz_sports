@@ -23,6 +23,14 @@ public class DepartmentController {
     private final DepartmentService departmentService;
     private final SchoolConfigService schoolConfigService;
 
+    private boolean isK12Mode(String orgMode) {
+        if (orgMode == null) {
+            return false;
+        }
+        // historical values: K12; normalized value: HIGH_SCHOOL
+        return "K12".equalsIgnoreCase(orgMode) || "HIGH_SCHOOL".equalsIgnoreCase(orgMode);
+    }
+
     @GetMapping("/tree")
     @Operation(summary = "获取组织架构选项", description = "返回所有部门的级联结构数据")
     public Result<List<DepartmentTreeVO>> tree() {
@@ -35,7 +43,7 @@ public class DepartmentController {
     public Result<Boolean> add(@RequestBody Department department) {
         String currentMode = schoolConfigService.getCurrentOrgMode();
         department.setOrgMode(currentMode);
-        if ("K12".equals(currentMode)) {
+        if (isK12Mode(currentMode)) {
             department.setCollege(null);
             department.setMajor(null);
         } else {
@@ -50,7 +58,7 @@ public class DepartmentController {
     public Result<Boolean> update(@RequestBody Department department) {
         String currentMode = schoolConfigService.getCurrentOrgMode();
         department.setOrgMode(currentMode);
-        if ("K12".equals(currentMode)) {
+        if (isK12Mode(currentMode)) {
             department.setCollege(null);
             department.setMajor(null);
         } else {

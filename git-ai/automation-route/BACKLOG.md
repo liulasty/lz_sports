@@ -76,7 +76,7 @@ tasks:
   - id: AUTO-043
     title: 部门树可见性与组织模式联动回归
     priority: P1
-    status: TODO
+    status: DONE
     owner: agent
     area: automation
     dependencies:
@@ -85,6 +85,34 @@ tasks:
     acceptance:
       - "覆盖 department/tree 在登录态与匿名态的可见性约束"
       - "覆盖 orgMode 切换后部门字段裁剪一致性（最小断言）"
+
+  - id: AUTO-044
+    title: 通知已读/全部已读与未读数一致性回归（含越权边界）
+    priority: P1
+    status: DONE
+    owner: agent
+    area: automation
+    dependencies:
+      - AUTO-043
+    block_reason: ""
+    acceptance:
+      - "覆盖 read(id) -> unread-count 变化 -> read-all -> unread-count=0 的最小闭环"
+      - "覆盖跨用户 read 仍为 403（不放松权限）"
+      - "不破坏 suite 主链"
+
+  - id: AUTO-045
+    title: 项目管理最小闭环与权限边界回归
+    priority: P1
+    status: TODO
+    owner: agent
+    area: automation
+    dependencies:
+      - AUTO-044
+    block_reason: ""
+    acceptance:
+      - "覆盖 SCHOOL_ADMIN 或可用管理员创建/编辑/删除项目的最小闭环"
+      - "覆盖非管理员角色对项目写接口仍被拒绝"
+      - "不破坏 suite 主链"
 ```
 
 ## update_rules
@@ -93,3 +121,7 @@ tasks:
 - 当任务进入 `BLOCKED`，必须填写 `block_reason`。
 - 当任务从 `BLOCKED` 恢复，必须清空 `block_reason`。
 - 新增任务时，`id` 必须全局唯一，推荐前缀：`AUTO`。
+
+## next_task
+
+- `AUTO-045` 项目管理最小闭环与权限边界回归

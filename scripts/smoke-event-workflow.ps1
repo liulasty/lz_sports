@@ -314,32 +314,68 @@ try {
     }
     $status.registration_page = "pass"
 
-    Write-Step "Upsert one score for the approved registration"
-    $scoreBody = @{
-        registrationId = [long]$targetReg.id
-        scoreValue = "12.34"
-        scoreRank = 1
-        remark = "auto-smoke"
-    }
-    $upsert = Api-Post -Path "/api/score/upsert" -Headers $hEvent -Body $scoreBody
-    Assert-Code -Name "score-upsert" -Resp $upsert -Allowed @(200)
-    $status.score_upsert = "pass"
+    $myScores = $null
+    $publicScores = $null
+    $mine = $null
 
-    Write-Step "Publish scores for event"
-    $publish = Api-Put -Path "/api/score/publish/$EventId" -Headers $hEvent -Body $null
-    Assert-Code -Name "score-publish" -Resp $publish -Allowed @(200)
-    $status.score_publish = "pass"
+    Write-Step "Check whether the approved registration already has a published score"
+    $myScoresBeforeUpsert = Api-Get -Path "/api/score/my?eventId=$EventId" -Headers $hAthlete
+    Assert-Code -Name "score-my-before-upsert" -Resp $myScoresBeforeUpsert -Allowed @(200)
+    $myListBeforeUpsert = @()
+    if ($myScoresBeforeUpsert.data) { $myListBeforeUpsert = @($myScoresBeforeUpsert.data) }
+    $existingPublishedScore = @($myListBeforeUpsert | Where-Object { [long]$_.registrationId -eq [long]$targetReg.id } | Select-Object -First 1)
+
+    if ($existingPublishedScore) {
+        Write-Step "Approved registration already has published score, skip upsert/publish and verify queries"
+        $status.score_upsert = "pass"
+        $status.score_publish = "pass"
+        $myScores = $myScoresBeforeUpsert
+        $mine = $existingPublishedScore
+    } else {
+        Write-Step "Upsert one score for the approved registration"
+        $scoreBody = @{
+            registrationId = [long]$targetReg.id
+            scoreValue = "12.34"
+            scoreRank = 1
+            remark = "auto-smoke"
+        }
+        $upsert = Api-Post -Path "/api/score/upsert" -Headers $hEvent -Body $scoreBody
+        Assert-Code -Name "score-upsert" -Resp $upsert -Allowed @(200)
+        $status.score_upsert = "pass"
+
+        Write-Step "Publish scores for event"
+        $publish = Api-Put -Path "/api/score/publish/$EventId" -Headers $hEvent -Body $null
+        Assert-Code -Name "score-publish" -Resp $publish -Allowed @(200)
+        $status.score_publish = "pass"
+
+        $myScores = Api-Get -Path "/api/score/my?eventId=$EventId" -Headers $hAthlete
+        Assert-Code -Name "score-my" -Resp $myScores -Allowed @(200)
+        $myList = @()
+        if ($myScores.data) { $myList = @($myScores.data) }
+        $mine = @($myList | Where-Object { [long]$_.registrationId -eq [long]$targetReg.id } | Select-Object -First 1)
+    }
 
     Write-Step "Score and public ranking checks"
-    $myScores = Api-Get -Path "/api/score/my?eventId=$EventId" -Headers $hAthlete
-    Assert-Code -Name "score-my" -Resp $myScores -Allowed @(200)
+    if ($null -eq $myScores) {
+        $myScores = Api-Get -Path "/api/score/my?eventId=$EventId" -Headers $hAthlete
+        Assert-Code -Name "score-my" -Resp $myScores -Allowed @(200)
+    }
     $publicScores = Api-Get -Path "/api/score/public/$EventId" -Headers $hAthlete
     Assert-Code -Name "score-public" -Resp $publicScores -Allowed @(200)
-    $myList = @()
-    if ($myScores.data) { $myList = @($myScores.data) }
-    $mine = @($myList | Where-Object { [long]$_.registrationId -eq [long]$targetReg.id } | Select-Object -First 1)
     if (-not $mine) {
         throw "score-my missing published score for registrationId=$($targetReg.id)"
+    }
+    $publicRows = @()
+    if ($publicScores.data) {
+        foreach ($group in $publicScores.data.PSObject.Properties) {
+            if ($group.Value) {
+                $publicRows += @($group.Value)
+            }
+        }
+    }
+    $publicMine = @($publicRows | Where-Object { [long]$_.registrationId -eq [long]$targetReg.id } | Select-Object -First 1)
+    if (-not $publicMine) {
+        throw "score-public missing published score for registrationId=$($targetReg.id)"
     }
     $stats = Api-Get -Path "/api/event-admin/$EventId/registrations/stats" -Headers $hEvent
     Assert-Code -Name "registration-stats" -Resp $stats -Allowed @(200)

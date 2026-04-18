@@ -18,6 +18,14 @@ public class DepartmentServiceImpl extends ServiceImpl<DepartmentMapper, Departm
 
     private final SchoolConfigService schoolConfigService;
 
+    private boolean isK12Mode(String orgMode) {
+        if (orgMode == null) {
+            return false;
+        }
+        // historical values: K12; normalized value: HIGH_SCHOOL
+        return "K12".equalsIgnoreCase(orgMode) || "HIGH_SCHOOL".equalsIgnoreCase(orgMode);
+    }
+
     @Override
     public List<DepartmentTreeVO> getDepartmentTree() {
         String orgMode = schoolConfigService.getCurrentOrgMode();
@@ -27,20 +35,31 @@ public class DepartmentServiceImpl extends ServiceImpl<DepartmentMapper, Departm
         
         List<DepartmentTreeVO> tree = new ArrayList<>();
         
-        if ("K12".equals(orgMode)) {
+        if (isK12Mode(orgMode)) {
             // K12模式：年级 -> 班级，或直接是独立部门
             Map<String, List<Department>> gradeMap = new LinkedHashMap<>();
+            // some environments only seed "grade" rows (no class_name). keep them visible.
+            Map<String, Department> gradeOnlyMap = new LinkedHashMap<>();
             List<Department> independentDepts = new ArrayList<>();
             
             for (Department dept : allDepts) {
                 if (dept.getGrade() != null && !dept.getGrade().isEmpty() && dept.getClassName() != null && !dept.getClassName().isEmpty()) {
                     gradeMap.computeIfAbsent(dept.getGrade(), k -> new ArrayList<>()).add(dept);
+                } else if (dept.getGrade() != null && !dept.getGrade().isEmpty()) {
+                    gradeOnlyMap.putIfAbsent(dept.getGrade(), dept);
                 } else if (dept.getDeptName() != null && !dept.getDeptName().isEmpty()) {
                     independentDepts.add(dept);
                 }
             }
             
             long virtualId = -1L;
+            for (Department gradeDept : gradeOnlyMap.values()) {
+                DepartmentTreeVO gradeNode = new DepartmentTreeVO();
+                gradeNode.setValue(gradeDept.getId());
+                gradeNode.setLabel(gradeDept.getGrade());
+                gradeNode.setType("GRADE");
+                tree.add(gradeNode);
+            }
             for (Map.Entry<String, List<Department>> entry : gradeMap.entrySet()) {
                 DepartmentTreeVO gradeNode = new DepartmentTreeVO();
                 gradeNode.setValue(virtualId--);
@@ -70,6 +89,8 @@ public class DepartmentServiceImpl extends ServiceImpl<DepartmentMapper, Departm
         } else {
             // UNIVERSITY模式：学院 -> 专业 -> 班级，或独立部门
             Map<String, Map<String, List<Department>>> collegeMap = new LinkedHashMap<>();
+            // some environments only seed "college" rows (no class_name). keep them visible.
+            Map<String, Department> collegeOnlyMap = new LinkedHashMap<>();
             List<Department> independentDepts = new ArrayList<>();
             
             for (Department dept : allDepts) {
@@ -77,12 +98,21 @@ public class DepartmentServiceImpl extends ServiceImpl<DepartmentMapper, Departm
                     collegeMap.computeIfAbsent(dept.getCollege(), k -> new LinkedHashMap<>())
                              .computeIfAbsent(dept.getMajor() != null && !dept.getMajor().isEmpty() ? dept.getMajor() : "无专业", k -> new ArrayList<>())
                              .add(dept);
+                } else if (dept.getCollege() != null && !dept.getCollege().isEmpty()) {
+                    collegeOnlyMap.putIfAbsent(dept.getCollege(), dept);
                 } else if (dept.getDeptName() != null && !dept.getDeptName().isEmpty()) {
                     independentDepts.add(dept);
                 }
             }
             
             long virtualId = -1L;
+            for (Department collegeDept : collegeOnlyMap.values()) {
+                DepartmentTreeVO collegeNode = new DepartmentTreeVO();
+                collegeNode.setValue(collegeDept.getId());
+                collegeNode.setLabel(collegeDept.getCollege());
+                collegeNode.setType("COLLEGE");
+                tree.add(collegeNode);
+            }
             for (Map.Entry<String, Map<String, List<Department>>> collegeEntry : collegeMap.entrySet()) {
                 DepartmentTreeVO collegeNode = new DepartmentTreeVO();
                 collegeNode.setValue(virtualId--);
@@ -139,7 +169,7 @@ public class DepartmentServiceImpl extends ServiceImpl<DepartmentMapper, Departm
         }
         List<String> names = new ArrayList<>();
         
-        if ("K12".equals(orgMode)) {
+        if (isK12Mode(orgMode)) {
             if (dept.getGrade() != null && !dept.getGrade().isEmpty() && dept.getClassName() != null && !dept.getClassName().isEmpty()) {
                 names.add(dept.getGrade());
                 names.add(dept.getClassName());
