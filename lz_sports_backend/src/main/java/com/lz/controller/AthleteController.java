@@ -1,6 +1,7 @@
 package com.lz.controller;
 
 import com.lz.common.result.Result;
+import com.lz.common.context.BaseContext;
 import com.lz.dto.AthleteDTO;
 import com.lz.dto.AthleteUpdateDTO;
 import com.lz.entity.Athlete;
@@ -41,6 +42,7 @@ public class AthleteController {
     @PostMapping
     @Operation(summary = "提交申请", description = "提交成为运动员的申请信息")
     public Result<String> add(@Valid @RequestBody AthleteDTO athleteDTO) {
+        athleteDTO.setUserId(BaseContext.getCurrentId());
         athleteService.add(athleteDTO);
         return Result.success("申请已提交");
     }

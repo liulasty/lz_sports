@@ -9,7 +9,6 @@ import org.springframework.util.StringUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.LinkedHashSet;
-import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.concurrent.ThreadLocalRandom;
@@ -100,16 +99,17 @@ public class ImageUtils {
             }
         }
 
-        // 若多于 target，做一次随机抽样（保持多样性）
+        // 若多于 target，截取稳定前 N 项，避免每次请求都出现“盲盒式跳图”
         if (result.size() > target) {
-            List<String> tmp = new ArrayList<>(result);
-            Collections.shuffle(tmp, ThreadLocalRandom.current());
-            return new ArrayList<>(tmp.subList(0, target));
+            List<String> stable = new ArrayList<>(result);
+            return new ArrayList<>(stable.subList(0, target));
         }
 
         // 不足则补齐
+        int fallbackOffset = 0;
+        int seed = result.stream().collect(Collectors.joining("|")).hashCode();
         while (result.size() < target) {
-            String fallback = getRandomFallbackUrl();
+            String fallback = getFallbackUrlBySeed(seed, fallbackOffset++);
             if (StringUtils.hasText(fallback)) {
                 result.add(fallback.trim());
             } else {
@@ -134,5 +134,22 @@ public class ImageUtils {
      */
     public static String getDefaultAvatar() {
         return "https://lz-sports.oss-cn-beijing.aliyuncs.com/default-avatar.png";
+    }
+
+    private String getFallbackUrlBySeed(int seed, int offset) {
+        List<String> urls = fallbackConfig.getUrls();
+        if (urls == null || urls.isEmpty()) {
+            return null;
+        }
+        List<String> candidates = urls.stream()
+                .filter(StringUtils::hasText)
+                .map(String::trim)
+                .collect(Collectors.toList());
+        if (candidates.isEmpty()) {
+            return null;
+        }
+        int base = Math.floorMod(seed, candidates.size());
+        int index = (base + Math.max(0, offset)) % candidates.size();
+        return candidates.get(index);
     }
 }

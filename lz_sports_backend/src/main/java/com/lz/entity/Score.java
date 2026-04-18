@@ -61,6 +61,6 @@ public class Score extends BaseEntity<Long> {
     @TableField("published_at")
     private LocalDateTime publishedAt;
 
-    @TableField("remark")
+    @TableField(exist = false)
     private String remark;
 }
