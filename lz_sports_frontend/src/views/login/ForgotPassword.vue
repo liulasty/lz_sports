@@ -155,6 +155,7 @@ const rulesStep3 = {
 }
 
 let verifyToken = ''
+let sendVerifyToken = ''
 
 const handleSendCode = async () => {
   if (!formRef1.value) return
@@ -164,6 +165,7 @@ const handleSendCode = async () => {
     try {
       const res = await sendCode({ email: formStep1.email, scene: 'RESET_PASSWORD' })
       if (res.code === 200) {
+        sendVerifyToken = res.data || ''
         ElMessage.success('验证码已发送至您的邮箱')
         currentStep.value = 1
         startCountdown()
@@ -185,10 +187,14 @@ const handleVerifyCode = async () => {
     if (!valid) return
     loading.value = true
     try {
-      const res = await verifyCode({ email: formStep1.email, code: formStep2.code, scene: 'RESET_PASSWORD' })
+      if (!sendVerifyToken) {
+        ElMessage.error('请先发送验证码')
+        return
+      }
+      const res = await verifyCode({ verifyToken: sendVerifyToken, code: formStep2.code })
       if (res.code === 200) {
         ElMessage.success('验证成功')
-        verifyToken = res.data || formStep2.code // If token is returned, use it. Otherwise, we might use code as token
+        verifyToken = res.data || ''
         currentStep.value = 2
       } else {
         ElMessage.error(res.msg || '验证失败，请检查验证码')
@@ -208,10 +214,14 @@ const handleResetPassword = async () => {
     if (!valid) return
     loading.value = true
     try {
+      if (!verifyToken) {
+        ElMessage.error('请先完成验证码校验')
+        return
+      }
       const res = await resetPassword({
         email: formStep1.email,
         newPassword: formStep3.newPassword,
-        verifyToken: verifyToken || formStep2.code
+        verifyToken
       })
       if (res.code === 200) {
         ElMessage.success('密码重置成功，请重新登录')

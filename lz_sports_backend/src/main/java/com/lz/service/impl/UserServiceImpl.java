@@ -160,12 +160,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException("仅支持QQ邮箱注册");
         }
 
-        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("email", email);
-        if (userMapper.selectCount(queryWrapper) > 0) {
-            throw new BusinessException("该邮箱已注册");
-        }
-
         String rateLimitKey = "rate_limit:ip:" + ip;
         Long count = redisUtil.incr(rateLimitKey, 1);
         if (count == 1) {
@@ -181,7 +175,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         String key = "verify_token:" + verifyToken;
         redisUtil.set(key, code + ":" + email, 5, TimeUnit.MINUTES);
 
-        mailUtils.sendVerificationCodeMail(email, code);
+        // 防撞库策略：不因邮箱是否真实存在或邮件是否投递成功而改变接口返回。
+        // 仅记录日志，保持对调用方统一成功响应，避免泄露邮箱可用性。
+        try {
+            mailUtils.sendVerificationCodeMail(email, code);
+        } catch (Exception ex) {
+            log.warn("sendVerifyCode mail delivery skipped/failed for email=" + email);
+        }
 
         return verifyToken;
     }
@@ -312,10 +312,27 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void resetPassword(com.lz.dto.ResetPasswordDTO resetPasswordDTO) {
-        String verifyTokenKey = buildVerifyTokenKey("RESET_PASSWORD", resetPasswordDTO.getEmail());
-        Object verifyTokenObj = redisUtil.get(verifyTokenKey);
-        if (verifyTokenObj == null || !resetPasswordDTO.getVerifyToken().equals(verifyTokenObj.toString())) {
+        String resetToken = resetPasswordDTO.getVerifyToken();
+        String blacklistKey = "blacklist:reset-token:" + resetToken;
+        if (redisUtil.hasKey(blacklistKey)) {
+            throw new BusinessException("重置链接已使用，请重新获取", 400);
+        }
+
+        java.util.Map<String, Object> claims;
+        try {
+            claims = com.lz.util.JwtUtil.parseToken(resetToken, appConfig.getJwtKey());
+            if (com.lz.util.JwtUtil.isExpired(resetToken, appConfig.getJwtKey())) {
+                throw new BusinessException("重置链接已过期，请重新获取", 400);
+            }
+        } catch (BusinessException ex) {
+            throw ex;
+        } catch (Exception ex) {
             throw new BusinessException("verifyToken无效或已过期", 400);
+        }
+
+        String tokenEmail = (String) claims.get("email");
+        if (tokenEmail == null || !tokenEmail.equals(resetPasswordDTO.getEmail())) {
+            throw new BusinessException("重置链接与邮箱不匹配", 400);
         }
 
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
@@ -331,9 +348,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
         // 重置成功后，使得已登录的token失效
         redisUtil.del(buildUserLoginTokenKey(user.getId()));
-        
-        // 使得 verifyToken 失效
-        redisUtil.del(verifyTokenKey);
+
+        // 一次性消费：重置链接使用后立即拉黑，禁止复用
+        redisUtil.set(blacklistKey, "1", 10, TimeUnit.MINUTES);
     }
 
     @Override

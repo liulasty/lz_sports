@@ -11,9 +11,10 @@
             e.name as eventName,
             p.name as itemName,
             u.name as athleteName,
-            g.name as deptName,
+            COALESCE(g.dept_name, g.class_name, g.major, g.college, '') as deptName,
             s.score_value as scoreValue,
             s.score_rank as scoreRank,
+            NULL as remark,
             s.is_published as isPublished,
             s.create_time as createTime
         FROM result s
@@ -56,9 +57,10 @@
             e.name as eventName,
             p.name as itemName,
             u.name as athleteName,
-            g.name as deptName,
+            COALESCE(g.dept_name, g.class_name, g.major, g.college, '') as deptName,
             s.score_value as scoreValue,
             s.score_rank as scoreRank,
+            NULL as remark,
             s.is_published as isPublished,
             s.create_time as createTime
         FROM result s

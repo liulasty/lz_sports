@@ -6,8 +6,10 @@ import com.lz.common.context.BaseContext;
 import com.lz.common.enums.UserRole;
 import com.lz.common.exception.BusinessException;
 import com.lz.entity.EventAdminMapping;
+import com.lz.entity.Registration;
 import com.lz.entity.User;
 import com.lz.mapper.EventAdminMappingMapper;
+import com.lz.mapper.RegistrationMapper;
 import com.lz.mapper.UserMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +35,7 @@ public class PermissionAspect {
 
     private final UserMapper userMapper;
     private final EventAdminMappingMapper eventAdminMappingMapper;
+    private final RegistrationMapper registrationMapper;
 
     /**
      * 校验角色权限
@@ -110,12 +113,19 @@ public class PermissionAspect {
                 return Long.valueOf(str);
             }
             if (arg != null) {
-                for (String methodName : List.of("getEventId", "getEvent", "getId")) {
+                for (String methodName : List.of("getEventId", "getEvent", "getId", "getRegistrationId")) {
                     try {
                         java.lang.reflect.Method method = arg.getClass().getMethod(methodName);
                         Object result = method.invoke(arg);
                         if (result instanceof Long) {
-                            return (Long) result;
+                            Long resolved = (Long) result;
+                            if ("getRegistrationId".equals(methodName)) {
+                                Registration registration = registrationMapper.selectById(resolved);
+                                if (registration != null) {
+                                    return registration.getEventId();
+                                }
+                            }
+                            return resolved;
                         }
                         if (result instanceof String value && value.matches("\\d+")) {
                             return Long.valueOf(value);

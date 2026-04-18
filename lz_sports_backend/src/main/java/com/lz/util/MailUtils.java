@@ -46,7 +46,7 @@ public class MailUtils {
 
             javaMailSender.send(mimeMessage);
             log.info("HTML邮件发送成功: {} -> {}", to, title);
-        } catch (MessagingException e) {
+        } catch (Exception e) {
             log.error("HTML邮件发送失败: ", e);
         }
     }
