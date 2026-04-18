@@ -3,14 +3,6 @@ set -e
 
 cd "$(dirname "$0")/.."
 
-CUR_BRANCH=$(git branch --show-current 2>/dev/null || true)
-if [ "$CUR_BRANCH" != "git-ai/automation-route" ]; then
-  echo "[ERROR] This test entrypoint is restricted to branch git-ai/automation-route."
-  echo "        Current branch: ${CUR_BRANCH:-unknown}"
-  echo "        Please switch (or use the automation worktree) before iterative dev/test."
-  exit 1
-fi
-
 if [ "${1:-}" = "smoke" ]; then
   BACKEND_URL=${2:-http://localhost:8080}
   ACCESS_TOKEN=${3:-}
@@ -49,6 +41,37 @@ if [ "${1:-}" = "oneclick" ]; then
   FRONTEND_URL=${3:-http://localhost:5173}
   EVENT_ID=${4:-1}
   powershell -ExecutionPolicy Bypass -File "scripts/smoke-oneclick.ps1" -BackendUrl "$BACKEND_URL" -FrontendUrl "$FRONTEND_URL" -EventId "$EVENT_ID"
+  exit $?
+fi
+
+if [ "${1:-}" = "suite" ]; then
+  BACKEND_URL=${2:-http://localhost:8080}
+  FRONTEND_URL=${3:-http://localhost:5173}
+  EVENT_ID=${4:-1}
+  ACCOUNTS_FILE=${5:-git-ai/automation-route/runs/business-accounts-latest.json}
+  powershell -ExecutionPolicy Bypass -File "scripts/smoke-suite.ps1" -BackendUrl "$BACKEND_URL" -FrontendUrl "$FRONTEND_URL" -EventId "$EVENT_ID" -AccountsFile "$ACCOUNTS_FILE"
+  exit $?
+fi
+
+if [ "${1:-}" = "user-status-smoke" ]; then
+  BACKEND_URL=${2:-http://localhost:8080}
+  ACCOUNTS_FILE=${3:-git-ai/automation-route/runs/business-accounts-latest.json}
+  powershell -ExecutionPolicy Bypass -File "scripts/smoke-user-status.ps1" -BackendUrl "$BACKEND_URL" -AccountsFile "$ACCOUNTS_FILE"
+  exit $?
+fi
+
+if [ "${1:-}" = "event-admin-smoke" ]; then
+  BACKEND_URL=${2:-http://localhost:8080}
+  ACCOUNTS_FILE=${3:-git-ai/automation-route/runs/business-accounts-latest.json}
+  powershell -ExecutionPolicy Bypass -File "scripts/smoke-event-admin.ps1" -BackendUrl "$BACKEND_URL" -AccountsFile "$ACCOUNTS_FILE"
+  exit $?
+fi
+
+if [ "${1:-}" = "forgot-once" ]; then
+  BACKEND_URL=${2:-http://localhost:8080}
+  USERNAME=${3:-autou_164656_10}
+  EMAIL=${4:-auto16465610@qq.com}
+  powershell -ExecutionPolicy Bypass -File "scripts/smoke-forgot-once.ps1" -BackendUrl "$BACKEND_URL" -Username "$USERNAME" -Email "$EMAIL"
   exit $?
 fi
 

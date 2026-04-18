@@ -2,10 +2,6 @@
 
 This directory is the default landing zone for automation artifacts in this repository.
 
-## Quick Start
-
-- 开工/收工 + 业务回归说明：`git-ai/automation-route/WORKFLOW_OPEN_CLOSE_SMOKE.md`
-
 ## Scope
 
 - Allowed: automation flow notes, route manifests, task orchestration docs, run templates.

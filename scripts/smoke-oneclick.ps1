@@ -2,10 +2,11 @@ param(
     [string]$BackendUrl = "http://localhost:8080",
     [string]$FrontendUrl = "http://localhost:5173",
     [long]$EventId = 1,
+    [string]$AccountsFile = "git-ai/automation-route/runs/business-accounts-latest.json",
     [string]$Username = "ops_athlete_b",
     [string]$Password = "Pass12345",
     [string]$RunId = "",
-    [string]$RelatedTaskId = "AUTO-026",
+    [string]$RelatedTaskId = "",
     [switch]$DryRun
 )
 
@@ -19,6 +20,46 @@ $roleSmoke = Join-Path $root "scripts/smoke-rolepaths.ps1"
 function Write-Step {
     param([string]$Msg)
     Write-Host "[ONECLICK] $Msg"
+}
+
+function Resolve-BusinessAccountMap {
+    param([string]$Path)
+    if (-not $Path) { return @{} }
+    $absolutePath = $Path
+    if (-not [System.IO.Path]::IsPathRooted($absolutePath)) {
+        $absolutePath = Join-Path $root $Path
+    }
+    if (-not (Test-Path $absolutePath)) {
+        Write-Step "Accounts file not found, fallback to explicit credentials: $absolutePath"
+        return @{}
+    }
+
+    $json = Get-Content -Path $absolutePath -Raw | ConvertFrom-Json
+    $accountMap = @{}
+    foreach ($account in @($json.accounts)) {
+        if ($account.role -and -not $accountMap.ContainsKey([string]$account.role)) {
+            $accountMap[[string]$account.role] = $account
+        }
+    }
+    return $accountMap
+}
+
+function Get-NextRunId {
+    param([string]$Folder)
+    $today = Get-Date -Format "yyyy-MM-dd"
+    $maxSeq = 0
+    if (Test-Path $Folder) {
+        Get-ChildItem -Path $Folder -Filter "$today-auto-*.md" -File -ErrorAction SilentlyContinue | ForEach-Object {
+            $match = [regex]::Match($_.BaseName, "^$today-auto-(\d+)$")
+            if ($match.Success) {
+                $seq = [int]$match.Groups[1].Value
+                if ($seq -gt $maxSeq) {
+                    $maxSeq = $seq
+                }
+            }
+        }
+    }
+    return "$today-auto-$("{0:D3}" -f ($maxSeq + 1))"
 }
 
 function Assert-Branch {
@@ -50,7 +91,15 @@ function Assert-BackendHealthy {
 }
 
 if (-not $RunId) {
-    $RunId = (Get-Date -Format "yyyy-MM-dd") + "-auto-026"
+    $RunId = Get-NextRunId -Folder $runFolder
+}
+if (-not $RelatedTaskId) {
+    $match = [regex]::Match($RunId, "auto-(\d+)$")
+    if ($match.Success) {
+        $RelatedTaskId = "AUTO-" + $match.Groups[1].Value
+    } else {
+        $RelatedTaskId = "AUTO-UNKNOWN"
+    }
 }
 
 $status = @{
@@ -62,12 +111,24 @@ $status = @{
     error        = ""
 }
 
+$accountMap = Resolve-BusinessAccountMap -Path $AccountsFile
+$athleteAccount = $accountMap["ATHLETE"]
+$eventAdminAccount = $accountMap["EVENT_ADMIN"]
+$userAccount = $accountMap["USER"]
+
+$fullSmokeUsername = $Username
+$fullSmokePassword = $Password
+if ($athleteAccount) {
+    $fullSmokeUsername = [string]$athleteAccount.username
+    $fullSmokePassword = [string]$athleteAccount.password
+}
+
 Write-Host "=== LZ Sports One-Click Regression ==="
 Write-Host "RunId   : $RunId"
 Write-Host "Frontend: $FrontendUrl"
 Write-Host "Backend : $BackendUrl"
 Write-Host "EventId : $EventId"
-Write-Host "User    : $Username"
+Write-Host "User    : $fullSmokeUsername"
 Write-Host "DryRun  : $DryRun"
 
 try {
@@ -88,7 +149,11 @@ try {
     Write-Step "Run full-smoke (linkup + notification)"
     if (-not (Test-Path $fullSmoke)) { throw "Missing script: $fullSmoke" }
     if (-not $DryRun) {
-        powershell -ExecutionPolicy Bypass -File $fullSmoke -FrontendUrl $FrontendUrl -BackendUrl $BackendUrl -Username $Username -Password $Password
+        if ($athleteAccount -and $eventAdminAccount) {
+            powershell -ExecutionPolicy Bypass -File $fullSmoke -FrontendUrl $FrontendUrl -BackendUrl $BackendUrl -Username $fullSmokeUsername -Password $fullSmokePassword -AdminUsername ([string]$eventAdminAccount.username) -AdminPassword ([string]$eventAdminAccount.password)
+        } else {
+            powershell -ExecutionPolicy Bypass -File $fullSmoke -FrontendUrl $FrontendUrl -BackendUrl $BackendUrl -Username $Username -Password $Password
+        }
         if ($LASTEXITCODE -ne 0) { throw "full-smoke failed with exit code $LASTEXITCODE" }
         $status.full_smoke = "pass"
     } else {
@@ -99,7 +164,11 @@ try {
     Write-Step "Run role-path smoke (with EVENT_ADMIN binding)"
     if (-not (Test-Path $roleSmoke)) { throw "Missing script: $roleSmoke" }
     if (-not $DryRun) {
-        powershell -ExecutionPolicy Bypass -File $roleSmoke -BackendUrl $BackendUrl -EventId $EventId
+        if ($eventAdminAccount -and $userAccount -and $athleteAccount) {
+            powershell -ExecutionPolicy Bypass -File $roleSmoke -BackendUrl $BackendUrl -EventId $EventId -EventAdminUsername ([string]$eventAdminAccount.username) -EventAdminPassword ([string]$eventAdminAccount.password) -UserUsername ([string]$userAccount.username) -UserPassword ([string]$userAccount.password) -AthleteUsername ([string]$athleteAccount.username) -AthletePassword ([string]$athleteAccount.password)
+        } else {
+            powershell -ExecutionPolicy Bypass -File $roleSmoke -BackendUrl $BackendUrl -EventId $EventId
+        }
         if ($LASTEXITCODE -ne 0) { throw "role-path smoke failed with exit code $LASTEXITCODE" }
         $status.role_paths = "pass"
     } else {
@@ -169,4 +238,3 @@ next_action: "Run scripts/test.(bat|sh) oneclick to ensure the wrapper is stable
 if ($status.overall -eq "pass") {
     Write-Host "=== One-Click Regression Completed Successfully ==="
 }
-

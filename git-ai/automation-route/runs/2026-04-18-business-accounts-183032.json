@@ -1,0 +1,39 @@
+﻿{
+    "generatedAt":  "2026-04-18T18:31:45",
+    "eventId":  1,
+    "backendLog":  "D:\\soft\\lz_sports_git_ai\\git-ai\\automation-route\\runs\\backend-dev.log",
+    "accounts":  [
+                     {
+                         "username":  "ops_event_admin_183032",
+                         "password":  "Pass12345",
+                         "email":  "event183032@qq.com",
+                         "userId":  38,
+                         "role":  "EVENT_ADMIN",
+                         "status":  "ACTIVE",
+                         "token":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbGFpbXMiOnsicm9sZSI6IkVWRU5UX0FETUlOIiwiaWQiOjM4LCJ1c2VybmFtZSI6Im9wc19ldmVudF9hZG1pbl8xODMwMzIifSwiZXhwIjoxNzc3MTEzMTA1fQ.Rx4wLVDhpYHV1MKSZsvCEV_o7VZT6urD2K4PCpDr1k0",
+                         "source":  "registered via verify-code, approved by school admin, promoted by super admin, bound to event"
+                     },
+                     {
+                         "username":  "ops_user_183032",
+                         "password":  "Pass12345",
+                         "email":  "user183032@qq.com",
+                         "userId":  39,
+                         "role":  "USER",
+                         "status":  "ACTIVE",
+                         "token":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbGFpbXMiOnsicm9sZSI6IlVTRVIiLCJpZCI6MzksInVzZXJuYW1lIjoib3BzX3VzZXJfMTgzMDMyIn0sImV4cCI6MTc3NzExMzEwNX0.AcXSG0kgzU6AUMIERrGKG7l-rL9I9LoaPhmQXjf5530",
+                         "source":  "registered via verify-code, approved by school admin"
+                     },
+                     {
+                         "username":  "ops_athlete_183032",
+                         "password":  "Pass12345",
+                         "email":  "athlete183032@qq.com",
+                         "userId":  40,
+                         "role":  "ATHLETE",
+                         "status":  "ACTIVE",
+                         "token":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbGFpbXMiOnsicm9sZSI6IkFUSExFVEUiLCJpZCI6NDAsInVzZXJuYW1lIjoib3BzX2F0aGxldGVfMTgzMDMyIn0sImV4cCI6MTc3NzExMzEwNX0.pRHeGc_mb2VcX3oonIyajh_qJP5WtzQpPAaTI0bRn04",
+                         "athleteApplicationId":  8,
+                         "athleteAudit":  "APPROVED",
+                         "source":  "registered via verify-code, approved by school admin, completed athlete apply, approved by event admin, promoted to ATHLETE"
+                     }
+                 ]
+}

@@ -6,9 +6,9 @@ alwaysApply: true
 # LZ Sports 迭代代理规则
 
 ## project_loop.sources
-- `backlog`: 默认读取 `BACKLOG.md`。
+- `backlog`: 默认读取 `git-ai/automation-route/BACKLOG.md`。
 - `rules`: 当前规则文件为 `.cursor/rules/project-iteration-loop.mdc`。
-- 当 `BACKLOG.md` 缺失时，先创建最小 backlog（P0/P1/P2）再继续。
+- 当 `git-ai/automation-route/BACKLOG.md` 缺失时，先创建最小 backlog（P0/P1/P2）再继续。
 
 ## project_loop.selection
 - `strategy`: follow_backlog_selection_rule。

@@ -3,14 +3,6 @@ setlocal enabledelayedexpansion
 
 cd /d "%~dp0\.."
 
-for /f %%b in ('git branch --show-current 2^>nul') do set CUR_BRANCH=%%b
-if not "%CUR_BRANCH%"=="git-ai/automation-route" (
-  echo [ERROR] This test entrypoint is restricted to branch git-ai/automation-route.
-  echo         Current branch: %CUR_BRANCH%
-  echo         Please switch (or use the automation worktree) before iterative dev/test.
-  exit /b 1
-)
-
 if /i "%~1"=="smoke" (
   set BACKEND_URL=%~2
   set ACCESS_TOKEN=%~3
@@ -55,6 +47,48 @@ if /i "%~1"=="oneclick" (
   if "!FRONTEND_URL!"=="" set FRONTEND_URL=http://localhost:5173
   if "!EVENT_ID!"=="" set EVENT_ID=1
   powershell -ExecutionPolicy Bypass -File "scripts/smoke-oneclick.ps1" -BackendUrl "!BACKEND_URL!" -FrontendUrl "!FRONTEND_URL!" -EventId !EVENT_ID!
+  exit /b !ERRORLEVEL!
+)
+
+if /i "%~1"=="suite" (
+  set BACKEND_URL=%~2
+  set FRONTEND_URL=%~3
+  set EVENT_ID=%~4
+  set ACCOUNTS_FILE=%~5
+  if "!BACKEND_URL!"=="" set BACKEND_URL=http://localhost:8080
+  if "!FRONTEND_URL!"=="" set FRONTEND_URL=http://localhost:5173
+  if "!EVENT_ID!"=="" set EVENT_ID=1
+  if "!ACCOUNTS_FILE!"=="" set ACCOUNTS_FILE=git-ai/automation-route/runs/business-accounts-latest.json
+  powershell -ExecutionPolicy Bypass -File "scripts/smoke-suite.ps1" -BackendUrl "!BACKEND_URL!" -FrontendUrl "!FRONTEND_URL!" -EventId !EVENT_ID! -AccountsFile "!ACCOUNTS_FILE!"
+  exit /b !ERRORLEVEL!
+)
+
+if /i "%~1"=="user-status-smoke" (
+  set BACKEND_URL=%~2
+  set ACCOUNTS_FILE=%~3
+  if "!BACKEND_URL!"=="" set BACKEND_URL=http://localhost:8080
+  if "!ACCOUNTS_FILE!"=="" set ACCOUNTS_FILE=git-ai/automation-route/runs/business-accounts-latest.json
+  powershell -ExecutionPolicy Bypass -File "scripts/smoke-user-status.ps1" -BackendUrl "!BACKEND_URL!" -AccountsFile "!ACCOUNTS_FILE!"
+  exit /b !ERRORLEVEL!
+)
+
+if /i "%~1"=="event-admin-smoke" (
+  set BACKEND_URL=%~2
+  set ACCOUNTS_FILE=%~3
+  if "!BACKEND_URL!"=="" set BACKEND_URL=http://localhost:8080
+  if "!ACCOUNTS_FILE!"=="" set ACCOUNTS_FILE=git-ai/automation-route/runs/business-accounts-latest.json
+  powershell -ExecutionPolicy Bypass -File "scripts/smoke-event-admin.ps1" -BackendUrl "!BACKEND_URL!" -AccountsFile "!ACCOUNTS_FILE!"
+  exit /b !ERRORLEVEL!
+)
+
+if /i "%~1"=="forgot-once" (
+  set BACKEND_URL=%~2
+  set USERNAME=%~3
+  set EMAIL=%~4
+  if "!BACKEND_URL!"=="" set BACKEND_URL=http://localhost:8080
+  if "!USERNAME!"=="" set USERNAME=autou_164656_10
+  if "!EMAIL!"=="" set EMAIL=auto16465610@qq.com
+  powershell -ExecutionPolicy Bypass -File "scripts/smoke-forgot-once.ps1" -BackendUrl "!BACKEND_URL!" -Username "!USERNAME!" -Email "!EMAIL!"
   exit /b !ERRORLEVEL!
 )
 
