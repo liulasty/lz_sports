@@ -17,4 +17,3 @@ Keep automation execution constrained to `git-ai/automation-route` to avoid cros
 - `git branch --show-current` returns `git-ai/automation-route`.
 - Changed files for automation tasks are under `git-ai/automation-route/` unless user explicitly approves otherwise.
 - Run record includes branch confirmation and migration note when applicable.
-
