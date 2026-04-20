@@ -25,8 +25,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
 
 /**
  * School Config Service Implementation
@@ -86,7 +87,7 @@ public class SchoolConfigServiceImpl extends ServiceImpl<SchoolConfigMapper, Sch
     public void initSystem(SchoolInitDTO schoolInitDTO) {
         // 1. Check if already initialized
         if (isInitialized()) {
-            throw new RuntimeException("系统已初始化，请勿重复操作");
+            throw new BusinessException("系统已初始化，请勿重复操作", 409);
         }
 
         // 2. Save or Update School Config
@@ -111,7 +112,8 @@ public class SchoolConfigServiceImpl extends ServiceImpl<SchoolConfigMapper, Sch
         schoolConfig.setContactEmail(schoolInitDTO.getContactEmail());
         // Set initialized flag
         schoolConfig.setInitialized(true);
-        schoolConfig.setOrgMode(schoolInitDTO.getOrgMode() != null ? schoolInitDTO.getOrgMode() : "UNIVERSITY");
+        String normalizedOrgMode = normalizeOrgMode(schoolInitDTO.getOrgMode());
+        schoolConfig.setOrgMode(normalizedOrgMode);
         schoolConfig.setUpdateTime(LocalDateTime.now());
         
         this.saveOrUpdate(schoolConfig);
@@ -150,6 +152,17 @@ public class SchoolConfigServiceImpl extends ServiceImpl<SchoolConfigMapper, Sch
         }
         
         log.info("System initialized successfully for school: {}", schoolInitDTO.getSchoolName());
+    }
+
+    private String normalizeOrgMode(String orgMode) {
+        if (orgMode == null || orgMode.isBlank()) {
+            return "UNIVERSITY";
+        }
+        String normalized = orgMode.trim().toUpperCase(Locale.ROOT);
+        if (!"UNIVERSITY".equals(normalized) && !"HIGH_SCHOOL".equals(normalized)) {
+            throw new BusinessException("组织模式仅支持 UNIVERSITY 或 HIGH_SCHOOL");
+        }
+        return normalized;
     }
 
     @Override
