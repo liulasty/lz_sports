@@ -138,12 +138,14 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
                     if (event.getRegistrationEndTime() != null && now.after(event.getRegistrationEndTime())) {
                         throw new BusinessException("不在报名时间范围内");
                     }
-            
-                    LambdaQueryWrapper<Registration> lqw = new LambdaQueryWrapper<>();
-                    lqw.eq(Registration::getAthleteId, userId);
-                    lqw.eq(Registration::getItemId, projectId);
-                    lqw.ne(Registration::getRegistrationStatus, RegistrationStatus.CANCELLED);
-                    if (count(lqw) > 0) {
+
+                    Registration existingRegistration = getOne(new LambdaQueryWrapper<Registration>()
+                            .eq(Registration::getAthleteId, userId)
+                            .eq(Registration::getItemId, projectId)
+                            .last("LIMIT 1"));
+                    if (existingRegistration != null
+                            && existingRegistration.getRegistrationStatus() != RegistrationStatus.CANCELLED
+                            && existingRegistration.getRegistrationStatus() != RegistrationStatus.REJECTED) {
                         throw new BusinessException("您已报名该项目，请勿重复报名");
                     }
 
