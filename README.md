@@ -66,7 +66,6 @@ LZ Sports 是一个面向校园运动会场景的全流程管理平台，包含�
 
 按场景选择：
 
-- Windows 本地联调（无 Docker）：`docs/启动方式/本地开发/本地联调统一指南.md`
 - Windows 本地：`docs/启动方式/本地开发/Windows本地.md`
 - Linux 本地：`docs/启动方式/本地开发/Linux本地.md`
 - Docker Desktop：`docs/启动方式/容器部署/DockerDesktop.md`
@@ -96,6 +95,31 @@ npm run preview
 mvn spring-boot:run
 mvn test
 mvn -Pnon-container-baseline test
+```
+
+### 开工/收工闭环（本地开发推荐）
+```bash
+# 开工：加载 config/.env.dev + 清理 8080/5173 + 启动前后端
+powershell -ExecutionPolicy Bypass -File scripts/dev-start.ps1
+# 或
+scripts/test.bat dev-start
+./scripts/test.sh dev-start
+
+# 收工：按端口停止前后端
+powershell -ExecutionPolicy Bypass -File scripts/dev-stop.ps1
+# 或
+scripts/test.bat dev-stop
+./scripts/test.sh dev-stop
+```
+
+### 业务回归（一键）
+```bash
+# 分支检查 + 端口健康检查 + full-smoke + rolepaths + 自动 runs 记录
+powershell -ExecutionPolicy Bypass -File scripts/smoke-oneclick.ps1 -BackendUrl http://localhost:8080 -FrontendUrl http://localhost:5173 -EventId 1
+
+# 统一入口
+scripts/test.bat oneclick http://localhost:8080 http://localhost:5173 1
+./scripts/test.sh oneclick http://localhost:8080 http://localhost:5173 1
 ```
 
 ---
