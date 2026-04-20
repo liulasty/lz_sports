@@ -62,4 +62,4 @@ if "%USE_LOCAL_DB%"=="true" (
 echo Running: docker compose --env-file %ENV_FILE% %COMPOSE_FILES% up -d
 docker compose --env-file %ENV_FILE% %COMPOSE_FILES% up -d
 
-echo Deployment complete. Run '.\scripts\test.bat %ENV%' to verify.
+echo Deployment complete.

@@ -58,4 +58,4 @@ fi
 echo "Running: docker compose --env-file $ENV_FILE $COMPOSE_FILES up -d"
 docker compose --env-file $ENV_FILE $COMPOSE_FILES up -d
 
-echo "Deployment complete. Run './scripts/test.sh $ENV' to verify."
+echo "Deployment complete."

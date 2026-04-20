@@ -1,0 +1,39 @@
+---
+description: Keep master branch clean; automation artifacts only on git-ai/automation-route branch
+alwaysApply: true
+---
+
+# Branch hygiene: master vs git-ai/automation-route
+
+## Non-negotiable rule
+
+- `master` must remain **product-only** (frontend/backend source + minimal docs needed for development).
+- All AI automation iteration artifacts must live **only** on the `git-ai/automation-route` branch.
+
+## What counts as “automation artifacts”
+
+These are allowed on `git-ai/automation-route` but must **not** be added/modified on `master`:
+
+- `git-ai/**` (plans, runs, backlog, business status, iteration logs)
+- `scripts/smoke-*.ps1`, `scripts/*oneclick*.ps1`, `scripts/*heartbeat*.ps1`
+- Any generated run logs / snapshots (e.g. `**/runs/**`, `**/history/**`, `*.full.md`, `*-rerun.md`)
+- Any temporary test data dumps for automation (e.g. `*.json` produced by runs)
+
+If there is doubt whether a file is “automation artifact”, default to **keeping it off `master`**.
+
+## When working on master
+
+- Do **not** create/edit files under the “automation artifacts” patterns above.
+- If the task requires automation changes, switch to the `git-ai/automation-route` branch first, then do the work there.
+- If you accidentally touched automation artifacts while on `master`, revert those changes and keep only product changes.
+
+## When working on git-ai/automation-route
+
+- You may add/update `git-ai/**` and automation scripts freely.
+- Prefer to keep automation changes isolated from product code; if product code must change, keep commits clearly separated and explain why.
+
+## PR / merge policy (enforceable expectation)
+
+- Never merge `git-ai/automation-route` into `master` wholesale.
+- If `master` needs a product fix discovered via automation, cherry-pick only the product commits (no `git-ai/**` and no automation logs).
+
