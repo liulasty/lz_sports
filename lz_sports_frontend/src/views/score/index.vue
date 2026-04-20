@@ -9,9 +9,7 @@
 
       <div class="score-filter lz-ep-dark">
         <div class="filter-row lz-form">
-          <el-select v-model="eventId" clearable placeholder="选择赛事" class="event-select">
-            <el-option v-for="item in eventOptions" :key="item.id" :label="item.name" :value="item.id" />
-          </el-select>
+          <SmartSelect v-model="eventId" :options="eventOptions" clearable placeholder="选择赛事" class="event-select" />
           <div class="lz-actions">
             <el-button type="primary" @click="getList">查询</el-button>
             <el-button @click="resetFilter">重置</el-button>
@@ -68,6 +66,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { getMyScores } from '@/api/score'
 import { getEventList } from '@/api/event'
+import SmartSelect from '@/components/SmartSelect.vue'
 
 const loading = ref(false)
 const scoreList = ref([])

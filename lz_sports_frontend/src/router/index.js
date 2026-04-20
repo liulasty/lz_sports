@@ -80,6 +80,12 @@ const routes = [
         meta: { requiresAuth: true }
       },
       {
+        path: '/public-scores',
+        name: 'PublicScores',
+        component: () => import('@/views/public/PublicScores.vue'),
+        meta: { title: '公开成绩', requiresAuth: false }
+      },
+      {
         path: '/event/:id',
         name: 'EventDetail',
         component: () => import('@/views/event/detail.vue'),

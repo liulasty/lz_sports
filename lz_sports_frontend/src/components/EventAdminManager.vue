@@ -8,7 +8,7 @@
   >
     <div class="manager-container">
       <div class="add-section">
-        <el-select
+        <SmartSelect
           v-model="selectedUserIds"
           multiple
           filterable
@@ -19,7 +19,6 @@
           @focus="() => searchUsers('')"
           :loading="searching"
           style="flex: 1; margin-right: 10px;"
-          popper-class="user-select-popper"
         >
           <el-option
             v-for="user in searchResults"
@@ -39,7 +38,7 @@
               </div>
             </div>
           </el-option>
-        </el-select>
+        </SmartSelect>
         <el-button type="primary" @click="handleAddAdmins" :disabled="!selectedUserIds.length">
           添加
         </el-button>
@@ -82,6 +81,7 @@ import { ref, watch } from 'vue'
 import { getEventAdmins, addEventAdmins, removeEventAdmin } from '@/api/admin'
 import { getUserList } from '@/api/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import SmartSelect from '@/components/SmartSelect.vue'
 
 interface UserData {
   id: number;
@@ -214,11 +214,6 @@ watch(() => props.visible, (newVal) => {
   align-items: center;
 }
 
-/* ===================== Custom Select Option ===================== */
-:deep(.user-select-popper .el-select-dropdown__item) {
-  height: auto !important;
-  padding: 8px 12px;
-}
 .user-option-content {
   display: flex;
   align-items: center;

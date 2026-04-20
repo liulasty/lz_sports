@@ -78,9 +78,12 @@ public class PermissionAspect {
             throw new BusinessException("用户不存在", 401);
         }
 
-        // 超级管理员直接放行
+        // 学校管理员/超级管理员直接放行，赛事管理员需继续校验赛事绑定关系
         if (user.getUserType() == UserRole.SCHOOL_ADMIN || user.getUserType() == UserRole.SUPER_ADMIN) {
             return;
+        }
+        if (user.getUserType() != UserRole.EVENT_ADMIN) {
+            throw new BusinessException("权限不足", 403);
         }
 
         // 获取 eventId

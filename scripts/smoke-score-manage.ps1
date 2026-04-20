@@ -1,6 +1,6 @@
 param(
     [string]$BackendUrl = "http://localhost:8080",
-    [string]$AccountsFile = "git-ai/automation-route/runs/business-accounts-latest.json",
+    [string]$AccountsFile = "git-ai/automation-route/accounts/business-accounts-latest.json",
     [string]$SchoolAdminUsername = "init_school_admin_01",
     [string]$SchoolAdminPassword = "Admin12345",
     [string]$RunId = "",
@@ -12,6 +12,7 @@ $ErrorActionPreference = "Stop"
 
 $root = Resolve-Path (Join-Path $PSScriptRoot "..")
 $runFolder = Join-Path $root "git-ai/automation-route/runs"
+. (Join-Path $PSScriptRoot "lib/business-code-assert.ps1")
 
 function Write-Step {
     param([string]$Msg)
@@ -20,10 +21,7 @@ function Write-Step {
 
 function Assert-Code {
     param([string]$Name, [object]$Resp, [int[]]$Allowed)
-    if ($null -eq $Resp) { throw "$Name failed: empty response" }
-    if (-not ($Allowed -contains [int]$Resp.code)) {
-        throw "$Name failed: expected [$($Allowed -join ',')], got code=$($Resp.code), msg=$($Resp.msg)"
-    }
+    Assert-BusinessCode -Name $Name -Resp $Resp -AllowedCodes $Allowed
 }
 
 function Resolve-Token {
@@ -168,38 +166,6 @@ function Wait-ForRegistration {
         if ($record) { return $record }
     }
     throw "cannot find pending registration for athleteId=$AthleteId projectId=$ProjectId"
-}
-
-function Expect-BusinessErrorCode {
-    param(
-        [scriptblock]$Action,
-        [int]$ExpectedCode,
-        [string]$Name
-    )
-    try {
-        $resp = & $Action
-        if ($null -ne $resp -and $resp.PSObject.Properties.Name -contains "code") {
-            if ([int]$resp.code -eq $ExpectedCode) {
-                return $resp
-            }
-            throw "$Name failed: expected business code=$ExpectedCode, got code=$($resp.code), msg=$($resp.msg)"
-        }
-    } catch {
-        $response = $_.Exception.Response
-        if ($response) {
-            $statusCode = [int]$response.StatusCode.value__
-            $reader = New-Object System.IO.StreamReader($response.GetResponseStream())
-            $body = $reader.ReadToEnd()
-            $reader.Close()
-            $parsed = $body | ConvertFrom-Json
-            if ([int]$parsed.code -ne $ExpectedCode) {
-                throw "$Name failed: expected business code=$ExpectedCode, got code=$($parsed.code), http=$statusCode, msg=$($parsed.msg)"
-            }
-            return $parsed
-        }
-        throw
-    }
-    throw "$Name failed: expected business code=$ExpectedCode but call succeeded"
 }
 
 if (-not $RunId) {
@@ -361,7 +327,7 @@ try {
     $status.event_scope = "pass"
 
     Write-Step "Unauthorized score entry candidates should be rejected for unassigned event"
-    $null = Expect-BusinessErrorCode -Name "score-entry-candidates-unassigned" -ExpectedCode 403 -Action {
+    $null = Assert-ExpectedBusinessCode -Name "score-entry-candidates-unassigned" -ExpectedCode 403 -Action {
         Invoke-RestMethod -Uri "$BackendUrl/api/score/entry-candidates/$controlEventId" -Method Get -Headers $hEvent -TimeoutSec 12
     }
     $status.unauthorized_candidates = "pass"
@@ -459,7 +425,7 @@ try {
         throw "score-entry-candidates-after-publish failed: expected all target rows published"
     }
 
-    $null = Expect-BusinessErrorCode -Name "score-upsert-after-publish" -ExpectedCode 409 -Action {
+    $null = Assert-ExpectedBusinessCode -Name "score-upsert-after-publish" -ExpectedCode 409 -Action {
         $lockedScoreBody = @{
             registrationId = [long]$registrationIds[0]
             scoreValue = "99.99"

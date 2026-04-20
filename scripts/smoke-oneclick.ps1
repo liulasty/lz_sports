@@ -2,7 +2,7 @@ param(
     [string]$BackendUrl = "http://localhost:8080",
     [string]$FrontendUrl = "http://localhost:5173",
     [long]$EventId = 1,
-    [string]$AccountsFile = "git-ai/automation-route/runs/business-accounts-latest.json",
+    [string]$AccountsFile = "git-ai/automation-route/accounts/business-accounts-latest.json",
     [string]$Username = "ops_athlete_b",
     [string]$Password = "Pass12345",
     [string]$RunId = "",

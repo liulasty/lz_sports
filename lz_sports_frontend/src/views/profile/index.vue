@@ -151,9 +151,7 @@
                     <div class="form-field full-width">
                       <div class="field-label">申请赛事 <span class="required">*</span></div>
                       <el-form-item prop="eventId">
-                        <el-select v-model="applyForm.eventId" placeholder="请选择要报名的赛事" class="custom-input" style="width: 100%">
-                          <el-option v-for="event in availableEvents" :key="event.id" :label="event.name" :value="event.id" />
-                        </el-select>
+                        <SmartSelect v-model="applyForm.eventId" :options="availableEvents" placeholder="请选择要报名的赛事" class="custom-input" style="width: 100%" />
                       </el-form-item>
                     </div>
                   </div>
@@ -284,6 +282,7 @@ import { getSchoolConfig } from '@/api/init'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { isSuccess } from '@/utils/result'
 import { normalizeAthleteStatus } from '@/utils/athleteStatus'
+import SmartSelect from '@/components/SmartSelect.vue'
 
 const route = useRoute() // 路由对象
 const userStore = useUserStore() // 用户状态管理
@@ -1098,21 +1097,6 @@ html.dark .bg-blob { opacity: 0.10; }
   color: var(--pc-text);
   font-size: 13px;
   background: transparent;
-}
-
-:deep(.el-select .el-input__wrapper) {
-  background: var(--pc-card-alt);
-  border: 1.5px solid var(--pc-border);
-  border-radius: 10px;
-  box-shadow: none;
-  transition: border-color 0.2s, box-shadow 0.2s, background 0.3s;
-}
-:deep(.el-select .el-input__wrapper:hover) {
-  border-color: var(--c-orange-2);
-}
-:deep(.el-select .el-input.is-focus .el-input__wrapper) {
-  border-color: var(--c-orange);
-  box-shadow: 0 0 0 3px var(--c-orange-dim);
 }
 
 :deep(.custom-number) { width: 100%; }

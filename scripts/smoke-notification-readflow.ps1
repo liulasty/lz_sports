@@ -1,6 +1,6 @@
 param(
     [string]$BackendUrl = "http://localhost:8080",
-    [string]$AccountsFile = "git-ai/automation-route/runs/business-accounts-latest.json",
+    [string]$AccountsFile = "git-ai/automation-route/accounts/business-accounts-latest.json",
     [string]$AthleteUsername = "",
     [string]$AthletePassword = "",
     [ValidateSet("EVENT_ADMIN","SCHOOL_ADMIN")]

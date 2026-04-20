@@ -60,6 +60,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/api/system/school-config",
             // 公共接口（支持子路径）
             "/api/public/",
+            // 公开成绩榜（仅 GET /api/score/public/{eventId}）
+            "/api/score/public/",
             // Swagger/Knife4j文档
             "/doc.html",
             "/webjars/",

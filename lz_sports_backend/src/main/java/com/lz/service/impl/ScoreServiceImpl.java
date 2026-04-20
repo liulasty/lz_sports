@@ -44,9 +44,11 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -139,13 +141,25 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
         if (file.getSize() > 10 * 1024 * 1024) {
             throw new BusinessException("上传文件大小不能超过10MB", 400);
         }
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null || (!originalFilename.toLowerCase().endsWith(".xlsx")
+                && !originalFilename.toLowerCase().endsWith(".xls"))) {
+            throw new BusinessException("仅支持导入 xls/xlsx 文件", 400);
+        }
         ScoreImportResultVO result = new ScoreImportResultVO();
         try (var inputStream = file.getInputStream()) {
             List<ScoreImportVO> rows = EasyExcel.read(inputStream).head(ScoreImportVO.class).sheet().doReadSync();
+            if (rows == null || rows.isEmpty()) {
+                throw new BusinessException("导入文件中没有可用数据", 400);
+            }
+            Set<Long> seenRegistrationIds = new HashSet<>();
             int rowNumber = 1;
             for (ScoreImportVO row : rows) {
                 rowNumber++;
                 try {
+                    if (row.getRegistrationId() != null && !seenRegistrationIds.add(row.getRegistrationId())) {
+                        throw new BusinessException("导入文件存在重复的报名ID: " + row.getRegistrationId());
+                    }
                     validateImportRow(row, eventId);
                     ScoreUpsertDTO dto = new ScoreUpsertDTO();
                     dto.setRegistrationId(row.getRegistrationId());

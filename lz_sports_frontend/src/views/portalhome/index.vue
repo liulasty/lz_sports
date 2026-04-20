@@ -26,6 +26,7 @@
             href="#"
             @click.prevent="scrollToSection(item.id)"
           >{{ item.label }}</a>
+          <a class="nav-link nav-link-route" href="#" @click.prevent="$router.push('/public-scores')">成绩公示</a>
         </div>
         <div class="nav-actions">
           <template v-if="!userStore.token">
@@ -42,6 +43,7 @@
       </div>
       <div class="mobile-menu" :class="{ open: mobileMenuOpen }">
         <a v-for="item in navItems" :key="item.id" class="mobile-link" :class="{ active: activeSection === item.id }" href="#" @click.prevent="scrollToSection(item.id); mobileMenuOpen=false">{{ item.label }}</a>
+        <a class="mobile-link" href="#" @click.prevent="$router.push('/public-scores'); mobileMenuOpen=false">成绩公示</a>
         <template v-if="!userStore.token">
           <button class="nav-btn-outline w-full" @click="$router.push('/login')">登录</button>
           <button class="nav-btn-solid w-full" @click="$router.push('/register')">立即注册</button>

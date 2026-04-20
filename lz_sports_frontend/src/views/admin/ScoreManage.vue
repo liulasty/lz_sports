@@ -17,28 +17,9 @@
 
           <div class="header-right">
             <div class="filter-group">
-              <el-select v-model="query.eventId" placeholder="选择赛事" style="width: 185px" @change="handleEventChange">
-                <el-option
-                  v-for="item in eventOptions"
-                  :key="item.id"
-                  :label="item.name || item.eventName"
-                  :value="item.id"
-                />
-              </el-select>
-              <el-select v-model="query.itemId" placeholder="选择项目" clearable style="width: 165px" @change="loadData">
-                <el-option
-                  v-for="item in itemOptions"
-                  :key="item.id"
-                  :label="item.itemName || item.name"
-                  :value="item.id"
-                />
-              </el-select>
-              <el-select v-model="query.entryStatus" placeholder="录入状态" style="width: 150px" @change="applyManualRows">
-                <el-option label="全部记录" value="ALL" />
-                <el-option label="未录入" value="UNENTERED" />
-                <el-option label="待发布" value="DRAFT" />
-                <el-option label="已发布" value="PUBLISHED" />
-              </el-select>
+              <SmartSelect v-model="query.eventId" :options="eventOptions" placeholder="选择赛事" style="width: 185px" @change="handleEventChange" />
+              <SmartSelect v-model="query.itemId" :options="itemOptions" label-key="itemName" placeholder="选择项目" clearable style="width: 165px" @change="loadData" />
+              <SmartSelect v-model="query.entryStatus" :options="entryStatusOptions" placeholder="录入状态" style="width: 150px" @change="applyManualRows" />
               <el-button type="primary" class="action-btn" @click="loadData">
                 <svg viewBox="0 0 24 24" fill="none" class="btn-icon"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                 查询
@@ -263,6 +244,7 @@ import { getProjectsByEventId } from '@/api/project'
 import { downloadScoreTemplate, exportScore, getScoreEntryCandidates, importScores, publishScores, upsertScore } from '@/api/score'
 import { useUserStore } from '@/stores/user'
 import { isSuccess } from '@/utils/result'
+import SmartSelect from '@/components/SmartSelect.vue'
 
 const userStore = useUserStore()
 const loading = ref(false)
@@ -275,6 +257,12 @@ const itemOptions = ref([])
 const manualRows = ref([])
 const candidateRows = ref([])
 const rowSavingMap = ref({})
+const entryStatusOptions = [
+  { label: '全部记录', value: 'ALL' },
+  { label: '未录入', value: 'UNENTERED' },
+  { label: '待发布', value: 'DRAFT' },
+  { label: '已发布', value: 'PUBLISHED' }
+]
 
 const query = reactive({
   eventId: null,

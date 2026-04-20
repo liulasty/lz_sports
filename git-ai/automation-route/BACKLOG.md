@@ -103,7 +103,7 @@ tasks:
   - id: AUTO-045
     title: 项目管理最小闭环与权限边界回归
     priority: P1
-    status: TODO
+    status: DONE
     owner: agent
     area: automation
     dependencies:
@@ -113,6 +113,187 @@ tasks:
       - "覆盖 SCHOOL_ADMIN 或可用管理员创建/编辑/删除项目的最小闭环"
       - "覆盖非管理员角色对项目写接口仍被拒绝"
       - "不破坏 suite 主链"
+
+  - id: AUTO-046
+    title: 环境与学校配置真实回放
+    priority: P1
+    status: DONE
+    owner: agent
+    area: automation
+    dependencies:
+      - AUTO-045
+    block_reason: ""
+    acceptance:
+      - "覆盖 school-config 更新、logo 上传、reset/init 状态切换与管理员登录恢复"
+      - "reset/init 后可通过 suite 自愈回到可复跑基线"
+
+  - id: AUTO-047
+    title: 用户重置密码与列表筛选回归
+    priority: P1
+    status: DONE
+    owner: agent
+    area: automation
+    dependencies:
+      - AUTO-046
+    block_reason: ""
+    acceptance:
+      - "覆盖一次性重置 token、旧密码失效、新密码生效与密码回滚"
+      - "覆盖 auth/list 筛选分页与 USER 越权访问拒绝"
+
+  - id: AUTO-048
+    title: 报名导出与权限边界回归
+    priority: P1
+    status: DONE
+    owner: agent
+    area: automation
+    dependencies:
+      - AUTO-047
+    block_reason: ""
+    acceptance:
+      - "覆盖 EVENT_ADMIN 导出成功、USER 导出拒绝"
+      - "覆盖未绑定赛事的 EVENT_ADMIN 导出拒绝"
+
+  - id: AUTO-049
+    title: 成绩导入导出模板深测
+    priority: P1
+    status: DONE
+    owner: agent
+    area: automation
+    dependencies:
+      - AUTO-048
+    block_reason: ""
+    acceptance:
+      - "覆盖 score template/export/export-registration 导出可用性与权限边界"
+      - "覆盖坏文件导入返回明确业务错误（code=400）"
+
+  - id: AUTO-050
+    title: 管理端统计口径回归
+    priority: P1
+    status: DONE
+    owner: agent
+    area: automation
+    dependencies:
+      - AUTO-049
+    block_reason: ""
+    acceptance:
+      - "覆盖 SCHOOL_ADMIN 的 overview/events 统计接口可达与返回结构"
+      - "覆盖 totalRegistrations 与 events 聚合值一致性最小断言"
+
+  - id: AUTO-051
+    title: 第二批未覆盖链路拆分与优先级确认
+    priority: P1
+    status: DONE
+    owner: agent
+    area: automation
+    dependencies:
+      - AUTO-050
+    block_reason: ""
+    acceptance:
+      - "产出第二批任务清单并按 P0/P1 拆分优先级与依赖"
+      - "回写 next_task 指向第二批首个可执行任务"
+
+  - id: AUTO-052
+    title: 成绩导入列级错误与重复行深测
+    priority: P0
+    status: DONE
+    owner: agent
+    area: automation
+    dependencies:
+      - AUTO-051
+    block_reason: ""
+    acceptance:
+      - "覆盖缺失关键列、空成绩、重复报名ID的导入断言"
+      - "导入失败场景返回稳定业务码并产出 failure 明细"
+
+  - id: AUTO-053
+    title: 业务码断言统一化改造（HTTP 200 场景）
+    priority: P0
+    status: DONE
+    owner: agent
+    area: automation
+    dependencies:
+      - AUTO-052
+    block_reason: ""
+    acceptance:
+      - "核心 smoke 脚本统一使用业务码断言工具函数"
+      - "关键失败路径不再仅依赖 HTTP 状态码"
+
+  - id: AUTO-054
+    title: 赛事与项目管理完整 CRUD 回放
+    priority: P1
+    status: DONE
+    owner: agent
+    area: automation
+    dependencies:
+      - AUTO-053
+    block_reason: ""
+    acceptance:
+      - "覆盖 event/project 新增、编辑、删除、撤回与权限边界"
+      - "不破坏 suite 主链"
+  - id: AUTO-055
+    title: 赛事/项目编辑接口字段约束与越权细测
+    priority: P1
+    status: DONE
+    owner: agent
+    area: automation
+    dependencies:
+      - AUTO-054
+    block_reason: ""
+    acceptance:
+      - "覆盖 event/project 编辑接口在最小必填字段与非法字段组合下的稳定业务返回"
+      - "覆盖 SCHOOL_ADMIN/EVENT_ADMIN/USER 对编辑写接口的越权边界"
+
+  - id: AUTO-056
+    title: 赛事管理员跨赛事编辑越权回归
+    priority: P1
+    status: DONE
+    owner: agent
+    area: automation
+    dependencies:
+      - AUTO-055
+    block_reason: ""
+    acceptance:
+      - "覆盖 EVENT_ADMIN 编辑未绑定赛事应被拒绝（403）"
+      - "覆盖 SCHOOL_ADMIN 绑定/解绑后 EVENT_ADMIN 权限变化可复跑"
+
+  - id: AUTO-057
+    title: 赛事管理员解绑后权限收敛回归
+    priority: P1
+    status: DONE
+    owner: agent
+    area: automation
+    dependencies:
+      - AUTO-056
+    block_reason: ""
+    acceptance:
+      - "覆盖 EVENT_ADMIN 在解绑前可编辑，解绑后编辑被拒绝（403）"
+      - "不破坏 suite 主链"
+
+  - id: AUTO-058
+    title: 项目写接口角色边界回归
+    priority: P1
+    status: DONE
+    owner: agent
+    area: automation
+    dependencies:
+      - AUTO-057
+    block_reason: ""
+    acceptance:
+      - "覆盖 SCHOOL_ADMIN 项目编辑通过，EVENT_ADMIN/USER 项目编辑拒绝（403）"
+      - "不破坏 suite 主链"
+
+  - id: AUTO-059
+    title: 赛事状态流转边界与撤回前置条件深测
+    priority: P1
+    status: TODO
+    owner: agent
+    area: automation
+    dependencies:
+      - AUTO-058
+    block_reason: ""
+    acceptance:
+      - "覆盖 OPEN->DRAFT 撤回前后的关键前置条件与业务码稳定性"
+      - "覆盖 EVENT_ADMIN/SCHOOL_ADMIN 在状态流转接口的最小权限边界"
 ```
 
 ## update_rules
@@ -124,12 +305,19 @@ tasks:
 
 ## next_task
 
-- `AUTO-045` 项目管理最小闭环与权限边界回归
+- `AUTO-059` 赛事状态流转边界与撤回前置条件深测
 
 ## latest_smoke
 
-- `2026-04-19-auto-048` 已在 `git-ai/automation-route` worktree 通过。
-- 本轮先发现本地环境处于 `init-status=false`，导致 `register-seed-users.ps1` 无法解析可用 `SCHOOL_ADMIN` 种子。
-- 已按 `WORKFLOW_OPEN_CLOSE_SMOKE.md` 允许路径执行 `POST /api/system/init`，使用 `init_school_admin_01 / Admin12345` 恢复初始化态。
-- 随后执行 `dev-stop -> dev-start -> smoke-suite`，基线与 current-event workflow 全部通过。
-- `next_task` 保持为 `AUTO-045`，本轮未进入其实现阶段。
+- `2026-04-20-auto-001`、`2026-04-20-auto-002` 基线 `smoke-suite` 均通过（含 reset/init 后自愈复跑），总览回写记录为 `2026-04-20-auto-003`。
+- `2026-04-20-auto-006` 基线 `smoke-suite` 再次一次通过（`oneclick` + `current-event workflow` 全绿），当前环境可稳定复跑。
+- `AUTO-054` 定向回归通过：`2026-04-20-auto-054-new-event-business`、`2026-04-20-auto-054-new-event-branches`、`2026-04-20-auto-054-event-admin` 全部通过；收敛 `smoke-suite` `2026-04-20-auto-007` 再次通过。
+- `AUTO-055` 定向回归通过：`2026-04-20-auto-055-event-project-edit-boundary-rerun` 通过；修复脚本断言后按 `dev-stop -> dev-start -> suite(2026-04-20-auto-008)` 收敛通过。
+- `AUTO-056~AUTO-058` 连续执行通过：`2026-04-20-auto-056-cross-event-edit`、`2026-04-20-auto-057-unbind-permission-shift`、`2026-04-20-auto-058-project-write-boundary` 全部通过；收敛 `smoke-suite` `2026-04-20-auto-009` 再次通过。
+- `2026-04-20-auto-010` 基线 `smoke-suite` 再次通过（`oneclick` + `workflow` 全绿），作为当前迭代稳定性基线。
+- `AUTO-045~AUTO-050` 本轮已完成：覆盖新赛事闭环、学校配置与 reset/init、重置密码与列表筛选、报名导出边界、成绩模板导出与坏文件导入、admin stats 口径校验。
+- 新增专项记录：`2026-04-20-auto-049-template-export`，验证 `template/export/export-registration` 导出与 USER 越权拒绝。
+- 已修复成绩导入边界：非 `xls/xlsx` 文件返回业务错误 `code=400`，并补充重复报名ID导入失败逻辑与单测。
+- `AUTO-051` 已完成：第二批任务已拆分并确认优先级，next_task 切换为 `AUTO-052`。
+- `AUTO-052` 已完成：运行时脚本新增“缺列头导入拒绝 + 混合成功/失败批次”断言，覆盖列级错误与重复行导入边界。
+- `AUTO-053` 已完成：新增通用业务码断言 helper（`scripts/lib/business-code-assert.ps1`），并接入核心 smoke（`score-manage`、`score-template-export`）。

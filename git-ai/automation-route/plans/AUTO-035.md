@@ -15,6 +15,6 @@ out_of_scope:
   - 非本地联调环境的部署改造
 validation_commands:
   - powershell -ExecutionPolicy Bypass -File scripts/dev-start.ps1 -BackendLogPath git-ai/automation-route/runs/backend-dev.log
-  - scripts/test.bat suite http://localhost:8080 http://localhost:5173 1 git-ai/automation-route/runs/business-accounts-latest.json
+  - scripts/test.bat suite http://localhost:8080 http://localhost:5173 1 git-ai/automation-route/accounts/business-accounts-latest.json
   - powershell -ExecutionPolicy Bypass -File scripts/dev-stop.ps1
 rollback_notes: 若新增循环文档或脚本入口引发误导，回退本任务新增文档与对应入口说明，保留已验证可用的单次 smoke 能力。

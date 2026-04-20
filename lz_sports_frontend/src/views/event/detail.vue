@@ -20,6 +20,15 @@
             {{ formatDate(event.registrationStartTime) }} — {{ formatDate(event.registrationEndTime) }}
           </span>
         </div>
+        <div class="hero-actions">
+          <button
+            type="button"
+            class="hero-public-scores-btn"
+            @click="$router.push({ path: '/public-scores', query: { eventId: String(event.id) } })"
+          >
+            公开成绩榜
+          </button>
+        </div>
       </div>
     </div>
 
@@ -490,6 +499,30 @@ onMounted(async () => {
   gap: 5px;
   color: rgba(255,255,255,0.8);
   font-size: 13px;
+}
+
+.hero-actions {
+  margin-top: 16px;
+}
+
+.hero-public-scores-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: background 0.2s, border-color 0.2s;
+}
+.hero-public-scores-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.55);
 }
 
 /* ==========================================

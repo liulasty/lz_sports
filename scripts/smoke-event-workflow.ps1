@@ -1,7 +1,7 @@
 param(
     [string]$BackendUrl = "http://localhost:8080",
     [long]$EventId = 1,
-    [string]$AccountsFile = "git-ai/automation-route/runs/business-accounts-latest.json",
+    [string]$AccountsFile = "git-ai/automation-route/accounts/business-accounts-latest.json",
     [string]$RunId = "",
     [string]$RelatedTaskId = "AUTO-034",
     [switch]$DryRun

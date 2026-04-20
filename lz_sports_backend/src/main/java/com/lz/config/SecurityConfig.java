@@ -57,6 +57,7 @@ public class SecurityConfig {
             "/api/system/school-config",
             // 公共接口（支持子路径）
             "/api/public/**",
+            "/api/score/public/**",
             // Swagger/Knife4j文档
             "/doc.html",
             "/webjars/**",

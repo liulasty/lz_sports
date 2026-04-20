@@ -7,6 +7,18 @@
 - 所有自动化迭代与业务回归默认在 `git-ai/automation-route` 分支执行。
 - 如果主仓库当前不在该分支，优先进入对应 worktree，例如 `D:\soft\lz_sports_git_ai`。
 
+### 0.1) 目录约定（`runs` 与 `accounts`）
+
+为避免「每轮运行记录」与「当前复用的业务账号资产」混在同一目录，约定如下：
+
+- **`git-ai/automation-route/accounts/`**  
+  - 存放当前默认入口：`business-accounts-latest.json`、`business-accounts-latest.md`（明文/token，仅本地联调；`register-seed-users.ps1` 生成的按日期快照可先落在 `runs/`，再复制或对齐到此处）。  
+  - 各 smoke 脚本默认 `-AccountsFile` 为 `git-ai/automation-route/accounts/business-accounts-latest.json`。
+
+- **`git-ai/automation-route/runs/`**  
+  - 存放每轮自动化输出：`YYYY-MM-DD-auto-NNN.md` 及子步骤 `*-oneclick.md`、`*-workflow.md` 等（例如 `2026-04-19-auto-047.md`）。  
+  - 存放 `backend-dev.log`、`register-seed-users` 按日期生成的 `*-business-accounts-*.json|.md` 等业务快照。
+
 ## 1) 开工（启动本地开发环境）
 
 开工前先同步本地 `.cursor`（不入库内容）到 worktree，避免提示词和本地配置漂移：
@@ -61,7 +73,7 @@ powershell -ExecutionPolicy Bypass -File scripts/dev-start.ps1 -BackendLogPath g
 优先使用 `suite`，而不是只跑 `oneclick`。`suite` 会先执行基础基线回归，再继续执行当前赛事完整业务链路。
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/smoke-suite.ps1 -BackendUrl http://localhost:8080 -FrontendUrl http://localhost:5173 -EventId 1 -AccountsFile git-ai/automation-route/runs/business-accounts-latest.json
+powershell -ExecutionPolicy Bypass -File scripts/smoke-suite.ps1 -BackendUrl http://localhost:8080 -FrontendUrl http://localhost:5173 -EventId 1 -AccountsFile git-ai/automation-route/accounts/business-accounts-latest.json
 ```
 
 该脚本会自动执行：
@@ -69,7 +81,7 @@ powershell -ExecutionPolicy Bypass -File scripts/smoke-suite.ps1 -BackendUrl htt
 - `event-workflow`：赛事详情、项目列表、运动员资格、普通用户负向报名、运动员报名、赛事管理员审核、通知增长、报名状态、成绩相关查询
 - 账号资产失效时自动调用 `register-seed-users.ps1` 重建 `EVENT_ADMIN / USER / ATHLETE`
 - 当前回归赛事状态或时间窗口不适配时，自动归一化目标赛事到可报名、可回放状态
-- 自动写入 `git-ai/automation-route/runs/*.md` 运行记录
+- 自动写入 `git-ai/automation-route/runs/` 下的 `*.md` 运行记录（与 `accounts/` 中 latest 资产分目录存放）
 
 ## 3) 统一执行循环（完整迭代契约）
 
@@ -81,7 +93,7 @@ powershell -ExecutionPolicy Bypass -File scripts/smoke-suite.ps1 -BackendUrl htt
 4. 失败时必须先定位“具体业务接口 + 根因”，直接修复代码或脚本后重跑，不允许只记录失败不修复。
    - 若失败根因是“本地环境漂移/账号资产不可恢复”，允许执行 **reset/init**（见 1.1），然后重新 `dev-start` + `suite` 走基线回归。
 5. 同一问题连续 2 次失败：将对应任务标记为 `BLOCKED`，并写清 `block_reason`（失败信号、根因假设、解除条件）。
-6. 全部通过后必须回写：`runs`、`git-ai/automation-route/BUSINESS_STATUS.md`、`git-ai/automation-route/FIRST_BATCH_AUTOMATION_TASKS.md`、`git-ai/automation-route/BACKLOG.md`（含 `next_task`）。
+6. 全部通过后必须回写：`git-ai/automation-route/runs/` 下本轮运行记录、`git-ai/automation-route/BUSINESS_STATUS.md`、`git-ai/automation-route/FIRST_BATCH_AUTOMATION_TASKS.md`、`git-ai/automation-route/BACKLOG.md`（含 `next_task`）。
 7. 每轮结束统一按 `changed_files/key_changes/test_results/risks/next_task` 输出结果。
 
 ## 4) 基础回归与完整性回归的关系
@@ -104,36 +116,73 @@ powershell -ExecutionPolicy Bypass -File scripts/sync-local-cursor.ps1 -Directio
 
 ## 6) 建议的新对话提示词
 
+### 6.1 开始（服务重启）提示词（单独发这一段）
+
 ```text
-目标：按 “开始（服务重启）-> 执行（可重复：修代码后重启）-> 收工（服务停止）” 完成一次可复跑的 smoke 闭环，并按 changed_files/key_changes/test_results/risks/next_task 汇报。
+目标：开始一轮 smoke 闭环（本段只负责“环境准备 + 服务重启”）。
 
 约束：
 - 只在 D:\soft\lz_sports_git_ai 的 git-ai/automation-route worktree 执行整轮回归（不要在 D:\soft\lz_sports 主仓跑）。
 - 开工先通过 scripts/aicoding-precheck.ps1（或 scripts/test.bat aicoding-precheck）。
-- 先读：PROJECT_LOOP.md、git-ai/automation-route/BACKLOG.md、git-ai/automation-route/WORKFLOW_OPEN_CLOSE_SMOKE.md、git-ai/automation-route/BUSINESS_STATUS.md、git-ai/automation-route/FIRST_BATCH_AUTOMATION_TASKS.md。
 
 开始（服务重启）：
-- 可选：powershell -ExecutionPolicy Bypass -File scripts/sync-local-cursor.ps1 -Direction toWorktree
-- 执行：powershell -ExecutionPolicy Bypass -File scripts/aicoding-precheck.ps1
-- 执行：powershell -ExecutionPolicy Bypass -File scripts/dev-start.ps1 -BackendLogPath git-ai/automation-route/runs/backend-dev.log
+- （可选）同步本地 .cursor 到 worktree：
+  powershell -ExecutionPolicy Bypass -File scripts/sync-local-cursor.ps1 -Direction toWorktree
+- 前置检查：
+  powershell -ExecutionPolicy Bypass -File scripts/aicoding-precheck.ps1
+- 启动/重启服务（确保 5173/8080 起来）：
+  powershell -ExecutionPolicy Bypass -File scripts/dev-start.ps1 -BackendLogPath git-ai/automation-route/runs/backend-dev.log
 
-执行（可重复闭环）：
-- 任务选择：从 FIRST_BATCH + BUSINESS_STATUS 选“最高优先级、未覆盖、无阻塞”的业务链路（默认 AUTO-042）。
-- 基线回归：优先跑 suite：
-  powershell -ExecutionPolicy Bypass -File scripts/smoke-suite.ps1 -BackendUrl http://localhost:8080 -FrontendUrl http://localhost:5173 -EventId 1 -AccountsFile git-ai/automation-route/runs/business-accounts-latest.json
-- 若 suite/定向验证失败：
-  1) 先定位“具体业务接口 + 根因”，直接修复代码/脚本
-  2) 修复后必须执行 dev-stop -> dev-start（确保服务按新代码重启），再重跑 suite（必要时再补定向验证）
-  3) 若失败信号为“账号资产无法自愈 / SCHOOL_ADMIN seed 无法登录 / 本地数据污染导致无法稳定复跑”，允许执行 reset/init（见 1.1），然后再 dev-stop -> dev-start -> suite
-  4) 同一问题连续 2 次失败：将对应任务标记为 BLOCKED，并写清 block_reason（失败信号、根因假设、解除条件）
-- 若通过：
-  1) 回写 runs、BUSINESS_STATUS、FIRST_BATCH、BACKLOG（含 next_task）
-  2) 若需要做分支同步：按“标准 4 步同步提示词（见 7.2）”执行，并验证 master 与 git-ai/automation-route hash 一致
-  3) 按 changed_files/key_changes/test_results/risks/next_task 汇报
+输出你看到的结果（关键即可）：
+- 分支与工作目录（是否在 git-ai/automation-route worktree）
+- 5173/8080 是否启动成功、健康检查是否通过
+```
+
+### 6.2 执行（可重复：修代码后重启）提示词（单独发这一段）
+
+```text
+目标：跑基线 suite 并在失败时进入“修复 -> 重启 -> 重跑”的可重复闭环，直到通过或 BLOCKED。
+
+先读（只需读一次，后续复跑可跳过）：
+- PROJECT_LOOP.md
+- git-ai/automation-route/BACKLOG.md
+- git-ai/automation-route/WORKFLOW_OPEN_CLOSE_SMOKE.md
+- git-ai/automation-route/BUSINESS_STATUS.md
+- git-ai/automation-route/FIRST_BATCH_AUTOMATION_TASKS.md
+
+任务选择：
+- 从 FIRST_BATCH + BUSINESS_STATUS 选“最高优先级、未覆盖、无阻塞”的业务链路（默认 AUTO-042）。
+
+基线回归（必须）：
+powershell -ExecutionPolicy Bypass -File scripts/smoke-suite.ps1 -BackendUrl http://localhost:8080 -FrontendUrl http://localhost:5173 -EventId 1 -AccountsFile git-ai/automation-route/accounts/business-accounts-latest.json
+
+若失败（必须按顺序做）：
+1) 定位“具体业务接口 + 根因”，直接修复代码/脚本
+2) 修复后必须：dev-stop -> dev-start（服务按新代码重启）-> 重跑 suite
+3) 若失败信号为“账号资产无法自愈 / SCHOOL_ADMIN seed 无法登录 / 本地数据污染导致无法稳定复跑”：
+   允许执行 reset/init（见 1.1），然后 dev-stop -> dev-start -> suite
+4) 同一问题连续 2 次失败：标记该任务为 BLOCKED，并写 block_reason（失败信号、根因假设、解除条件）
+
+若通过（必须）：
+- 回写 git-ai/automation-route/runs/ 下本轮运行记录、BUSINESS_STATUS、FIRST_BATCH、BACKLOG（含 next_task）
+- 若需要分支同步：按 7.2“标准 4 步同步提示词”执行，并验证 master 与 git-ai/automation-route hash 一致
+- 按 changed_files/key_changes/test_results/risks/next_task 汇报
+```
+
+### 6.3 收工（服务停止）提示词（单独发这一段）
+
+```text
+目标：结束本轮迭代并清理本地服务。
 
 收工（服务停止）：
-- 执行：powershell -ExecutionPolicy Bypass -File scripts/dev-stop.ps1
-- 若本轮修改了 worktree 的 .cursor 本地文件：powershell -ExecutionPolicy Bypass -File scripts/sync-local-cursor.ps1 -Direction toMain
+- powershell -ExecutionPolicy Bypass -File scripts/dev-stop.ps1
+
+如本轮修改了 worktree 的 .cursor 本地文件（例如 rules/skills）：
+- powershell -ExecutionPolicy Bypass -File scripts/sync-local-cursor.ps1 -Direction toMain
+
+输出你看到的结果（关键即可）：
+- dev-stop 是否成功释放 5173/8080
+- 是否执行了 sync-local-cursor toMain
 ```
 
 ## 7) 优化后的可复用提示词（推荐）
@@ -141,39 +190,10 @@ powershell -ExecutionPolicy Bypass -File scripts/sync-local-cursor.ps1 -Directio
 ### 7.1 开工/执行/收工（三段式，可直接复制）
 
 ```text
-约束：
-- 只在 D:\soft\lz_sports_git_ai 的 git-ai/automation-route worktree 执行整轮回归（不要在 D:\soft\lz_sports 主仓跑）。
-
-开始（服务重启）：
-1) （可选）同步本地 .cursor 到 worktree：
-   powershell -ExecutionPolicy Bypass -File scripts/sync-local-cursor.ps1 -Direction toWorktree
-2) 前置检查（必须先过）：
-   powershell -ExecutionPolicy Bypass -File scripts/aicoding-precheck.ps1
-3) 启动/重启服务（确保 5173/8080 起来）：
-   powershell -ExecutionPolicy Bypass -File scripts/dev-start.ps1 -BackendLogPath git-ai/automation-route/runs/backend-dev.log
-
-执行（可重复闭环：修代码后“重启再跑”）：
-1) 读取：PROJECT_LOOP.md、BACKLOG.md、WORKFLOW_OPEN_CLOSE_SMOKE.md、BUSINESS_STATUS.md、FIRST_BATCH_AUTOMATION_TASKS.md
-2) 选择任务：
-   - 优先从 FIRST_BATCH + BUSINESS_STATUS 选“最高优先级、未覆盖、无阻塞”的业务链路
-   - 若 FIRST_BATCH 已完成或无匹配：按 BACKLOG selection_rule 选首个 TODO
-3) 跑基线（必须）：suite（oneclick + event-workflow）
-   powershell -ExecutionPolicy Bypass -File scripts/smoke-suite.ps1 -BackendUrl http://localhost:8080 -FrontendUrl http://localhost:5173 -EventId 1 -AccountsFile git-ai/automation-route/runs/business-accounts-latest.json
-4) 按任务需要补定向验证（优先复用 scripts/smoke-*.ps1；缺失则补最小脚本）
-5) 若失败：必须先定位“具体接口 + 根因”并修复后重跑
-   - 代码/脚本修复后：dev-stop -> dev-start（服务重启）-> suite（必要时再跑定向 smoke）
-   - 环境漂移信号（账号资产无法自愈 / SCHOOL_ADMIN seed 无法登录 / 本地数据污染导致无法稳定复跑）：
-     允许执行 reset/init（见 1.1），然后 dev-stop -> dev-start -> suite 全量基线重跑
-   - 同一问题连续 2 次失败：将任务标记 BLOCKED 并写 block_reason（失败信号、根因假设、解除条件）
-6) 通过后回写（必须）：
-   - runs（git-ai/automation-route/runs/*.md）
-   - BUSINESS_STATUS / FIRST_BATCH / BACKLOG（含 next_task）
-   - 汇报 changed_files/key_changes/test_results/risks/next_task
-
-收工（服务停止）：
-1) powershell -ExecutionPolicy Bypass -File scripts/dev-stop.ps1
-2) 若本轮修改了 worktree 的 .cursor 本地文件：
-   powershell -ExecutionPolicy Bypass -File scripts/sync-local-cursor.ps1 -Direction toMain
+提示词按 3 段发送（不要一次性全贴）：
+- 开始：发 6.1
+- 执行：发 6.2（失败就重复发这一段，直到通过或 BLOCKED）
+- 收工：发 6.3
 ```
 
 ### 7.2 同步提示词（标准 4 步）
