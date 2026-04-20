@@ -218,19 +218,27 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
                         }
                     }
             
-                    Registration registration = new Registration();
-                    registration.setAthleteId(userId);
-                    registration.setEventId(event.getId());
-                    registration.setItemId(projectId);
-                    registration.setRegistrationTime(now);
-                    registration.setRegistrationStatus(RegistrationStatus.PENDING);
-                    registration.setSchoolId(event.getSchoolId());
-
                     int updated = projectMapper.incrementAttendance(projectId, project.getMaxAttendance());
                     if (updated == 0) {
                         throw new BusinessException("该项目报名人数已满");
                     }
-                    save(registration);
+                    if (existingRegistration != null) {
+                        existingRegistration.setEventId(event.getId());
+                        existingRegistration.setRegistrationTime(now);
+                        existingRegistration.setRegistrationStatus(RegistrationStatus.PENDING);
+                        existingRegistration.setRejectReason(null);
+                        existingRegistration.setSchoolId(event.getSchoolId());
+                        updateById(existingRegistration);
+                    } else {
+                        Registration registration = new Registration();
+                        registration.setAthleteId(userId);
+                        registration.setEventId(event.getId());
+                        registration.setItemId(projectId);
+                        registration.setRegistrationTime(now);
+                        registration.setRegistrationStatus(RegistrationStatus.PENDING);
+                        registration.setSchoolId(event.getSchoolId());
+                        save(registration);
+                    }
                     syncAthlete = athlete;
                     syncUser = user;
                 } finally {
