@@ -58,7 +58,7 @@ public interface RegistrationMapper extends BaseMapper<Registration> {
     @Select("""
         SELECT event_id as eventId, 
                COUNT(*) as total, 
-               SUM(CASE WHEN status = 'CONFIRMED' THEN 1 ELSE 0 END) as approved 
+               SUM(CASE WHEN status IN ('APPROVED', 'CONFIRMED') THEN 1 ELSE 0 END) as approved 
         FROM registration 
         GROUP BY event_id
     """)
