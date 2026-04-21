@@ -272,7 +272,7 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
                 .eq(Registration::getRegistrationStatus, RegistrationStatus.PENDING));
         long approved = count(new LambdaQueryWrapper<Registration>()
                 .eq(Registration::getEventId, eventId)
-                .in(Registration::getRegistrationStatus, java.util.Arrays.asList(RegistrationStatus.APPROVED, RegistrationStatus.CONFIRMED)));
+                .eq(Registration::getRegistrationStatus, RegistrationStatus.APPROVED));
         long rejected = count(new LambdaQueryWrapper<Registration>()
                 .eq(Registration::getEventId, eventId)
                 .eq(Registration::getRegistrationStatus, RegistrationStatus.REJECTED));
