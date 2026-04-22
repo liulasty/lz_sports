@@ -265,7 +265,7 @@ const handleApprove = (row) => {
   }).then(async () => {
     submitting.value = true
     try {
-      const res = await approveRegistration(row.id, row.eventId)
+      const res = await approveRegistration(row.id)
       if (isSuccess(res)) { ElMessage.success('操作成功'); getList(); refreshStats() }
     } catch (error) { console.error(error) } finally { submitting.value = false }
   }).catch(() => {})
@@ -278,7 +278,7 @@ const handleRefuse = (row) => {
   }).then(async () => {
     submitting.value = true
     try {
-      const res = await refuseRegistration(row.id, row.eventId)
+      const res = await refuseRegistration(row.id)
       if (isSuccess(res)) { ElMessage.success('操作成功'); getList(); refreshStats() }
     } catch (error) { console.error(error) } finally { submitting.value = false }
   }).catch(() => {})
@@ -287,13 +287,12 @@ const handleRefuse = (row) => {
 const handleBatchApprove = () => {
   if (submitting.value || !hasPendingSelection.value) return
   const ids = selectedRows.value.map(row => row.id)
-  const eventId = selectedRows.value[0]?.eventId || queryParams.eventId
   ElMessageBox.confirm(`确认批量通过选中的 ${ids.length} 个报名申请吗?`, '提示', {
     confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning'
   }).then(async () => {
     submitting.value = true
     try {
-      const res = await batchAuditRegistration(ids, true, eventId)
+      const res = await batchAuditRegistration(ids, true)
       if (isSuccess(res)) { ElMessage.success('批量操作成功'); getList(); refreshStats() }
     } catch (error) { console.error(error) } finally { submitting.value = false }
   }).catch(() => {})
@@ -302,13 +301,12 @@ const handleBatchApprove = () => {
 const handleBatchRefuse = () => {
   if (submitting.value || !hasPendingSelection.value) return
   const ids = selectedRows.value.map(row => row.id)
-  const eventId = selectedRows.value[0]?.eventId || queryParams.eventId
   ElMessageBox.confirm('批量拒绝将不填写拒绝原因，确认继续？', '提示', {
     confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning'
   }).then(async () => {
     submitting.value = true
     try {
-      const res = await batchAuditRegistration(ids, false, eventId)
+      const res = await batchAuditRegistration(ids, false)
       if (isSuccess(res)) { ElMessage.success('批量操作成功'); getList(); refreshStats() }
     } catch (error) { console.error(error) } finally { submitting.value = false }
   }).catch(() => {})

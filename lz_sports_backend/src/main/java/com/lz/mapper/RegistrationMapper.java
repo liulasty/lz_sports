@@ -69,4 +69,17 @@ public interface RegistrationMapper extends BaseMapper<Registration> {
         GROUP BY event_id
     """)
     List<java.util.Map<String, Object>> countRegistrationsGroupByEvent();
+
+    /**
+     * 对用户在指定赛事下的运动员记录加行锁，作为报名上限并发控制的数据库兜底
+     */
+    @Select("""
+        SELECT id
+        FROM athlete
+        WHERE user_id = #{userId}
+          AND event_id = #{eventId}
+        LIMIT 1
+        FOR UPDATE
+    """)
+    Long lockAthleteRowForEvent(@Param("userId") Long userId, @Param("eventId") Long eventId);
 }

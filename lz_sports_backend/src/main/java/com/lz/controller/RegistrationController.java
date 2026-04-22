@@ -101,7 +101,7 @@ public class RegistrationController {
     @PutMapping("/attend/{id}")
     @RequireEventAdmin
     @Operation(summary = "同意报名", description = "管理员审核通过报名申请")
-    public Result<String> attend(@Parameter(description = "报名ID") @PathVariable Long id, @RequestParam Long eventId) {
+    public Result<String> attend(@Parameter(description = "报名ID") @PathVariable Long id) {
         registrationService.approve(id);
         return Result.success("已通过报名");
     }
@@ -113,7 +113,7 @@ public class RegistrationController {
     @PutMapping("/refuse/{id}")
     @RequireEventAdmin
     @Operation(summary = "拒绝报名", description = "管理员拒绝报名申请")
-    public Result<String> refuse(@Parameter(description = "报名ID") @PathVariable Long id, @RequestParam Long eventId) {
+    public Result<String> refuse(@Parameter(description = "报名ID") @PathVariable Long id) {
         registrationService.refuse(id);
         return Result.success("已拒绝报名");
     }
@@ -121,7 +121,7 @@ public class RegistrationController {
     @PutMapping("/batch-audit")
     @RequireEventAdmin
     @Operation(summary = "批量审核", description = "仅处理PENDING状态，已审核记录自动跳过")
-    public Result<String> batchAudit(@Valid @RequestBody List<Long> ids, @RequestParam boolean approve, @RequestParam Long eventId) {
+    public Result<String> batchAudit(@Valid @RequestBody List<Long> ids, @RequestParam boolean approve) {
         return Result.success(registrationService.batchAudit(ids, approve));
     }
 

@@ -136,18 +136,18 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
                     if (athlete.getAthleteState() != AthleteStatus.APPROVED) {
                         throw new BusinessException("请先申请并通过本赛事的运动员资格审核");
                     }
+                    // 数据库兜底：在事务内对用户+赛事维度加行锁，避免分布式锁失效时击穿 maxItemsPerAthlete
+                    Long lockedAthleteId = registrationMapper.lockAthleteRowForEvent(userId, event.getId());
+                    if (lockedAthleteId == null) {
+                        throw new BusinessException("运动员记录不存在，请先完善本赛事信息");
+                    }
             
                     if (event.getEventStatus() != EventStatus.OPEN) {
-                        throw new BusinessException("赛事状态不是 OPEN");
+                        throw new BusinessException("当前赛事不可报名");
                     }
             
                     Date now = new Date();
-                    if (event.getRegistrationStartTime() != null && now.before(event.getRegistrationStartTime())) {
-                        throw new BusinessException("不在报名时间范围内");
-                    }
-                    if (event.getRegistrationEndTime() != null && now.after(event.getRegistrationEndTime())) {
-                        throw new BusinessException("不在报名时间范围内");
-                    }
+                    assertWithinRegistrationWindow(event, now, true, "报名");
 
                     Registration existingRegistration = getOne(new LambdaQueryWrapper<Registration>()
                             .eq(Registration::getAthleteId, userId)
@@ -402,8 +402,8 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
             throw new BusinessException("只能取消自己的报名", 403);
         }
         Event event = eventMapper.selectById(r.getEventId());
-        if (event != null && event.getRegistrationEndTime() != null && new Date().after(event.getRegistrationEndTime())) {
-            throw new BusinessException("报名截止后不可取消");
+        if (event != null) {
+            assertWithinRegistrationWindow(event, new Date(), false, "取消报名");
         }
         if (r.getRegistrationStatus() == RegistrationStatus.CANCELLED) {
             return;
@@ -482,6 +482,24 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
         );
         if (count == 0) {
             throw new BusinessException("您不是该赛事的管理员", 403);
+        }
+    }
+
+    private void assertWithinRegistrationWindow(Event event, Date now, boolean requireOpenStatus, String action) {
+        if (event == null) {
+            throw new BusinessException("赛事不存在");
+        }
+        if (requireOpenStatus && event.getEventStatus() != EventStatus.OPEN) {
+            throw new BusinessException("当前赛事不可" + action);
+        }
+        if (!requireOpenStatus && event.getEventStatus() == EventStatus.CLOSED) {
+            throw new BusinessException("赛事已关闭，不可" + action);
+        }
+        if (event.getRegistrationStartTime() != null && now.before(event.getRegistrationStartTime())) {
+            throw new BusinessException("不在可" + action + "时间范围内");
+        }
+        if (event.getRegistrationEndTime() != null && now.after(event.getRegistrationEndTime())) {
+            throw new BusinessException("不在可" + action + "时间范围内");
         }
     }
 

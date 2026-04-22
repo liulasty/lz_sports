@@ -40,6 +40,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.argThat;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -220,6 +221,29 @@ class RegistrationServiceImplTest {
     }
 
     @Test
+    void cancelShouldRejectWhenEventClosedEvenBeforeRegistrationEndTime() {
+        Registration registration = new Registration();
+        registration.setId(1L);
+        registration.setAthleteId(100L);
+        registration.setEventId(2L);
+        registration.setItemId(9L);
+        registration.setRegistrationStatus(RegistrationStatus.PENDING);
+        doReturn(registration).when(registrationService).getById(1L);
+        BaseContext.setCurrentId(100L);
+
+        Event event = new Event();
+        event.setId(2L);
+        event.setEventStatus(EventStatus.CLOSED);
+        event.setRegistrationEndTime(new Date(System.currentTimeMillis() + 3600000));
+        when(eventMapper.selectById(2L)).thenReturn(event);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> registrationService.cancel(1L));
+        assertEquals("赛事已关闭，不可取消报名", exception.getMessage());
+        verify(projectMapper, never()).decrementAttendance(any());
+        BaseContext.removeCurrentId();
+    }
+
+    @Test
     void addShouldReactivateCancelledRegistrationInsteadOfInsert() throws InterruptedException {
         Long userId = 8L;
         Long projectId = 1L;
@@ -266,6 +290,7 @@ class RegistrationServiceImplTest {
         when(projectMapper.selectById(projectId)).thenReturn(project);
         when(eventMapper.selectById(eventId)).thenReturn(event);
         when(athleteMapper.selectOne(any())).thenReturn(athlete);
+        when(registrationMapper.lockAthleteRowForEvent(userId, eventId)).thenReturn(10L);
         doReturn(cancelled).when(registrationService).getOne(any());
         when(registrationMapper.countActiveByUserAndEvent(userId, eventId)).thenReturn(0);
         when(projectMapper.incrementAttendance(projectId, 30)).thenReturn(1);
@@ -274,6 +299,11 @@ class RegistrationServiceImplTest {
         registrationService.setApplicationContext(applicationContext);
 
         registrationService.add(projectId);
+
+        org.mockito.InOrder inOrder = inOrder(registrationMapper, projectMapper);
+        inOrder.verify(registrationMapper).lockAthleteRowForEvent(userId, eventId);
+        inOrder.verify(registrationMapper).countActiveByUserAndEvent(userId, eventId);
+        inOrder.verify(projectMapper).incrementAttendance(projectId, 30);
 
         verify(registrationService).updateById(argThat(registration ->
                 registration.getId().equals(1L) && registration.getRegistrationStatus() == RegistrationStatus.PENDING));
@@ -327,6 +357,7 @@ class RegistrationServiceImplTest {
         when(projectMapper.selectById(projectId)).thenReturn(project);
         when(eventMapper.selectById(eventId)).thenReturn(event);
         when(athleteMapper.selectOne(any())).thenReturn(athlete);
+        when(registrationMapper.lockAthleteRowForEvent(userId, eventId)).thenReturn(11L);
         doReturn(rejected).when(registrationService).getOne(any());
         when(registrationMapper.countActiveByUserAndEvent(userId, eventId)).thenReturn(0);
         when(projectMapper.incrementAttendance(projectId, 20)).thenReturn(1);
@@ -339,6 +370,56 @@ class RegistrationServiceImplTest {
         verify(registrationService).updateById(argThat(registration ->
                 registration.getId().equals(5L) && registration.getRegistrationStatus() == RegistrationStatus.PENDING));
         verify(registrationService, never()).save(any(Registration.class));
+        BaseContext.removeCurrentId();
+    }
+
+    @Test
+    void addShouldFailWhenAthleteRowLockMissing() throws InterruptedException {
+        Long userId = 8L;
+        Long projectId = 9L;
+        Long eventId = 1L;
+        BaseContext.setCurrentId(userId);
+
+        User user = new User();
+        user.setId(userId);
+        user.setStatus(UserStatus.ACTIVE);
+        user.setUserType(UserRole.ATHLETE);
+
+        Event event = new Event();
+        event.setId(eventId);
+        event.setEventStatus(EventStatus.OPEN);
+        event.setSchoolId(1L);
+        event.setRegistrationStartTime(new Date(System.currentTimeMillis() - 60000));
+        event.setRegistrationEndTime(new Date(System.currentTimeMillis() + 60000));
+        event.setMaxItemsPerAthlete(1);
+
+        Project project = new Project();
+        project.setId(projectId);
+        project.setEventId(eventId);
+        project.setMaxAttendance(10);
+
+        Athlete athlete = new Athlete();
+        athlete.setUserId(userId);
+        athlete.setEventId(eventId);
+        athlete.setAthleteState(AthleteStatus.APPROVED);
+
+        when(redissonClient.getBucket(anyString())).thenReturn(idempotencyBucket);
+        when(idempotencyBucket.trySet(eq("1"), eq(5L), eq(TimeUnit.SECONDS))).thenReturn(true);
+        when(redissonClient.getLock(anyString())).thenReturn(registrationLock);
+        when(registrationLock.tryLock(eq(5L), eq(10L), eq(TimeUnit.SECONDS))).thenReturn(true);
+
+        when(userMapper.selectById(userId)).thenReturn(user);
+        when(projectMapper.selectById(projectId)).thenReturn(project);
+        when(eventMapper.selectById(eventId)).thenReturn(event);
+        when(athleteMapper.selectOne(any())).thenReturn(athlete);
+        when(registrationMapper.lockAthleteRowForEvent(userId, eventId)).thenReturn(null);
+        registrationService.setApplicationContext(applicationContext);
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> registrationService.add(projectId));
+        assertEquals("运动员记录不存在，请先完善本赛事信息", ex.getMessage());
+
+        verify(registrationMapper, never()).countActiveByUserAndEvent(any(), any());
+        verify(projectMapper, never()).incrementAttendance(any(), any());
         BaseContext.removeCurrentId();
     }
 }

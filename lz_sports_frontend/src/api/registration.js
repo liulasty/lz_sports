@@ -8,19 +8,17 @@ export function getRegistrationList(params) {
   })
 }
 
-export function approveRegistration(id, eventId) {
+export function approveRegistration(id) {
   return request({
     url: `/registration/attend/${id}`,
-    method: 'put',
-    params: { eventId }
+    method: 'put'
   })
 }
 
-export function refuseRegistration(id, eventId) {
+export function refuseRegistration(id) {
   return request({
     url: `/registration/refuse/${id}`,
-    method: 'put',
-    params: { eventId }
+    method: 'put'
   })
 }
 
@@ -38,12 +36,12 @@ export function cancelRegistration(id) {
   }, '取消报名')
 }
 
-export function batchAuditRegistration(ids, approve, eventId) {
+export function batchAuditRegistration(ids, approve) {
   return request({
     url: '/registration/batch-audit',
     method: 'put',
     data: ids,
-    params: { approve, eventId }
+    params: { approve }
   })
 }
 

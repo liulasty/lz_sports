@@ -23,7 +23,9 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 权限校验切面
@@ -63,8 +65,6 @@ public class PermissionAspect {
 
     /**
      * 校验赛事管理员权限
-     * 需要从请求参数中获取 eventId，约定参数名为 eventId 或 id（如果是路径参数需额外处理，此处简化假设为 Query/Body 参数或 DTO）
-     * 暂时只支持从 URL Query 或 Body 第一层字段获取，复杂场景需扩展
      */
     @Before("@annotation(requireEventAdmin)")
     public void checkEventAdmin(JoinPoint joinPoint, RequireEventAdmin requireEventAdmin) {
@@ -129,6 +129,16 @@ public class PermissionAspect {
             }
         }
 
+        Long eventIdFromRegistrationIdArg = resolveEventIdFromRegistrationIdArg(parameterNames, args);
+        if (eventIdFromRegistrationIdArg != null) {
+            return eventIdFromRegistrationIdArg;
+        }
+
+        Long eventIdFromRegistrationAuditArgs = resolveEventIdFromRegistrationAuditArgs(signature, parameterNames, args);
+        if (eventIdFromRegistrationAuditArgs != null) {
+            return eventIdFromRegistrationAuditArgs;
+        }
+
         for (Object arg : args) {
             if (arg == null) {
                 continue;
@@ -167,6 +177,88 @@ public class PermissionAspect {
         return null;
     }
 
+    private Long resolveEventIdFromRegistrationIdArg(String[] parameterNames, Object[] args) {
+        for (int i = 0; i < args.length; i++) {
+            Object arg = args[i];
+            String parameterName = parameterNames != null && parameterNames.length > i ? parameterNames[i] : null;
+            if (!"registrationId".equals(parameterName) || arg == null) {
+                continue;
+            }
+            Long registrationId = null;
+            if (arg instanceof Long) {
+                registrationId = (Long) arg;
+            } else if (arg instanceof String str && str.matches("\\d+")) {
+                registrationId = Long.valueOf(str);
+            }
+            if (registrationId != null) {
+                Registration registration = registrationMapper.selectById(registrationId);
+                if (registration != null) {
+                    return registration.getEventId();
+                }
+            }
+        }
+        return null;
+    }
+
+    private Long resolveEventIdFromRegistrationAuditArgs(MethodSignature signature, String[] parameterNames, Object[] args) {
+        String methodName = signature.getMethod().getName();
+        if ("attend".equals(methodName) || "refuse".equals(methodName)) {
+            for (int i = 0; i < args.length; i++) {
+                String parameterName = parameterNames != null && parameterNames.length > i ? parameterNames[i] : null;
+                Object arg = args[i];
+                if (!"id".equals(parameterName) || arg == null) {
+                    continue;
+                }
+                Long registrationId = null;
+                if (arg instanceof Long) {
+                    registrationId = (Long) arg;
+                } else if (arg instanceof String str && str.matches("\\d+")) {
+                    registrationId = Long.valueOf(str);
+                }
+                if (registrationId == null) {
+                    continue;
+                }
+                Registration registration = registrationMapper.selectById(registrationId);
+                if (registration != null) {
+                    return registration.getEventId();
+                }
+            }
+        }
+        if ("batchAudit".equals(methodName)) {
+            Set<Long> eventIds = new HashSet<>();
+            for (int i = 0; i < args.length; i++) {
+                String parameterName = parameterNames != null && parameterNames.length > i ? parameterNames[i] : null;
+                Object arg = args[i];
+                if (!"ids".equals(parameterName) || !(arg instanceof List<?> idList)) {
+                    continue;
+                }
+                for (Object idValue : idList) {
+                    Long registrationId = null;
+                    if (idValue instanceof Long) {
+                        registrationId = (Long) idValue;
+                    } else if (idValue instanceof String str && str.matches("\\d+")) {
+                        registrationId = Long.valueOf(str);
+                    }
+                    if (registrationId == null) {
+                        continue;
+                    }
+                    Registration registration = registrationMapper.selectById(registrationId);
+                    if (registration == null || registration.getEventId() == null) {
+                        continue;
+                    }
+                    eventIds.add(registration.getEventId());
+                }
+            }
+            if (eventIds.size() > 1) {
+                throw new BusinessException("批量审核包含多个赛事，无法验证权限", 400);
+            }
+            if (eventIds.size() == 1) {
+                return eventIds.iterator().next();
+            }
+        }
+        return null;
+    }
+
     private Long resolveEventIdFromRequest() {
         try {
             ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
@@ -175,9 +267,6 @@ public class PermissionAspect {
             }
             HttpServletRequest request = attributes.getRequest();
             String eventIdStr = request.getParameter("eventId");
-            if (eventIdStr == null) {
-                eventIdStr = request.getParameter("id");
-            }
             if (eventIdStr != null && eventIdStr.matches("\\d+")) {
                 return Long.valueOf(eventIdStr);
             }
