@@ -33,12 +33,12 @@ public interface RegistrationService extends IService<Registration> {
     /**
      * 同意报名
      */
-    void approve(Long id);
+    void approve(Long id, Long eventId);
 
     /**
      * 拒绝报名
      */
-    void refuse(Long id);
+    void refuse(Long id, Long eventId);
 
     /**
      * 删除报名记录
@@ -47,7 +47,7 @@ public interface RegistrationService extends IService<Registration> {
 
     void cancel(Long id);
 
-    String batchAudit(List<Long> ids, boolean approve);
+    String batchAudit(List<Long> ids, boolean approve, Long eventId);
 
     /**
      * 提交报名

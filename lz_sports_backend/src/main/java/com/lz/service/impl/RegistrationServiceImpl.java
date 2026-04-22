@@ -331,9 +331,12 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void approve(Long id) {
+    public void approve(Long id, Long eventId) {
         Registration r = getById(id);
         if (r == null) throw new BusinessException("报名记录不存在");
+        if (!r.getEventId().equals(eventId)) {
+            throw new BusinessException("非法操作：报名记录不属于当前赛事", 403);
+        }
         if (r.getRegistrationStatus() != RegistrationStatus.PENDING) {
             throw new BusinessException("已审核的申请不可重复审核");
         }
@@ -344,9 +347,12 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void refuse(Long id) {
+    public void refuse(Long id, Long eventId) {
         Registration r = getById(id);
         if (r == null) throw new BusinessException("报名记录不存在");
+        if (!r.getEventId().equals(eventId)) {
+            throw new BusinessException("非法操作：报名记录不属于当前赛事", 403);
+        }
         if (r.getRegistrationStatus() != RegistrationStatus.PENDING) {
             throw new BusinessException("已审核的申请不可重复审核");
         }
