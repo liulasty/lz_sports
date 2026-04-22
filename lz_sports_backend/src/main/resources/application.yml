@@ -129,7 +129,7 @@ app:
 # ==============================================================================
 logging:
   file:
-    path: ${APP_LOG_DIR:/app/logs/gaode_demo}  # 日志文件存储目录
+    path: ${APP_LOG_DIR:/app/logs/lz_sports_demo}  # 日志文件存储目录
   logback:
     rollingpolicy:
       max-file-size: 100MB  # 单个日志文件最大大小

@@ -240,6 +240,14 @@
                 <span>失败 <strong>{{ importResult.failCount }}</strong> 条</span>
               </div>
             </div>
+            <div class="project-stat-wrap" v-if="importResult.projectStats && importResult.projectStats.length">
+              <div class="failure-table-title">按项目导入统计</div>
+              <el-table :data="importResult.projectStats" max-height="180" class="failure-table" border>
+                <el-table-column prop="itemName" label="项目" min-width="140" />
+                <el-table-column prop="successCount" label="成功" width="90" />
+                <el-table-column prop="failCount" label="失败" width="90" />
+              </el-table>
+            </div>
             <div v-if="importResult.failCount > 0" class="result-guidance">
               <template v-if="importResult.mode === 'STRICT'">
                 严格模式下出现失败时，本次不会写入任何成绩。请根据下方失败明细修复 Excel 后重新导入。
@@ -250,9 +258,13 @@
             </div>
 
             <div class="failure-table-wrap" v-if="importResult.failures && importResult.failures.length">
-              <div class="failure-table-title">失败明细</div>
+              <div class="failure-table-head">
+                <div class="failure-table-title">失败明细</div>
+                <el-button link type="primary" @click="downloadFailureDetails">下载失败明细</el-button>
+              </div>
               <el-table :data="importResult.failures" max-height="200" class="failure-table" border>
                 <el-table-column prop="rowNumber" label="行号" width="80" />
+                <el-table-column prop="itemName" label="项目" min-width="140" />
                 <el-table-column prop="reason" label="失败原因" />
               </el-table>
             </div>
@@ -332,7 +344,8 @@ const setRowSaving = (registrationId, value) => {
 const isRowSaving = (registrationId) => Boolean(rowSavingMap.value?.[registrationId])
 
 const downloadBlob = (data, filename) => {
-  const url = window.URL.createObjectURL(new Blob([data]))
+  const blob = data instanceof Blob ? data : new Blob([data])
+  const url = window.URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
   link.setAttribute('download', filename)
@@ -340,6 +353,18 @@ const downloadBlob = (data, filename) => {
   link.click()
   document.body.removeChild(link)
   window.URL.revokeObjectURL(url)
+}
+
+const downloadBase64Csv = (base64Content, fileName) => {
+  if (!base64Content) return
+  const binary = window.atob(base64Content)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i)
+  }
+  const bom = new Uint8Array([0xEF, 0xBB, 0xBF])
+  const blob = new Blob([bom, bytes], { type: 'text/csv;charset=utf-8;' })
+  downloadBlob(blob, fileName || 'score-import-failures.csv')
 }
 
 const getRowClass = ({ row }) => (row.isPublished ? 'row-published' : '')
@@ -510,6 +535,14 @@ const exportScores = async () => {
   }
   const res = await exportScore(query.eventId)
   downloadBlob(res, '成绩表.xlsx')
+}
+
+const downloadFailureDetails = () => {
+  if (!importResult.value?.failureDetailCsvBase64) {
+    ElMessage.warning('当前没有可下载的失败明细')
+    return
+  }
+  downloadBase64Csv(importResult.value.failureDetailCsvBase64, importResult.value.failureDetailFileName)
 }
 
 const handleUpload = async (options) => {
@@ -1044,6 +1077,13 @@ onMounted(() => {
   font-size: 12px;
   font-weight: 600;
   color: var(--el-text-color-secondary);
+  margin-bottom: 6px;
+}
+
+.failure-table-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 6px;
 }
 

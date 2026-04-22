@@ -4,17 +4,17 @@
       <div class="hero-main">
         <p class="ps-eyebrow">PUBLIC RESULTS</p>
         <h1 class="ps-title">公开成绩榜</h1>
-        <p class="ps-sub">展示各赛事已正式发布成绩，按项目分组；未发布成绩不会出现在此页面。</p>
+        <p class="ps-sub">先选赛事，再选项目查看成绩，符合现场复核时“赛事到项目”的查阅习惯。</p>
         <div class="hero-tags">
           <span class="hero-tag">公开可见</span>
-          <span class="hero-tag">自动更新</span>
-          <span class="hero-tag">按项目分组</span>
+          <span class="hero-tag">赛事列表</span>
+          <span class="hero-tag">项目列表</span>
         </div>
       </div>
       <div class="hero-metrics">
         <div class="metric-card">
-          <p class="metric-label">项目分组</p>
-          <p class="metric-value">{{ rankingBlocks.length }}</p>
+          <p class="metric-label">赛事数量</p>
+          <p class="metric-value">{{ eventOptionCount }}</p>
         </div>
         <div class="metric-card">
           <p class="metric-label">已发布成绩</p>
@@ -23,39 +23,42 @@
       </div>
     </header>
 
-    <section class="ps-toolbar lz-surface">
-      <div class="toolbar-row">
-        <div class="toolbar-controls">
-          <SmartSelect
-            v-model="eventId"
-            :options="eventOptions"
-            placeholder="选择赛事"
-            class="event-select"
-            :loading="eventsLoading"
-            @change="onEventChange"
-          />
-          <el-button type="primary" :disabled="!eventId" :loading="rankingLoading" @click="loadRanking">
-            刷新
-          </el-button>
+    <section class="ps-workbench lz-surface">
+      <div class="workbench-header">
+        <div>
+          <h2 class="workbench-title">赛事列表</h2>
+          <p class="workbench-sub">点击赛事后自动加载其已发布项目与成绩。</p>
         </div>
         <div class="toolbar-status" :class="statusTone">
           <span class="status-dot" />
           {{ statusText }}
         </div>
       </div>
-      <p v-if="eventSummary" class="ps-hint">{{ eventSummary }}</p>
+      <div class="event-list" v-loading="eventsLoading">
+        <button
+          v-for="event in eventOptions"
+          :key="event.id"
+          type="button"
+          class="event-card"
+          :class="{ active: Number(event.id) === Number(eventId) }"
+          @click="selectEvent(event.id)"
+        >
+          <p class="event-card-title">{{ event.name || event.eventName || `赛事 #${event.id}` }}</p>
+          <p class="event-card-meta">赛事编号：{{ event.id }}</p>
+        </button>
+      </div>
     </section>
 
     <section class="ps-overview">
       <article class="overview-card">
-        <p class="overview-label">赛事池</p>
-        <p class="overview-value">{{ eventOptionCount }}</p>
-        <p class="overview-sub">可检索公开赛事总数</p>
-      </article>
-      <article class="overview-card">
         <p class="overview-label">当前项目数</p>
         <p class="overview-value">{{ activeItemCount }}</p>
         <p class="overview-sub">所选赛事已发布项目</p>
+      </article>
+      <article class="overview-card">
+        <p class="overview-label">可选项目数</p>
+        <p class="overview-value">{{ itemOptions.length }}</p>
+        <p class="overview-sub">项目列表可快速切换</p>
       </article>
       <article class="overview-card wide">
         <p class="overview-label">当前上下文</p>
@@ -68,7 +71,7 @@
       <div v-if="!eventId" class="empty-state">
         <div class="empty-icon">◇</div>
         <h3 class="empty-title">请选择赛事</h3>
-        <p class="empty-sub">从上方下拉框选择一场赛事即可查看已发布的公开成绩。</p>
+        <p class="empty-sub">从上方赛事列表点击一场赛事，即可查看它的项目成绩。</p>
       </div>
       <div v-else-if="!rankingLoading && isRankingEmpty" class="empty-state">
         <div class="empty-icon">⌁</div>
@@ -76,7 +79,19 @@
         <p class="empty-sub">该赛事可能尚未发布成绩，或管理员仍在录入中。</p>
       </div>
       <div v-else class="ranking-stack">
-        <article v-for="block in rankingBlocks" :key="block.itemName" class="item-block">
+        <div class="item-tabs">
+          <button
+            v-for="item in itemOptions"
+            :key="item"
+            type="button"
+            class="item-tab"
+            :class="{ active: item === activeItemName }"
+            @click="activeItemName = item"
+          >
+            {{ item }}
+          </button>
+        </div>
+        <article v-for="block in visibleBlocks" :key="block.itemName" class="item-block">
           <header class="item-head">
             <div>
               <span class="item-name">{{ block.itemName }}</span>
@@ -105,7 +120,6 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getPublicEventList } from '@/api/public'
 import { getPublicScores } from '@/api/score'
-import SmartSelect from '@/components/SmartSelect.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -115,6 +129,7 @@ const rankingLoading = ref(false)
 const eventOptions = ref([])
 const eventId = ref(null)
 const rankingMap = ref({})
+const activeItemName = ref('')
 
 const rankingBlocks = computed(() => {
   const m = rankingMap.value || {}
@@ -124,22 +139,20 @@ const rankingBlocks = computed(() => {
   }))
 })
 
+const itemOptions = computed(() => rankingBlocks.value.map((block) => block.itemName))
+const visibleBlocks = computed(() => {
+  if (!activeItemName.value) return rankingBlocks.value
+  return rankingBlocks.value.filter((block) => block.itemName === activeItemName.value)
+})
+
 const isRankingEmpty = computed(() => rankingBlocks.value.length === 0)
 const totalPublishedCount = computed(() => rankingBlocks.value.reduce((sum, block) => sum + block.rows.length, 0))
 const eventOptionCount = computed(() => eventOptions.value.length)
 const activeItemCount = computed(() => rankingBlocks.value.length)
 
-const eventSummary = computed(() => {
-  if (!eventId.value) return ''
-  const ev = eventOptions.value.find((e) => e.id === eventId.value)
-  if (!ev) return ''
-  const name = ev.name || ev.eventName
-  return name ? `当前赛事：${name}` : ''
-})
-
 const selectedEventName = computed(() => {
   if (!eventId.value) return '未选择赛事'
-  const ev = eventOptions.value.find((e) => e.id === eventId.value)
+  const ev = eventOptions.value.find((e) => Number(e.id) === Number(eventId.value))
   return ev?.name || ev?.eventName || `赛事 #${eventId.value}`
 })
 
@@ -172,6 +185,7 @@ const loadEvents = async () => {
 const loadRanking = async () => {
   if (!eventId.value) {
     rankingMap.value = {}
+    activeItemName.value = ''
     return
   }
   rankingLoading.value = true
@@ -179,11 +193,14 @@ const loadRanking = async () => {
     const res = await getPublicScores(eventId.value)
     if (res.code === 200) {
       rankingMap.value = res.data || {}
+      activeItemName.value = Object.keys(rankingMap.value)[0] || ''
     } else {
       rankingMap.value = {}
+      activeItemName.value = ''
     }
   } catch {
     rankingMap.value = {}
+    activeItemName.value = ''
   } finally {
     rankingLoading.value = false
   }
@@ -199,7 +216,9 @@ const syncQuery = () => {
   router.replace({ query: q })
 }
 
-const onEventChange = () => {
+const selectEvent = (id) => {
+  if (Number(eventId.value) === Number(id)) return
+  eventId.value = Number(id)
   syncQuery()
   loadRanking()
 }
@@ -238,6 +257,9 @@ watch(
 onMounted(async () => {
   await loadEvents()
   applyRouteEventId()
+  if (!eventId.value && eventOptions.value.length) {
+    eventId.value = Number(eventOptions.value[0].id)
+  }
   if (eventId.value) {
     await loadRanking()
   }
@@ -282,36 +304,23 @@ onMounted(async () => {
   gap: 20px;
   align-items: stretch;
   margin-bottom: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   padding: 24px;
   background:
     radial-gradient(circle at 86% 20%, rgba(255, 107, 53, 0.16), transparent 48%),
     linear-gradient(135deg, rgba(255, 255, 255, 0.44), rgba(255, 255, 255, 0)),
     var(--ps-surface-2);
-  border-color: color-mix(in srgb, var(--ps-border) 72%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ps-border) 72%, transparent);
   box-shadow: var(--ps-shadow);
 }
 
-.ps-hero::after {
-  content: '';
-  position: absolute;
-  inset: auto -70px -70px auto;
-  width: 210px;
-  height: 210px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 107, 53, 0.22), rgba(255, 107, 53, 0));
-  pointer-events: none;
-}
-
-.hero-main {
+.hero-main,
+.hero-metrics {
   position: relative;
   z-index: 1;
 }
 
 .hero-metrics {
-  position: relative;
-  z-index: 1;
   display: grid;
   gap: 10px;
 }
@@ -320,7 +329,6 @@ onMounted(async () => {
   border-radius: 12px;
   border: 1px solid color-mix(in srgb, var(--ps-border) 65%, transparent);
   background: color-mix(in srgb, var(--ps-surface) 84%, transparent);
-  backdrop-filter: blur(2px);
   padding: 12px 14px;
 }
 
@@ -376,7 +384,7 @@ onMounted(async () => {
   background: color-mix(in srgb, var(--ps-surface) 88%, transparent);
 }
 
-.ps-toolbar {
+.ps-workbench {
   padding: 16px 18px 14px;
   border-radius: 14px;
   border: 1px solid color-mix(in srgb, var(--ps-border) 68%, transparent);
@@ -385,24 +393,64 @@ onMounted(async () => {
   box-shadow: var(--ps-shadow);
 }
 
-.toolbar-row {
+.workbench-header {
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px;
-  align-items: center;
 }
 
-.toolbar-controls {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+.workbench-title {
+  margin: 0;
+  font-size: 17px;
+  color: var(--ps-text-primary);
 }
 
-:deep(.event-select) {
-  min-width: 280px;
-  max-width: 100%;
+.workbench-sub {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--ps-text-secondary);
+}
+
+.event-list {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.event-card {
+  text-align: left;
+  border: 1px solid color-mix(in srgb, var(--ps-border) 65%, transparent);
+  background: color-mix(in srgb, var(--ps-surface) 95%, transparent);
+  border-radius: 12px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.event-card:hover {
+  border-color: color-mix(in srgb, var(--el-color-primary) 40%, var(--ps-border));
+  transform: translateY(-1px);
+}
+
+.event-card.active {
+  border-color: color-mix(in srgb, var(--el-color-primary) 65%, var(--ps-border));
+  background: color-mix(in srgb, var(--el-color-primary) 14%, var(--ps-surface));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--el-color-primary) 28%, transparent);
+}
+
+.event-card-title {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ps-text-primary);
+  font-weight: 600;
+}
+
+.event-card-meta {
+  margin: 7px 0 0;
+  font-size: 12px;
+  color: var(--ps-text-secondary);
 }
 
 .toolbar-status {
@@ -448,21 +496,9 @@ onMounted(async () => {
 }
 
 @keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(255, 107, 53, 0.4);
-  }
-  70% {
-    box-shadow: 0 0 0 8px rgba(255, 107, 53, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(255, 107, 53, 0);
-  }
-}
-
-.ps-hint {
-  margin: 12px 0 0;
-  font-size: 13px;
-  color: var(--ps-text-secondary);
+  0% { box-shadow: 0 0 0 0 rgba(255, 107, 53, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(255, 107, 53, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 107, 53, 0); }
 }
 
 .ps-overview {
@@ -488,29 +524,10 @@ onMounted(async () => {
     );
 }
 
-.overview-label {
-  margin: 0;
-  font-size: 12px;
-  color: var(--ps-text-secondary);
-}
-
-.overview-value {
-  margin: 7px 0 2px;
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--ps-text-primary);
-}
-
-.overview-value.text {
-  font-size: 16px;
-  line-height: 1.35;
-}
-
-.overview-sub {
-  margin: 0;
-  font-size: 12px;
-  color: var(--ps-text-secondary);
-}
+.overview-label { margin: 0; font-size: 12px; color: var(--ps-text-secondary); }
+.overview-value { margin: 7px 0 2px; font-size: 24px; font-weight: 700; color: var(--ps-text-primary); }
+.overview-value.text { font-size: 16px; line-height: 1.35; }
+.overview-sub { margin: 0; font-size: 12px; color: var(--ps-text-secondary); }
 
 .ps-body {
   padding: 14px;
@@ -520,13 +537,30 @@ onMounted(async () => {
   box-shadow: var(--ps-shadow);
 }
 
-.lz-surface {
-  background: var(--ps-surface);
+.lz-surface { background: var(--ps-surface); }
+.ranking-stack { display: grid; gap: 20px; }
+
+.item-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: -6px;
 }
 
-.ranking-stack {
-  display: grid;
-  gap: 20px;
+.item-tab {
+  border: 1px solid color-mix(in srgb, var(--ps-border) 64%, transparent);
+  background: color-mix(in srgb, var(--ps-surface) 96%, transparent);
+  color: var(--ps-text-secondary);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.item-tab.active {
+  background: color-mix(in srgb, var(--el-color-primary) 18%, var(--ps-surface));
+  border-color: color-mix(in srgb, var(--el-color-primary) 56%, var(--ps-border));
+  color: var(--ps-text-primary);
 }
 
 .item-block {
@@ -534,7 +568,6 @@ onMounted(async () => {
   border-radius: 12px;
   border: 1px solid color-mix(in srgb, var(--ps-border) 60%, transparent);
   background: color-mix(in srgb, var(--ps-surface) 90%, var(--el-color-primary) 2%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 .item-head {
@@ -546,18 +579,8 @@ onMounted(async () => {
   border-bottom: 1px solid color-mix(in srgb, var(--ps-border) 55%, transparent);
 }
 
-.item-name {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--ps-text-primary);
-}
-
-.item-sub {
-  margin: 6px 0 0;
-  font-size: 12px;
-  color: var(--ps-text-secondary);
-}
-
+.item-name { font-size: 16px; font-weight: 700; color: var(--ps-text-primary); }
+.item-sub { margin: 6px 0 0; font-size: 12px; color: var(--ps-text-secondary); }
 .item-count {
   font-size: 12px;
   color: #ffc4ac;
@@ -567,28 +590,10 @@ onMounted(async () => {
   background: rgba(255, 107, 53, 0.1);
 }
 
-.empty-state {
-  text-align: center;
-  padding: 48px 16px;
-}
-
-.empty-icon {
-  font-size: 32px;
-  color: var(--ps-text-placeholder);
-  margin-bottom: 12px;
-}
-
-.empty-title {
-  margin: 0 0 8px;
-  font-size: 18px;
-  color: var(--ps-text-primary);
-}
-
-.empty-sub {
-  margin: 0;
-  font-size: 14px;
-  color: var(--ps-text-secondary);
-}
+.empty-state { text-align: center; padding: 48px 16px; }
+.empty-icon { font-size: 32px; color: var(--ps-text-placeholder); margin-bottom: 12px; }
+.empty-title { margin: 0 0 8px; font-size: 18px; color: var(--ps-text-primary); }
+.empty-sub { margin: 0; font-size: 14px; color: var(--ps-text-secondary); }
 
 .rank-pill {
   display: inline-block;
@@ -600,22 +605,11 @@ onMounted(async () => {
   background: color-mix(in srgb, var(--ps-surface) 80%, #94a3b8 20%);
 }
 
-.rank-pill.top1 {
-  color: #fde68a;
-  background: rgba(250, 204, 21, 0.12);
-}
+.rank-pill.top1 { color: #fde68a; background: rgba(250, 204, 21, 0.12); }
+.rank-pill.top2 { color: #e5e7eb; background: rgba(156, 163, 175, 0.15); }
+.rank-pill.top3 { color: #fdba74; background: rgba(234, 88, 12, 0.12); }
 
-.rank-pill.top2 {
-  color: #e5e7eb;
-  background: rgba(156, 163, 175, 0.15);
-}
-
-.rank-pill.top3 {
-  color: #fdba74;
-  background: rgba(234, 88, 12, 0.12);
-}
-
-::deep(.ps-table) {
+:deep(.ps-table) {
   --el-table-bg-color: transparent;
   --el-table-tr-bg-color: transparent;
   --el-table-header-bg-color: color-mix(in srgb, var(--ps-surface) 80%, #dbe3f1 20%);
@@ -624,23 +618,19 @@ onMounted(async () => {
   --el-table-row-hover-bg-color: color-mix(in srgb, var(--ps-surface) 78%, #eef3fb 22%);
 }
 
-::deep(.ps-table th.el-table__cell) {
+:deep(.ps-table th.el-table__cell) {
   color: var(--ps-text-secondary);
   font-weight: 600;
   border-bottom-color: color-mix(in srgb, var(--ps-border) 45%, transparent) !important;
 }
 
-::deep(.ps-table td.el-table__cell) {
+:deep(.ps-table td.el-table__cell) {
   border-bottom-color: color-mix(in srgb, var(--ps-border) 30%, transparent) !important;
 }
 
-:global(html.dark) .item-block {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
-}
-
-:global(html.dark) .ps-toolbar,
+:global(html.dark) .ps-workbench,
 :global(html.dark) .ps-body,
-:global([data-theme="dark"]) .ps-toolbar,
+:global([data-theme="dark"]) .ps-workbench,
 :global([data-theme="dark"]) .ps-body {
   box-shadow: none;
 }
@@ -672,61 +662,21 @@ onMounted(async () => {
     var(--ps-surface-2);
 }
 
-::deep(.ps-table .el-table__inner-wrapper::before) {
-  display: none;
-}
+:deep(.ps-table .el-table__inner-wrapper::before) { display: none; }
 
 @media (max-width: 900px) {
-  .ps-hero {
-    grid-template-columns: 1fr;
-    padding: 18px;
-  }
-
-  .hero-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .ps-overview {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .overview-card.wide {
-    grid-column: 1 / -1;
-  }
+  .ps-hero { grid-template-columns: 1fr; padding: 18px; }
+  .hero-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ps-overview { grid-template-columns: 1fr 1fr; }
+  .overview-card.wide { grid-column: 1 / -1; }
 }
 
 @media (max-width: 640px) {
-  .page-shell {
-    padding: 14px;
-  }
-
-  .ps-title {
-    font-size: 24px;
-  }
-
-  .hero-metrics {
-    grid-template-columns: 1fr;
-  }
-
-  .ps-overview {
-    grid-template-columns: 1fr;
-  }
-
-  .event-select {
-    width: 100%;
-    min-width: 0;
-  }
-
-  .toolbar-row {
-    align-items: stretch;
-  }
-
-  .toolbar-controls {
-    width: 100%;
-  }
-
-  .toolbar-status {
-    align-self: flex-start;
-  }
+  .page-shell { padding: 14px; }
+  .ps-title { font-size: 24px; }
+  .hero-metrics,
+  .ps-overview { grid-template-columns: 1fr; }
+  .toolbar-status { align-self: flex-start; }
+  .event-list { grid-template-columns: 1fr; }
 }
 </style>

@@ -155,6 +155,12 @@ When working on matching files, follow that rule automatically.
 - **Fix applied**: Deleted obsolete page-level select overrides and consolidated option sizing behavior inside `SmartSelect`.
 - **Reusable rule**: After component migration, always run a second cleanup pass to remove dead selectors and centralize style ownership.
 
+### 2026-04 Public scores list-first flow
+- **Issue observed**: Public scores interaction depended on a top dropdown, which felt like a form filter rather than an operational browse flow.
+- **Root cause**: Primary navigation object (event -> item) was hidden inside a select control instead of explicit list affordances.
+- **Fix applied**: Replaced event dropdown with clickable event cards and added item-tab list for second-level navigation before table details.
+- **Reusable rule**: For sequential lookup tasks (A -> B -> details), expose each level as visible list controls instead of nested form selects.
+
 ## Additional Resources
 
 - Usage examples: [examples.md](examples.md)

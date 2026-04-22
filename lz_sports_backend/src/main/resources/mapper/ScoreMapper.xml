@@ -14,7 +14,7 @@
             COALESCE(g.dept_name, g.class_name, g.major, g.college, '') as deptName,
             s.score_value as scoreValue,
             s.score_rank as scoreRank,
-            s.remark as remark,
+            NULL as remark,
             s.is_published as isPublished,
             s.create_time as createTime
         FROM result s
@@ -40,12 +40,11 @@
     </select>
 
     <insert id="upsertByRegistration">
-        INSERT INTO result (registration_id, event_id, item_id, user_id, score_value, score_rank, remark, is_published, create_time, update_time)
-        VALUES (#{registrationId}, #{eventId}, #{itemId}, #{userId}, #{scoreValue}, #{scoreRank}, #{remark}, 0, NOW(), NOW())
+        INSERT INTO result (registration_id, event_id, item_id, user_id, score_value, score_rank, is_published, create_time, update_time)
+        VALUES (#{registrationId}, #{eventId}, #{itemId}, #{userId}, #{scoreValue}, #{scoreRank}, 0, NOW(), NOW())
         ON DUPLICATE KEY UPDATE
             score_value = VALUES(score_value),
             score_rank = VALUES(score_rank),
-            remark = VALUES(remark),
             update_time = NOW()
     </insert>
 
@@ -61,7 +60,7 @@
             COALESCE(g.dept_name, g.class_name, g.major, g.college, '') as deptName,
             s.score_value as scoreValue,
             s.score_rank as scoreRank,
-            s.remark as remark,
+            NULL as remark,
             s.is_published as isPublished,
             s.create_time as createTime
         FROM result s

@@ -2,6 +2,9 @@ package com.lz.service.impl;
 
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.ExcelWriter;
+import com.alibaba.excel.write.handler.CellWriteHandler;
+import com.alibaba.excel.write.metadata.holder.WriteSheetHolder;
+import com.alibaba.excel.write.metadata.holder.WriteTableHolder;
 import com.alibaba.excel.write.metadata.WriteSheet;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -31,6 +34,7 @@ import com.lz.util.StringUtils;
 import com.lz.vo.RegistrationListExportVO;
 import com.lz.vo.ScoreExportVO;
 import com.lz.vo.ScoreImportFailureVO;
+import com.lz.vo.ScoreImportProjectStatVO;
 import com.lz.vo.ScoreImportResultVO;
 import com.lz.vo.ScoreImportVO;
 import com.lz.vo.ScoreVO;
@@ -42,6 +46,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import java.net.URLEncoder;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -50,7 +55,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Base64;
 import java.util.stream.Collectors;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
+import org.apache.poi.ss.usermodel.IndexedColors;
+import org.apache.poi.ss.usermodel.VerticalAlignment;
 
 @Service
 @Slf4j
@@ -155,14 +168,16 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
         ScoreImportResultVO result = new ScoreImportResultVO();
         result.setMode(resolvedMode);
         result.setAllOrNothing(strictMode);
+        Map<String, int[]> projectCounter = new LinkedHashMap<>();
         try (var inputStream = file.getInputStream()) {
             List<ScoreImportVO> rows = EasyExcel.read(inputStream).head(ScoreImportVO.class).sheet().doReadSync();
             if (rows == null || rows.isEmpty()) {
                 throw new BusinessException("导入文件中没有可用数据", 400);
             }
             if (strictMode) {
-                validateStrictImportRows(rows, eventId, result);
+                validateStrictImportRows(rows, eventId, result, projectCounter);
                 if (result.getFailCount() > 0) {
+                    fillProjectStatsAndFailureFile(result, projectCounter);
                     return result;
                 }
                 for (ScoreImportVO row : rows) {
@@ -173,7 +188,9 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
                     dto.setRemark(row.getRemark());
                     upsertScore(dto);
                     result.setSuccessCount(result.getSuccessCount() + 1);
+                    increaseProjectSuccess(projectCounter, row.getItemName());
                 }
+                fillProjectStatsAndFailureFile(result, projectCounter);
                 return result;
             }
             Set<Long> seenRegistrationIds = new HashSet<>();
@@ -192,18 +209,21 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
                     dto.setRemark(row.getRemark());
                     upsertScore(dto);
                     result.setSuccessCount(result.getSuccessCount() + 1);
+                    increaseProjectSuccess(projectCounter, row.getItemName());
                 } catch (Exception e) {
                     result.setFailCount(result.getFailCount() + 1);
-                    result.getFailures().add(new ScoreImportFailureVO(rowNumber, e.getMessage()));
+                    result.getFailures().add(new ScoreImportFailureVO(rowNumber, row.getItemName(), e.getMessage()));
+                    increaseProjectFailure(projectCounter, row.getItemName());
                 }
             }
         } catch (IOException e) {
             throw new BusinessException("Excel导入失败", 400);
         }
+        fillProjectStatsAndFailureFile(result, projectCounter);
         return result;
     }
 
-    private void validateStrictImportRows(List<ScoreImportVO> rows, Long eventId, ScoreImportResultVO result) {
+    private void validateStrictImportRows(List<ScoreImportVO> rows, Long eventId, ScoreImportResultVO result, Map<String, int[]> projectCounter) {
         Set<Long> seenRegistrationIds = new HashSet<>();
         int rowNumber = 1;
         for (ScoreImportVO row : rows) {
@@ -215,7 +235,8 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
                 validateImportRow(row, eventId);
             } catch (Exception e) {
                 result.setFailCount(result.getFailCount() + 1);
-                result.getFailures().add(new ScoreImportFailureVO(rowNumber, e.getMessage()));
+                result.getFailures().add(new ScoreImportFailureVO(rowNumber, row.getItemName(), e.getMessage()));
+                increaseProjectFailure(projectCounter, row.getItemName());
             }
         }
     }
@@ -229,6 +250,39 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
             throw new BusinessException("导入模式仅支持 BEST_EFFORT 或 STRICT", 400);
         }
         return normalized;
+    }
+
+    private void increaseProjectSuccess(Map<String, int[]> projectCounter, String itemName) {
+        String key = StringUtils.isBlank(itemName) ? "未识别项目" : itemName.trim();
+        projectCounter.computeIfAbsent(key, ignored -> new int[2])[0]++;
+    }
+
+    private void increaseProjectFailure(Map<String, int[]> projectCounter, String itemName) {
+        String key = StringUtils.isBlank(itemName) ? "未识别项目" : itemName.trim();
+        projectCounter.computeIfAbsent(key, ignored -> new int[2])[1]++;
+    }
+
+    private void fillProjectStatsAndFailureFile(ScoreImportResultVO result, Map<String, int[]> projectCounter) {
+        result.setProjectStats(projectCounter.entrySet().stream()
+                .map(entry -> new ScoreImportProjectStatVO(entry.getKey(), entry.getValue()[0], entry.getValue()[1]))
+                .toList());
+        if (result.getFailures() == null || result.getFailures().isEmpty()) {
+            return;
+        }
+        String csvHeader = "行号,项目,失败原因\n";
+        String csvRows = result.getFailures().stream()
+                .map(item -> item.getRowNumber() + ",\"" + escapeCsv(item.getItemName()) + "\",\"" + escapeCsv(item.getReason()) + "\"")
+                .collect(Collectors.joining("\n"));
+        String csv = csvHeader + csvRows;
+        result.setFailureDetailFileName("score-import-failures-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + ".csv");
+        result.setFailureDetailCsvBase64(Base64.getEncoder().encodeToString(csv.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    private String escapeCsv(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replace("\"", "\"\"");
     }
 
     @Override
@@ -432,7 +486,9 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
             try {
                 int index = 0;
                 for (Map.Entry<String, List<ScoreImportVO>> entry : grouped.entrySet()) {
-                    WriteSheet sheet = EasyExcel.writerSheet(index++, entry.getKey()).build();
+                    WriteSheet sheet = EasyExcel.writerSheet(index++, entry.getKey())
+                            .registerWriteHandler(new TemplateReadonlyColumnStyleHandler())
+                            .build();
                     writer.write(entry.getValue(), sheet);
                 }
             } finally {
@@ -469,5 +525,34 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
             vo.setPublishedAt(score.getPublishedAt());
             return vo;
         }).collect(Collectors.toList());
+    }
+
+    private static class TemplateReadonlyColumnStyleHandler implements CellWriteHandler {
+        private static final int INPUT_COLUMN_END_INDEX = 2;
+        private CellStyle readonlyCellStyle;
+
+        @Override
+        public void afterCellDispose(WriteSheetHolder writeSheetHolder, WriteTableHolder writeTableHolder, List<com.alibaba.excel.metadata.data.WriteCellData<?>> cellDataList, Cell cell, com.alibaba.excel.metadata.Head head, Integer relativeRowIndex, Boolean isHead) {
+            if (Boolean.TRUE.equals(isHead) || cell == null || cell.getColumnIndex() <= INPUT_COLUMN_END_INDEX) {
+                return;
+            }
+            if (readonlyCellStyle == null) {
+                readonlyCellStyle = buildReadonlyCellStyle(cell);
+            }
+            cell.setCellStyle(readonlyCellStyle);
+        }
+
+        private CellStyle buildReadonlyCellStyle(Cell cell) {
+            CellStyle style = cell.getSheet().getWorkbook().createCellStyle();
+            style.cloneStyleFrom(cell.getCellStyle());
+            style.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+            style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            style.setAlignment(HorizontalAlignment.LEFT);
+            style.setVerticalAlignment(VerticalAlignment.CENTER);
+            Font font = cell.getSheet().getWorkbook().createFont();
+            font.setColor(IndexedColors.GREY_50_PERCENT.getIndex());
+            style.setFont(font);
+            return style;
+        }
     }
 }

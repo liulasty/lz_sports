@@ -5,8 +5,8 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class ScoreImportFailureVO {
-    private Integer rowNumber;
+public class ScoreImportProjectStatVO {
     private String itemName;
-    private String reason;
+    private Integer successCount;
+    private Integer failCount;
 }
