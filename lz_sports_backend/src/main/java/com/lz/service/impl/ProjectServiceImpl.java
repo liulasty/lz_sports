@@ -7,15 +7,19 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lz.common.context.BaseContext;
 import com.lz.common.enums.ProjectCategory;
 import com.lz.common.enums.GenderLimit;
+import com.lz.common.enums.EventStatus;
+import com.lz.common.enums.RegistrationStatus;
 import com.lz.common.exception.BusinessException;
 import com.lz.common.result.PageResult;
 import com.lz.dto.EventListDTO;
 import com.lz.dto.ProjectDTO;
 import com.lz.entity.*;
+import com.lz.mapper.AthleteMapper;
 import com.lz.mapper.EventMapper;
 import com.lz.mapper.ProjectMapper;
 import com.lz.mapper.RegistrationMapper;
 import com.lz.mapper.ScoreMapper;
+import com.lz.mapper.UserMapper;
 import com.lz.service.ProjectService;
 import com.lz.vo.ProjectVO;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +46,8 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
     private final EventMapper eventMapper;
     private final RegistrationMapper registrationMapper;
     private final ScoreMapper scoreMapper;
+    private final UserMapper userMapper;
+    private final AthleteMapper athleteMapper;
 
     @SuppressWarnings("unchecked")
     @Override
@@ -233,6 +239,10 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
         if (event == null) {
             throw new BusinessException("赛事不存在");
         }
+        validateUpdateByEventStatus(event, projectDTO);
+        validateMaxAttendanceUpdate(project, projectDTO);
+        validateRestrictionUpdate(project, projectDTO, event.getId());
+
         if (projectDTO.getName() != null) {
             project.setItemName(projectDTO.getName());
         }
@@ -275,6 +285,106 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
         }
         project.setUpdateTime(java.time.LocalDateTime.now());
         updateById(project);
+    }
+
+    private void validateUpdateByEventStatus(Event event, ProjectDTO projectDTO) {
+        EventStatus status = event.getEventStatus() == null ? EventStatus.DRAFT : event.getEventStatus();
+        if (status == EventStatus.DRAFT) {
+            return;
+        }
+
+        boolean hasKeyFieldUpdate = projectDTO.getMaxAttendance() != null
+                || (projectDTO.getLimitation() != null && !projectDTO.getLimitation().isEmpty())
+                || projectDTO.getLimitDeptIds() != null
+                || (projectDTO.getStartTime() != null && !projectDTO.getStartTime().isEmpty())
+                || (projectDTO.getEndTime() != null && !projectDTO.getEndTime().isEmpty());
+        if (hasKeyFieldUpdate) {
+            throw new BusinessException("非DRAFT状态禁止修改项目关键字段");
+        }
+    }
+
+    private void validateMaxAttendanceUpdate(Project project, ProjectDTO projectDTO) {
+        if (projectDTO.getMaxAttendance() == null) {
+            return;
+        }
+        if (projectDTO.getMaxAttendance() < project.getAttendance()) {
+            throw new BusinessException("最大名额不能小于当前已报名人数");
+        }
+    }
+
+    private void validateRestrictionUpdate(Project project, ProjectDTO projectDTO, Long eventId) {
+        if (!hasRestrictionFieldUpdate(projectDTO)) {
+            return;
+        }
+
+        GenderLimit newLimit = resolveNewGenderLimit(project, projectDTO);
+        List<Long> newDeptLimitIds = resolveNewDeptLimitIds(projectDTO, project.getLimitDeptIds());
+        List<Registration> activeRegistrations = registrationMapper.selectList(new LambdaQueryWrapper<Registration>()
+                .eq(Registration::getItemId, project.getId())
+                .notIn(Registration::getRegistrationStatus, RegistrationStatus.CANCELLED, RegistrationStatus.REJECTED));
+
+        for (Registration registration : activeRegistrations) {
+            Athlete athlete = athleteMapper.selectOne(new LambdaQueryWrapper<Athlete>()
+                    .eq(Athlete::getEventId, eventId)
+                    .eq(Athlete::getUserId, registration.getAthleteId()));
+            User user = userMapper.selectById(registration.getAthleteId());
+            if (athlete == null && user == null) {
+                continue;
+            }
+
+            String gender = athlete != null ? athlete.getGender() : user.getGender();
+            Long deptId = athlete != null ? athlete.getDeptId() : user.getDeptId();
+            if (!matchesGender(gender, newLimit) || !matchesDept(deptId, newDeptLimitIds)) {
+                throw new BusinessException("存在不符条件的报名数据，禁止修改");
+            }
+        }
+    }
+
+    private boolean hasRestrictionFieldUpdate(ProjectDTO projectDTO) {
+        return (projectDTO.getLimitation() != null && !projectDTO.getLimitation().isEmpty())
+                || projectDTO.getLimitDeptIds() != null;
+    }
+
+    private GenderLimit resolveNewGenderLimit(Project project, ProjectDTO projectDTO) {
+        if (projectDTO.getLimitation() != null && !projectDTO.getLimitation().isEmpty()) {
+            return GenderLimit.valueOf(projectDTO.getLimitation());
+        }
+        return project.getLimitation() == null ? GenderLimit.ALL : project.getLimitation();
+    }
+
+    private List<Long> resolveNewDeptLimitIds(ProjectDTO projectDTO, String oldLimitDeptIds) {
+        if (projectDTO.getLimitDeptIds() != null) {
+            return projectDTO.getLimitDeptIds();
+        }
+        if (oldLimitDeptIds == null || oldLimitDeptIds.isEmpty()) {
+            return List.of();
+        }
+        try {
+            return new com.fasterxml.jackson.databind.ObjectMapper()
+                    .readValue(oldLimitDeptIds, new com.fasterxml.jackson.core.type.TypeReference<List<Long>>() {});
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
+    private boolean matchesGender(String gender, GenderLimit limit) {
+        if (limit == null || limit == GenderLimit.ALL) {
+            return true;
+        }
+        if (gender == null || gender.isBlank()) {
+            return false;
+        }
+        if (limit == GenderLimit.MALE) {
+            return "男".equals(gender) || "MALE".equalsIgnoreCase(gender);
+        }
+        return "女".equals(gender) || "FEMALE".equalsIgnoreCase(gender);
+    }
+
+    private boolean matchesDept(Long deptId, List<Long> limitDeptIds) {
+        if (limitDeptIds == null || limitDeptIds.isEmpty()) {
+            return true;
+        }
+        return deptId != null && limitDeptIds.contains(deptId);
     }
 
     private Date parseDate(String value) {
