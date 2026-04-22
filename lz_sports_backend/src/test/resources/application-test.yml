@@ -1,0 +1,28 @@
+spring:
+  security:
+    user:
+      name: test
+      password: test
+  mail:
+    host: localhost
+    port: 25
+    username: test@example.com
+    password: test
+
+# 这些是 application.yml 中使用的占位符，提供测试默认值，避免 SpringBootTest 启动失败
+MAIL_HOST: localhost
+MAIL_PORT: 25
+MAIL_USERNAME: test@example.com
+MAIL_PASSWORD: test
+JWT_SECRET: test-jwt-secret
+OSS_ACCESS_KEY_ID: test
+OSS_ACCESS_KEY_SECRET: test
+OSS_ENDPOINT: http://localhost
+OSS_BUCKET_NAME: test-bucket
+REDIS_HOST: localhost
+REDIS_PORT: 6379
+REDIS_DB: 0
+REDIS_PASSWORD: ""
+DB_URL: jdbc:mysql://localhost:3306/lz_sports?serverTimezone=GMT%2B8&characterEncoding=utf-8&useSSL=false&allowPublicKeyRetrieval=true
+DB_USERNAME: root
+DB_PASSWORD: ""
