@@ -14,6 +14,7 @@ import com.lz.entity.Registration;
 import com.lz.entity.User;
 import com.lz.mapper.AthleteMapper;
 import com.lz.mapper.EventMapper;
+import com.lz.mapper.EventAdminMappingMapper;
 import com.lz.mapper.ProjectMapper;
 import com.lz.mapper.RegistrationMapper;
 import com.lz.mapper.UserMapper;
@@ -36,7 +37,6 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.argThat;
@@ -64,6 +64,9 @@ class RegistrationServiceImplTest {
     private UserMapper userMapper;
 
     @Mock
+    private EventAdminMappingMapper eventAdminMappingMapper;
+
+    @Mock
     private NotificationService notificationService;
 
     @Mock
@@ -89,14 +92,23 @@ class RegistrationServiceImplTest {
 
     @Test
     void batchAuditShouldCountSuccessAndSkip() {
+        // Simulate an authenticated SCHOOL_ADMIN to bypass event mapping checks
+        BaseContext.setCurrentId(999L);
+        User admin = new User();
+        admin.setId(999L);
+        admin.setUserType(UserRole.SCHOOL_ADMIN);
+        when(userMapper.selectById(999L)).thenReturn(admin);
+
         Registration pending = new Registration();
         pending.setId(1L);
         pending.setAthleteId(100L);
+        pending.setEventId(1L);
         pending.setRegistrationStatus(RegistrationStatus.PENDING);
 
         Registration approved = new Registration();
         approved.setId(2L);
         approved.setAthleteId(101L);
+        approved.setEventId(1L);
         approved.setRegistrationStatus(RegistrationStatus.APPROVED);
 
         doReturn(pending).when(registrationService).getById(1L);
@@ -105,6 +117,82 @@ class RegistrationServiceImplTest {
 
         String result = registrationService.batchAudit(List.of(1L, 2L), true);
         assertEquals("已处理1条，跳过1条", result);
+
+        BaseContext.removeCurrentId();
+    }
+
+    @Test
+    void approveShouldRejectWhenEventAdminNotMappedToEvent() {
+        Long eventAdminId = 666L;
+        BaseContext.setCurrentId(eventAdminId);
+        User admin = new User();
+        admin.setId(eventAdminId);
+        admin.setUserType(UserRole.EVENT_ADMIN);
+        when(userMapper.selectById(eventAdminId)).thenReturn(admin);
+        when(eventAdminMappingMapper.selectCount(any())).thenReturn(0L);
+
+        Registration pending = new Registration();
+        pending.setId(1L);
+        pending.setAthleteId(100L);
+        pending.setEventId(2L);
+        pending.setRegistrationStatus(RegistrationStatus.PENDING);
+        doReturn(pending).when(registrationService).getById(1L);
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> registrationService.approve(1L));
+        assertEquals("您不是该赛事的管理员", ex.getMessage());
+        assertEquals(403, ex.getCode());
+
+        BaseContext.removeCurrentId();
+    }
+
+    @Test
+    void batchAuditShouldRejectWhenEventAdminNotMappedToRegistrationEvent() {
+        Long eventAdminId = 666L;
+        BaseContext.setCurrentId(eventAdminId);
+        User admin = new User();
+        admin.setId(eventAdminId);
+        admin.setUserType(UserRole.EVENT_ADMIN);
+        when(userMapper.selectById(eventAdminId)).thenReturn(admin);
+        when(eventAdminMappingMapper.selectCount(any())).thenReturn(0L);
+
+        Registration pending = new Registration();
+        pending.setId(1L);
+        pending.setAthleteId(100L);
+        pending.setEventId(2L);
+        pending.setRegistrationStatus(RegistrationStatus.PENDING);
+        doReturn(pending).when(registrationService).getById(1L);
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> registrationService.batchAudit(List.of(1L), true));
+        assertEquals("您不是该赛事的管理员", ex.getMessage());
+        assertEquals(403, ex.getCode());
+
+        BaseContext.removeCurrentId();
+    }
+
+    @Test
+    void batchAuditShouldRejectWhenPendingRegistrationsBelongToDifferentEvents() {
+        BaseContext.setCurrentId(999L);
+
+        Registration pending1 = new Registration();
+        pending1.setId(1L);
+        pending1.setAthleteId(100L);
+        pending1.setEventId(1L);
+        pending1.setRegistrationStatus(RegistrationStatus.PENDING);
+
+        Registration pending2 = new Registration();
+        pending2.setId(2L);
+        pending2.setAthleteId(101L);
+        pending2.setEventId(2L);
+        pending2.setRegistrationStatus(RegistrationStatus.PENDING);
+
+        doReturn(pending1).when(registrationService).getById(1L);
+        doReturn(pending2).when(registrationService).getById(2L);
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> registrationService.batchAudit(List.of(1L, 2L), true));
+        assertEquals("批量审核仅支持同一赛事", ex.getMessage());
+        assertEquals(400, ex.getCode());
+
+        BaseContext.removeCurrentId();
     }
 
     @Test

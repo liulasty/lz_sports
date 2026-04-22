@@ -59,6 +59,76 @@ function Try-LoginUser {
     }
 }
 
+function Read-EnvMap {
+    param([string]$Path)
+    $map = @{}
+    if (-not (Test-Path $Path)) { return $map }
+    Get-Content -Path $Path | ForEach-Object {
+        $line = $_.Trim()
+        if (-not $line -or $line.StartsWith("#")) { return }
+        $idx = $line.IndexOf("=")
+        if ($idx -lt 1) { return }
+        $map[$line.Substring(0, $idx).Trim()] = $line.Substring($idx + 1).Trim()
+    }
+    return $map
+}
+
+function Resolve-ConnectorJar {
+    $candidates = @(
+        "D:\CODE\mvn_repository\com\mysql\mysql-connector-j",
+        (Join-Path $env:USERPROFILE ".m2\repository\com\mysql\mysql-connector-j")
+    )
+    foreach ($base in $candidates) {
+        if (-not (Test-Path $base)) { continue }
+        $jar = Get-ChildItem -Path $base -Recurse -Filter "mysql-connector-j-*.jar" -File -ErrorAction SilentlyContinue |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1 -ExpandProperty FullName
+        if ($jar) { return $jar }
+    }
+    return $null
+}
+
+function Get-LatestSchoolAdminCandidates {
+    $envMap = Read-EnvMap -Path (Join-Path $root "config/.env.dev")
+    $dbUrl = $envMap["DB_URL"]
+    if (-not $dbUrl) { return @() }
+    if ($dbUrl -match "://mysql:") {
+        $dbUrl = $dbUrl -replace "://mysql:", "://localhost:"
+    }
+    $dbUser = $envMap["DB_USERNAME"]
+    if (-not $dbUser) { $dbUser = $envMap["DB_USER"] }
+    if (-not $dbUser) { return @() }
+    $dbPassword = $envMap["DB_PASSWORD"]
+    if ($null -eq $dbPassword) { $dbPassword = "" }
+
+    $connectorJar = Resolve-ConnectorJar
+    if (-not $connectorJar) { return @() }
+
+    $src = @"
+import java.sql.*;
+public class QuerySchoolAdmins {
+  public static void main(String[] args) throws Exception {
+    Class.forName("com.mysql.cj.jdbc.Driver");
+    try (Connection c = DriverManager.getConnection(args[0], args[1], args[2]);
+         PreparedStatement ps = c.prepareStatement("select username from sys_user where user_type='SCHOOL_ADMIN' and status='ACTIVE' order by id desc limit 10")) {
+      try (ResultSet rs = ps.executeQuery()) {
+        while (rs.next()) {
+          System.out.println(rs.getString(1));
+        }
+      }
+    }
+  }
+}
+"@
+    $tmp = Join-Path $env:TEMP "QuerySchoolAdmins.java"
+    Set-Content -Path $tmp -Value $src -Encoding ASCII
+    $rows = & java -cp "$connectorJar;$env:TEMP" $tmp $dbUrl $dbUser $dbPassword 2>$null
+    if ($LASTEXITCODE -ne 0 -or -not $rows) {
+        return @()
+    }
+    return @($rows | ForEach-Object { $_.ToString().Trim() } | Where-Object { $_ })
+}
+
 function Resolve-SchoolAdmin {
     $candidates = @(
         @{ username = $SchoolAdminUsername; password = $SchoolAdminPassword },
@@ -72,6 +142,10 @@ function Resolve-SchoolAdmin {
         @{ username = "init_school_admin_01"; password = "Admin12345" },
         @{ username = "init_school_admin_01"; password = "Pass12345" }
     )
+    foreach ($username in Get-LatestSchoolAdminCandidates) {
+        $candidates += @{ username = $username; password = "admin123" }
+        $candidates += @{ username = $username; password = "Admin12345" }
+    }
 
     foreach ($candidate in $candidates) {
         if (-not $candidate.username -or -not $candidate.password) { continue }

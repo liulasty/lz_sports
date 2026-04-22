@@ -23,7 +23,6 @@ import com.lz.vo.chart.TypeData;
 import com.lz.util.ImageUtils;
 import com.lz.util.StringUtils;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,14 +43,13 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements EventService {
 
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(EventServiceImpl.class);
-
     private final EventMapper eventMapper;
     private final SportsImgService sportsImgService;
     private final EventAdminMappingMapper eventAdminMappingMapper;
     private final UserMapper userMapper;
     private final ProjectMapper projectMapper;
     private final RegistrationMapper registrationMapper;
+    private final ScoreMapper scoreMapper;
     private final ImageUtils imageUtils;
     private final NotificationService notificationService;
 
@@ -324,6 +322,12 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
         }
         if (event.getEventStatus() != EventStatus.DRAFT) {
             throw new BusinessException("仅DRAFT状态赛事允许删除");
+        }
+
+        long scoreCount = scoreMapper.selectCount(new LambdaQueryWrapper<Score>()
+                .eq(Score::getEventId, id));
+        if (scoreCount > 0) {
+            throw new BusinessException("该赛事已有成绩记录，无法删除");
         }
 
         LambdaQueryWrapper<Project> projectLqw = new LambdaQueryWrapper<>();
