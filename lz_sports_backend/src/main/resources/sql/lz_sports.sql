@@ -192,6 +192,55 @@ CREATE TABLE `result` (
                           UNIQUE KEY `uk_registration` (`registration_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='鎴愮哗璁板綍琛?;
 
+/*Table structure for table `admin_user_audit_log` */
+
+DROP TABLE IF EXISTS `admin_user_audit_log`;
+
+CREATE TABLE `admin_user_audit_log` (
+                                    `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+                                    `operator_id` bigint DEFAULT NULL COMMENT '操作人ID',
+                                    `target_user_id` bigint NOT NULL COMMENT '目标用户ID',
+                                    `action` varchar(64) NOT NULL COMMENT '动作类型',
+                                    `before_role` varchar(20) DEFAULT NULL COMMENT '变更前角色',
+                                    `after_role` varchar(20) DEFAULT NULL COMMENT '变更后角色',
+                                    `before_status` varchar(20) DEFAULT NULL COMMENT '变更前状态',
+                                    `after_status` varchar(20) DEFAULT NULL COMMENT '变更后状态',
+                                    `remark` varchar(255) DEFAULT NULL COMMENT '备注',
+                                    `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                                    `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                                    PRIMARY KEY (`id`),
+                                    KEY `idx_target_user` (`target_user_id`),
+                                    KEY `idx_operator` (`operator_id`),
+                                    KEY `idx_action_time` (`action`,`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='管理端用户操作审计日志';
+
+/*Table structure for table `score_audit_log` */
+
+DROP TABLE IF EXISTS `score_audit_log`;
+
+CREATE TABLE `score_audit_log` (
+                                `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+                                `score_id` bigint NOT NULL COMMENT '成绩ID',
+                                `registration_id` bigint NOT NULL COMMENT '报名ID',
+                                `event_id` bigint NOT NULL COMMENT '赛事ID',
+                                `item_id` bigint NOT NULL COMMENT '项目ID',
+                                `athlete_id` bigint NOT NULL COMMENT '运动员ID',
+                                `operator_id` bigint DEFAULT NULL COMMENT '操作人ID',
+                                `before_score_value` varchar(50) DEFAULT NULL COMMENT '修改前成绩',
+                                `before_score_rank` int DEFAULT NULL COMMENT '修改前名次',
+                                `before_remark` varchar(255) DEFAULT NULL COMMENT '修改前备注',
+                                `after_score_value` varchar(50) DEFAULT NULL COMMENT '修改后成绩',
+                                `after_score_rank` int DEFAULT NULL COMMENT '修改后名次',
+                                `after_remark` varchar(255) DEFAULT NULL COMMENT '修改后备注',
+                                `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                                `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                                PRIMARY KEY (`id`),
+                                KEY `idx_score` (`score_id`),
+                                KEY `idx_registration` (`registration_id`),
+                                KEY `idx_event_item` (`event_id`,`item_id`),
+                                KEY `idx_operator_time` (`operator_id`,`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='成绩变更审计日志';
+
 /*Table structure for table `school_config` */
 
 DROP TABLE IF EXISTS `school_config`;

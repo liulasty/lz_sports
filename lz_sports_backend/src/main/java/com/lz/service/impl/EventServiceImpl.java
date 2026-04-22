@@ -53,7 +53,9 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
     private final ProjectMapper projectMapper;
     private final RegistrationMapper registrationMapper;
     private final ScoreMapper scoreMapper;
+    private final AthleteMapper athleteMapper;
     private final EventStatusOperationLogMapper eventStatusOperationLogMapper;
+    private final AdminUserAuditLogMapper adminUserAuditLogMapper;
     private final ImageUtils imageUtils;
     private final NotificationService notificationService;
 
@@ -412,6 +414,9 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
         mappingLqw.eq(EventAdminMapping::getEventId, id);
         eventAdminMappingMapper.delete(mappingLqw);
 
+        athleteMapper.delete(new LambdaQueryWrapper<Athlete>()
+                .eq(Athlete::getEventId, id));
+
         // Delete Images
         LambdaQueryWrapper<SportsImg> imgLqw = new LambdaQueryWrapper<>();
         imgLqw.eq(SportsImg::getTypeId, id);
@@ -749,6 +754,8 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
                 updateRoleUser.setUserType(UserRole.EVENT_ADMIN);
                 updateRoleUser.setUpdateTime(LocalDateTime.now());
                 userMapper.updateById(updateRoleUser);
+                saveRoleAuditLog(currentUserId, adminUserId, adminUser.getUserType(), UserRole.EVENT_ADMIN,
+                        "赛事管理员分配触发角色提升");
             }
 
             long mappingCount = eventAdminMappingMapper.selectCount(new LambdaQueryWrapper<EventAdminMapping>()
@@ -764,5 +771,21 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
             mapping.initTime();
             eventAdminMappingMapper.insert(mapping);
         }
+    }
+
+    private void saveRoleAuditLog(Long operatorId,
+                                  Long targetUserId,
+                                  UserRole beforeRole,
+                                  UserRole afterRole,
+                                  String remark) {
+        AdminUserAuditLog log = new AdminUserAuditLog();
+        log.setOperatorId(operatorId);
+        log.setTargetUserId(targetUserId);
+        log.setAction("ROLE_CHANGE");
+        log.setBeforeRole(beforeRole == null ? null : beforeRole.name());
+        log.setAfterRole(afterRole == null ? null : afterRole.name());
+        log.setRemark(remark);
+        log.initTime();
+        adminUserAuditLogMapper.insert(log);
     }
 }

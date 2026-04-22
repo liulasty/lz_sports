@@ -2,12 +2,15 @@ package com.lz.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lz.common.context.BaseContext;
 import com.lz.common.enums.UserRole;
 import com.lz.common.enums.UserStatus;
 import com.lz.common.exception.BusinessException;
 import com.lz.common.result.PageResult;
 import com.lz.dto.UserQueryDTO;
+import com.lz.entity.AdminUserAuditLog;
 import com.lz.entity.User;
+import com.lz.mapper.AdminUserAuditLogMapper;
 import com.lz.mapper.UserMapper;
 import com.lz.service.AdminUserService;
 import com.lz.service.SportsImgService;
@@ -30,6 +33,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final RedisUtil redisUtil;
     private final SportsImgService sportsImgService;
     private final AppConfig appConfig;
+    private final AdminUserAuditLogMapper adminUserAuditLogMapper;
 
     @Override
     public PageResult getUsers(UserQueryDTO queryDTO) {
@@ -90,8 +94,15 @@ public class AdminUserServiceImpl implements AdminUserService {
             throw new BusinessException("仅支持设置为 USER 或 EVENT_ADMIN");
         }
 
+        UserRole beforeRole = user.getUserType();
         user.setUserType(targetRole);
         userMapper.updateById(user);
+        saveAudit(user.getId(), "ROLE_CHANGE",
+                beforeRole == null ? null : beforeRole.name(),
+                targetRole.name(),
+                user.getStatus() == null ? null : user.getStatus().name(),
+                user.getStatus() == null ? null : user.getStatus().name(),
+                "管理员修改用户角色");
         
         // 角色修改后，使得旧token失效
         redisUtil.del("auth:token:" + id);
@@ -108,8 +119,15 @@ public class AdminUserServiceImpl implements AdminUserService {
             throw new BusinessException("禁止禁用超级管理员账号", 403);
         }
         
+        UserStatus beforeStatus = user.getStatus();
         user.setStatus(UserStatus.DISABLED);
         userMapper.updateById(user);
+        saveAudit(user.getId(), "STATUS_CHANGE",
+                user.getUserType() == null ? null : user.getUserType().name(),
+                user.getUserType() == null ? null : user.getUserType().name(),
+                beforeStatus == null ? null : beforeStatus.name(),
+                UserStatus.DISABLED.name(),
+                "管理员禁用用户");
         
         // 禁用后立即失效token
         redisUtil.del("auth:token:" + id);
@@ -122,7 +140,34 @@ public class AdminUserServiceImpl implements AdminUserService {
         if (user == null) {
             throw new BusinessException("用户不存在");
         }
+        UserStatus beforeStatus = user.getStatus();
         user.setStatus(UserStatus.ACTIVE);
         userMapper.updateById(user);
+        saveAudit(user.getId(), "STATUS_CHANGE",
+                user.getUserType() == null ? null : user.getUserType().name(),
+                user.getUserType() == null ? null : user.getUserType().name(),
+                beforeStatus == null ? null : beforeStatus.name(),
+                UserStatus.ACTIVE.name(),
+                "管理员启用用户");
+    }
+
+    private void saveAudit(Long targetUserId,
+                           String action,
+                           String beforeRole,
+                           String afterRole,
+                           String beforeStatus,
+                           String afterStatus,
+                           String remark) {
+        AdminUserAuditLog log = new AdminUserAuditLog();
+        log.setOperatorId(BaseContext.getCurrentId());
+        log.setTargetUserId(targetUserId);
+        log.setAction(action);
+        log.setBeforeRole(beforeRole);
+        log.setAfterRole(afterRole);
+        log.setBeforeStatus(beforeStatus);
+        log.setAfterStatus(afterStatus);
+        log.setRemark(remark);
+        log.initTime();
+        adminUserAuditLogMapper.insert(log);
     }
 }

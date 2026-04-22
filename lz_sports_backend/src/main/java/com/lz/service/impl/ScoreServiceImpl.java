@@ -22,11 +22,13 @@ import com.lz.entity.Event;
 import com.lz.entity.Project;
 import com.lz.entity.Registration;
 import com.lz.entity.Score;
+import com.lz.entity.ScoreAuditLog;
 import com.lz.entity.User;
 import com.lz.mapper.EventMapper;
 import com.lz.mapper.ProjectMapper;
 import com.lz.mapper.RegistrationMapper;
 import com.lz.mapper.ScoreMapper;
+import com.lz.mapper.ScoreAuditLogMapper;
 import com.lz.mapper.UserMapper;
 import com.lz.service.NotificationService;
 import com.lz.service.ScoreService;
@@ -77,6 +79,7 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
     private final ProjectMapper projectMapper;
     private final UserMapper userMapper;
     private final NotificationService notificationService;
+    private final ScoreAuditLogMapper scoreAuditLogMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -96,6 +99,9 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
                 dto.getScoreRank(),
                 dto.getRemark()
         );
+        if (existing != null && hasScoreChanged(existing, dto)) {
+            saveScoreAuditLog(existing, dto);
+        }
     }
 
     @Override
@@ -497,6 +503,30 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
         } catch (Exception e) {
             throw new BusinessException("导出模板失败");
         }
+    }
+
+    private boolean hasScoreChanged(Score existing, ScoreUpsertDTO dto) {
+        return !java.util.Objects.equals(existing.getScoreValue(), dto.getScoreValue())
+                || !java.util.Objects.equals(existing.getScoreRank(), dto.getScoreRank())
+                || !java.util.Objects.equals(existing.getRemark(), dto.getRemark());
+    }
+
+    private void saveScoreAuditLog(Score existing, ScoreUpsertDTO dto) {
+        ScoreAuditLog log = new ScoreAuditLog();
+        log.setScoreId(existing.getId());
+        log.setRegistrationId(existing.getRegistrationId());
+        log.setEventId(existing.getEventId());
+        log.setItemId(existing.getItemId());
+        log.setAthleteId(existing.getAthleteId());
+        log.setOperatorId(BaseContext.getCurrentId());
+        log.setBeforeScoreValue(existing.getScoreValue());
+        log.setBeforeScoreRank(existing.getScoreRank());
+        log.setBeforeRemark(existing.getRemark());
+        log.setAfterScoreValue(dto.getScoreValue());
+        log.setAfterScoreRank(dto.getScoreRank());
+        log.setAfterRemark(dto.getRemark());
+        log.initTime();
+        scoreAuditLogMapper.insert(log);
     }
 
     private List<ScoreVO> toScoreVO(List<Score> scores) {
