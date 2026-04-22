@@ -27,17 +27,6 @@ public interface ScoreMapper extends BaseMapper<Score> {
                              @Param("scoreRank") Integer scoreRank,
                              @Param("remark") String remark);
 
-    @Select("""
-            SELECT s.*
-            FROM result s
-            JOIN registration r ON r.id = s.registration_id
-            WHERE r.event_id = #{eventId}
-              AND r.user_id = #{userId}
-              AND s.is_published = 1
-            ORDER BY s.published_at DESC, s.score_rank ASC
-            """)
-    List<Score> selectMyPublished(@Param("userId") Long userId, @Param("eventId") Long eventId);
-
     List<ScoreVO> selectPublicByEvent(@Param("eventId") Long eventId);
 
     @Select("""

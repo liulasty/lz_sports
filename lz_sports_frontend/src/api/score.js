@@ -24,13 +24,14 @@ export function downloadScoreTemplate(eventId) {
   })
 }
 
-export function importScores(eventId, file) {
+export function importScores(eventId, file, mode = 'BEST_EFFORT') {
   const formData = new FormData()
   formData.append('file', file)
   return request({
     url: `/score/import/${eventId}`,
     method: 'post',
     data: formData,
+    params: { mode },
     headers: { 'Content-Type': 'multipart/form-data' }
   })
 }

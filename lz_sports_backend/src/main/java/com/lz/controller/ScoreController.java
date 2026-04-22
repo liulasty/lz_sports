@@ -78,18 +78,19 @@ public class ScoreController {
 
     @GetMapping("/template/{eventId}")
     @RequireEventAdmin
-    @Operation(summary = "下载导入模板", description = "模板包含已通过报名数据，按项目分Sheet")
+    @Operation(summary = "下载参赛名单导出模板", description = "导出已通过报名名单并预留成绩录入列，按项目分Sheet")
     public void template(@PathVariable Long eventId, HttpServletResponse response) {
         scoreService.downloadTemplate(eventId, response);
     }
 
     @PostMapping("/import/{eventId}")
     @RequireEventAdmin
-    @Operation(summary = "导入成绩", description = "管理员上传Excel文件批量导入赛事成绩")
+    @Operation(summary = "导入成绩", description = "管理员上传Excel文件批量导入赛事成绩，支持 STRICT 全量校验后一次性写入")
     public Result<ScoreImportResultVO> importScores(
             @Parameter(description = "成绩Excel文件") @RequestParam("file") MultipartFile file,
-            @Parameter(description = "赛事ID") @PathVariable Long eventId) {
-        return Result.success(scoreService.importScores(file, eventId));
+            @Parameter(description = "赛事ID") @PathVariable Long eventId,
+            @Parameter(description = "导入模式：BEST_EFFORT(默认)/STRICT") @RequestParam(required = false, defaultValue = "BEST_EFFORT") String mode) {
+        return Result.success(scoreService.importScores(file, eventId, mode));
     }
 
     @GetMapping("/export/{eventId}")

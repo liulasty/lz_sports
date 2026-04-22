@@ -27,6 +27,7 @@ import com.lz.mapper.ScoreMapper;
 import com.lz.mapper.UserMapper;
 import com.lz.service.NotificationService;
 import com.lz.service.ScoreService;
+import com.lz.util.StringUtils;
 import com.lz.vo.RegistrationListExportVO;
 import com.lz.vo.ScoreExportVO;
 import com.lz.vo.ScoreImportFailureVO;
@@ -55,6 +56,8 @@ import java.util.stream.Collectors;
 @Slf4j
 @RequiredArgsConstructor
 public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements ScoreService {
+    private static final String IMPORT_MODE_BEST_EFFORT = "BEST_EFFORT";
+    private static final String IMPORT_MODE_STRICT = "STRICT";
 
     private final RegistrationMapper registrationMapper;
     private final EventMapper eventMapper;
@@ -134,7 +137,8 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
     }
 
     @Override
-    public ScoreImportResultVO importScores(MultipartFile file, Long eventId) {
+    @Transactional(rollbackFor = Exception.class)
+    public ScoreImportResultVO importScores(MultipartFile file, Long eventId, String mode) {
         if (file == null || file.isEmpty()) {
             throw new BusinessException("上传文件不能为空", 400);
         }
@@ -146,11 +150,31 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
                 && !originalFilename.toLowerCase().endsWith(".xls"))) {
             throw new BusinessException("仅支持导入 xls/xlsx 文件", 400);
         }
+        String resolvedMode = resolveImportMode(mode);
+        boolean strictMode = IMPORT_MODE_STRICT.equals(resolvedMode);
         ScoreImportResultVO result = new ScoreImportResultVO();
+        result.setMode(resolvedMode);
+        result.setAllOrNothing(strictMode);
         try (var inputStream = file.getInputStream()) {
             List<ScoreImportVO> rows = EasyExcel.read(inputStream).head(ScoreImportVO.class).sheet().doReadSync();
             if (rows == null || rows.isEmpty()) {
                 throw new BusinessException("导入文件中没有可用数据", 400);
+            }
+            if (strictMode) {
+                validateStrictImportRows(rows, eventId, result);
+                if (result.getFailCount() > 0) {
+                    return result;
+                }
+                for (ScoreImportVO row : rows) {
+                    ScoreUpsertDTO dto = new ScoreUpsertDTO();
+                    dto.setRegistrationId(row.getRegistrationId());
+                    dto.setScoreValue(row.getScoreValue());
+                    dto.setScoreRank(row.getScoreRank());
+                    dto.setRemark(row.getRemark());
+                    upsertScore(dto);
+                    result.setSuccessCount(result.getSuccessCount() + 1);
+                }
+                return result;
             }
             Set<Long> seenRegistrationIds = new HashSet<>();
             int rowNumber = 1;
@@ -179,6 +203,34 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
         return result;
     }
 
+    private void validateStrictImportRows(List<ScoreImportVO> rows, Long eventId, ScoreImportResultVO result) {
+        Set<Long> seenRegistrationIds = new HashSet<>();
+        int rowNumber = 1;
+        for (ScoreImportVO row : rows) {
+            rowNumber++;
+            try {
+                if (row.getRegistrationId() != null && !seenRegistrationIds.add(row.getRegistrationId())) {
+                    throw new BusinessException("导入文件存在重复的报名ID: " + row.getRegistrationId());
+                }
+                validateImportRow(row, eventId);
+            } catch (Exception e) {
+                result.setFailCount(result.getFailCount() + 1);
+                result.getFailures().add(new ScoreImportFailureVO(rowNumber, e.getMessage()));
+            }
+        }
+    }
+
+    private String resolveImportMode(String mode) {
+        if (mode == null || mode.isBlank()) {
+            return IMPORT_MODE_BEST_EFFORT;
+        }
+        String normalized = mode.trim().toUpperCase();
+        if (!IMPORT_MODE_BEST_EFFORT.equals(normalized) && !IMPORT_MODE_STRICT.equals(normalized)) {
+            throw new BusinessException("导入模式仅支持 BEST_EFFORT 或 STRICT", 400);
+        }
+        return normalized;
+    }
+
     @Override
     public void downloadTemplate(Long eventId, HttpServletResponse response) {
         List<RegistrationDTO> registrations = registrationMapper.selectRegistrationList(eventId).stream()
@@ -186,7 +238,7 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
                         RegistrationStatus.CONFIRMED.getStatus().equals(item.getRegistrationStatus())
                                 || RegistrationStatus.APPROVED.getStatus().equals(item.getRegistrationStatus()))
                 .toList();
-        writeTemplateResponse(eventId, response, registrations, "成绩导入模板");
+        writeTemplateResponse(eventId, response, registrations, "参赛名单导出");
     }
 
     @Override
@@ -263,7 +315,15 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
     @Override
     public List<ScoreVO> myScores(Long eventId) {
         Long userId = BaseContext.getCurrentId();
-        List<Score> scores = baseMapper.selectMyPublished(userId, eventId);
+        LambdaQueryWrapper<Score> wrapper = new LambdaQueryWrapper<Score>()
+                .eq(Score::getAthleteId, userId)
+                .eq(Score::getIsPublished, true)
+                .orderByDesc(Score::getPublishedAt)
+                .orderByAsc(Score::getScoreRank);
+        if (eventId != null) {
+            wrapper.eq(Score::getEventId, eventId);
+        }
+        List<Score> scores = list(wrapper);
         return toScoreVO(scores);
     }
 
@@ -287,6 +347,21 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
         if (row.getRegistrationId() == null) {
             throw new BusinessException("报名ID不能为空");
         }
+        if (row.getEventId() == null) {
+            throw new BusinessException("赛事ID不能为空");
+        }
+        if (row.getItemId() == null) {
+            throw new BusinessException("项目ID不能为空");
+        }
+        if (StringUtils.isBlank(row.getEventName())) {
+            throw new BusinessException("赛事名称不能为空");
+        }
+        if (StringUtils.isBlank(row.getItemName())) {
+            throw new BusinessException("项目名称不能为空");
+        }
+        if (StringUtils.isBlank(row.getAthleteName())) {
+            throw new BusinessException("运动员姓名不能为空");
+        }
         if (row.getScoreValue() == null || row.getScoreValue().trim().isEmpty()) {
             throw new BusinessException("成绩不能为空");
         }
@@ -296,6 +371,27 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
         }
         if (!eventId.equals(registration.getEventId())) {
             throw new BusinessException("报名不属于该赛事");
+        }
+        if (row.getEventId() != null && !eventId.equals(row.getEventId())) {
+            throw new BusinessException("赛事ID与导入接口不一致");
+        }
+        Event event = eventMapper.selectById(registration.getEventId());
+        if (event != null && StringUtils.isNotBlank(event.getEventName())
+                && !event.getEventName().equals(row.getEventName().trim())) {
+            throw new BusinessException("赛事名称与报名记录不一致");
+        }
+        if (!row.getItemId().equals(registration.getItemId())) {
+            throw new BusinessException("项目ID与报名记录不一致");
+        }
+        Project project = projectMapper.selectById(registration.getItemId());
+        if (project != null && StringUtils.isNotBlank(project.getItemName())
+                && !project.getItemName().equals(row.getItemName().trim())) {
+            throw new BusinessException("项目名称与报名记录不一致");
+        }
+        User athlete = userMapper.selectById(registration.getAthleteId());
+        if (athlete != null && StringUtils.isNotBlank(athlete.getName())
+                && !athlete.getName().equals(row.getAthleteName().trim())) {
+            throw new BusinessException("运动员姓名与报名记录不一致");
         }
         if (registration.getRegistrationStatus() != RegistrationStatus.CONFIRMED
                 && registration.getRegistrationStatus() != RegistrationStatus.APPROVED) {
@@ -313,10 +409,17 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
         Map<String, List<ScoreImportVO>> grouped = new LinkedHashMap<>();
         for (RegistrationDTO dto : registrations) {
             ScoreImportVO row = new ScoreImportVO();
+            row.setEventId(dto.getEventId());
             row.setRegistrationId(dto.getId());
             row.setEventName(dto.getEventName());
+            row.setItemId(dto.getItemId());
             row.setItemName(dto.getItemName());
             row.setAthleteName(dto.getAthleteName());
+            row.setGender(dto.getGender());
+            row.setDeptName(dto.getDeptName());
+            row.setContact(dto.getContact());
+            row.setRegistrationStatus(dto.getRegistrationStatus());
+            row.setRegistrationTime(dto.getRegistrationTime());
             grouped.computeIfAbsent(dto.getItemName(), key -> new ArrayList<>()).add(row);
         }
         try {

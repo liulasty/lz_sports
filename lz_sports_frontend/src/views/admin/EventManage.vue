@@ -126,25 +126,70 @@
     </el-card>
 
     <!-- Import Dialog -->
-    <el-dialog v-model="importVisible" title="导入成绩" width="30%">
-      <el-upload
-        class="upload-demo"
-        drag
-        action="#"
-        :http-request="uploadFile"
-        :limit="1"
-        accept=".xlsx, .xls"
-      >
-        <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-        <div class="el-upload__text">
-          Drop file here or <em>click to upload</em>
+    <el-dialog v-model="importVisible" title="导入成绩" width="520px">
+      <div class="import-dialog-body">
+        <div class="import-mode-row">
+          <span class="mode-label">导入模式</span>
+          <el-radio-group v-model="importMode" size="small">
+            <el-radio-button label="BEST_EFFORT">容错导入</el-radio-button>
+            <el-radio-button label="STRICT">严格导入</el-radio-button>
+          </el-radio-group>
         </div>
-        <template #tip>
-          <div class="el-upload__tip">
-            请上传 Excel 文件
+        <div class="import-mode-tip">
+          <template v-if="importMode === 'STRICT'">
+            <strong>严格导入：</strong>先全量校验，任意失败都不写入，请按失败明细修复后重试。
+          </template>
+          <template v-else>
+            <strong>容错导入：</strong>成功行先写入，失败行返回明细，适合分批修复补导。
+          </template>
+        </div>
+        <el-upload
+          class="upload-demo"
+          drag
+          action="#"
+          :http-request="uploadFile"
+          :limit="1"
+          accept=".xlsx, .xls"
+        >
+          <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+          <div class="el-upload__text">
+            点击或拖拽上传 Excel
           </div>
-        </template>
-      </el-upload>
+          <template #tip>
+            <div class="el-upload__tip">
+              请上传 .xlsx / .xls 文件
+            </div>
+          </template>
+        </el-upload>
+        <div v-if="importResult" class="import-result-card">
+          <div class="result-mode-banner" :class="importResult.mode === 'STRICT' ? 'strict' : 'best-effort'">
+            模式：{{ importResult.mode === 'STRICT' ? '严格导入' : '容错导入' }}
+            <span v-if="importResult.allOrNothing">（全有或全无）</span>
+          </div>
+          <div class="result-row">
+            <span class="result-success">成功 {{ importResult.successCount }} 条</span>
+            <span v-if="importResult.failCount > 0" class="result-fail">失败 {{ importResult.failCount }} 条</span>
+          </div>
+          <div v-if="importResult.failCount > 0" class="result-guidance">
+            <template v-if="importResult.mode === 'STRICT'">
+              严格模式下本次未写入任何数据，请根据失败明细修复后再导入。
+            </template>
+            <template v-else>
+              容错模式已写入成功数据，请根据失败明细修复后补导。
+            </template>
+          </div>
+          <el-table
+            v-if="importResult.failures && importResult.failures.length"
+            :data="importResult.failures"
+            border
+            max-height="220"
+            size="small"
+          >
+            <el-table-column prop="rowNumber" label="行号" width="80" />
+            <el-table-column prop="reason" label="失败原因" />
+          </el-table>
+        </div>
+      </div>
     </el-dialog>
 
     <!-- Dialog -->
@@ -226,6 +271,8 @@ const dialogVisible = ref(false)
 const importVisible = ref(false)
 const adminManagerVisible = ref(false)
 const currentEventId = ref(null)
+const importMode = ref('BEST_EFFORT')
+const importResult = ref(null)
 const dialogTitle = ref('新增赛事')
 const isEdit = ref(false)
 
@@ -368,16 +415,22 @@ const handleExport = async (row) => {
 
 const handleImportClick = (row) => {
   currentEventId.value = row.id
+  importResult.value = null
+  importMode.value = 'BEST_EFFORT'
   importVisible.value = true
 }
 
 const uploadFile = async (param) => {
   const file = param.file
   try {
-    const res = await importScores(currentEventId.value, file)
+    const res = await importScores(currentEventId.value, file, importMode.value)
       if (res.code === 200) {
-      ElMessage.success('导入成功')
-      importVisible.value = false
+      importResult.value = res.data
+      if (res.data?.failCount > 0 && res.data?.mode === 'STRICT') {
+        ElMessage.warning('严格导入校验未通过，请先处理失败明细')
+      } else {
+        ElMessage.success('导入完成')
+      }
     } else {
       ElMessage.error(res.msg || '导入失败')
     }
@@ -781,5 +834,83 @@ onMounted(() => {
 }
 .form-row .el-form-item {
   margin-bottom: 18px;
+}
+
+.import-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.import-mode-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mode-label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.import-mode-tip {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.6;
+}
+
+.import-result-card {
+  margin-top: 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 10px;
+  padding: 10px;
+  background: var(--el-fill-color-lighter);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.result-mode-banner {
+  display: inline-flex;
+  width: fit-content;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.result-mode-banner.strict {
+  color: #c2410c;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+}
+
+.result-mode-banner.best-effort {
+  color: #0369a1;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+}
+
+.result-row {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.result-success {
+  color: var(--el-color-success);
+  font-weight: 600;
+}
+
+.result-fail {
+  color: var(--el-color-danger);
+  font-weight: 600;
+}
+
+.result-guidance {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.6;
 }
 </style>

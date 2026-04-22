@@ -28,10 +28,10 @@
 
             <div class="action-divider"></div>
             <div class="op-group">
-              <el-tooltip content="下载导入模板" placement="bottom">
+              <el-tooltip content="下载参赛名单导出模板" placement="bottom">
                 <el-button class="op-btn" @click="downloadTemplate">
                   <svg viewBox="0 0 24 24" fill="none" class="btn-icon"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><polyline points="7 10 12 15 17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                  下载模板
+                  参赛名单
                 </el-button>
               </el-tooltip>
               <el-tooltip content="导出当前成绩为Excel" placement="bottom">
@@ -192,6 +192,21 @@
 
     <el-dialog v-model="showImportDialog" title="Excel 导入成绩" width="480px" class="import-dialog">
       <div class="dialog-body">
+        <div class="import-mode-row">
+          <span class="mode-label">导入模式</span>
+          <el-radio-group v-model="importMode" size="small">
+            <el-radio-button label="BEST_EFFORT">容错导入</el-radio-button>
+            <el-radio-button label="STRICT">严格导入</el-radio-button>
+          </el-radio-group>
+        </div>
+        <div class="import-mode-tip">
+          <template v-if="importMode === 'STRICT'">
+            <strong>严格导入：</strong>先全量校验，任意一行失败都不会写入，请先按失败明细修复后再重试。
+          </template>
+          <template v-else>
+            <strong>容错导入：</strong>成功行会直接写入，失败行会保留在明细里，适合快速修复后补导。
+          </template>
+        </div>
         <el-upload
           drag
           action="#"
@@ -211,6 +226,10 @@
 
         <transition name="result-fade">
           <div v-if="importResult" class="import-result-card">
+            <div class="result-mode-banner" :class="importResult.mode === 'STRICT' ? 'strict' : 'best-effort'">
+              <span>模式：{{ importResult.mode === 'STRICT' ? '严格导入' : '容错导入' }}</span>
+              <span v-if="importResult.allOrNothing">（全有或全无）</span>
+            </div>
             <div class="result-row">
               <div class="result-item success-item">
                 <svg viewBox="0 0 24 24" fill="none" class="result-icon"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M8 12l3 3 5-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -220,6 +239,14 @@
                 <svg viewBox="0 0 24 24" fill="none" class="result-icon"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                 <span>失败 <strong>{{ importResult.failCount }}</strong> 条</span>
               </div>
+            </div>
+            <div v-if="importResult.failCount > 0" class="result-guidance">
+              <template v-if="importResult.mode === 'STRICT'">
+                严格模式下出现失败时，本次不会写入任何成绩。请根据下方失败明细修复 Excel 后重新导入。
+              </template>
+              <template v-else>
+                容错模式下已成功写入 {{ importResult.successCount }} 条，请根据下方失败明细修复后再次导入剩余记录。
+              </template>
             </div>
 
             <div class="failure-table-wrap" v-if="importResult.failures && importResult.failures.length">
@@ -252,6 +279,7 @@ const publishing = ref(false)
 const batchSaving = ref(false)
 const showImportDialog = ref(false)
 const importResult = ref(null)
+const importMode = ref('BEST_EFFORT')
 const eventOptions = ref([])
 const itemOptions = ref([])
 const manualRows = ref([])
@@ -472,7 +500,7 @@ const downloadTemplate = async () => {
     return
   }
   const res = await downloadScoreTemplate(query.eventId)
-  downloadBlob(res, '成绩导入模板.xlsx')
+  downloadBlob(res, '参赛名单导出.xlsx')
 }
 
 const exportScores = async () => {
@@ -492,10 +520,14 @@ const handleUpload = async (options) => {
   if (publishing.value) return
   publishing.value = true
   try {
-    const res = await importScores(query.eventId, options.file)
+    const res = await importScores(query.eventId, options.file, importMode.value)
     if (isSuccess(res)) {
       importResult.value = res.data
-      ElMessage.success('导入完成')
+      if (res.data.failCount > 0 && res.data.mode === 'STRICT') {
+        ElMessage.warning('严格导入校验未通过，请先处理失败明细')
+      } else {
+        ElMessage.success('导入完成')
+      }
       await loadData()
     }
   } finally {
@@ -873,6 +905,30 @@ onMounted(() => {
   gap: 16px;
 }
 
+.import-mode-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+}
+
+.mode-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.import-mode-tip {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+  margin-top: -4px;
+}
+
 .upload-area :deep(.el-upload-dragger) {
   border-radius: 12px !important;
   border: 2px dashed var(--el-border-color) !important;
@@ -930,6 +986,29 @@ onMounted(() => {
   align-items: center;
 }
 
+.result-mode-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.result-mode-banner.strict {
+  color: #c2410c;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+}
+
+.result-mode-banner.best-effort {
+  color: #0369a1;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+}
+
 .result-item {
   display: flex;
   align-items: center;
@@ -949,6 +1028,16 @@ onMounted(() => {
 
 .fail-item {
   color: var(--el-color-danger);
+}
+
+.result-guidance {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+  background: var(--el-bg-color);
+  border: 1px dashed var(--el-border-color);
+  border-radius: 8px;
+  padding: 8px 10px;
 }
 
 .failure-table-title {

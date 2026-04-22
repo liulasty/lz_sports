@@ -163,6 +163,7 @@ CREATE TABLE `result` (
                           `user_id` bigint NOT NULL COMMENT '鐢ㄦ埛ID',
                           `score_value` varchar(50) DEFAULT NULL COMMENT '鎴愮哗鏁板€?濡?10.5s, 1.8m)',
                           `score_rank` int DEFAULT NULL COMMENT '鍚嶆',
+                          `remark` varchar(255) DEFAULT NULL COMMENT '澶囨敞',
                           `is_published` tinyint(1) DEFAULT '0' COMMENT '鏄惁鍙戝竷: 0-鍚? 1-鏄?,
                           `published_at` datetime DEFAULT NULL COMMENT '鎴愮哗鍙戝竷鏃堕棿',
                           `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '褰曞叆鏃堕棿',

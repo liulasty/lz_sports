@@ -20,7 +20,7 @@ public interface ScoreService extends IService<Score> {
 
     void publishScores(Long eventId);
 
-    ScoreImportResultVO importScores(MultipartFile file, Long eventId);
+    ScoreImportResultVO importScores(MultipartFile file, Long eventId, String mode);
 
     void downloadTemplate(Long eventId, HttpServletResponse response);
 
