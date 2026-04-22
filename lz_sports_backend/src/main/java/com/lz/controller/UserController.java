@@ -71,6 +71,7 @@ public class UserController {
         claims.put("id", user.getId());
         claims.put("username", user.getUsername());
         claims.put("role", user.getUserType());
+        claims.put("isFirstLogin", Boolean.TRUE.equals(user.getIsFirstLogin()));
         String token = JwtUtil.genToken(claims, appConfig.getJwtKey());
         userService.saveLoginToken(user.getId(), token);
 

@@ -7,7 +7,6 @@ import com.lz.common.result.ResultCode;
 import com.lz.util.JwtUtil;
 import com.lz.util.RedisUtil;
 import jakarta.annotation.Resource;
-import lombok.NonNull;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,12 +20,14 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import com.lz.util.StringUtils;
+import org.springframework.lang.NonNull;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * JWT Authentication Filter
@@ -71,6 +72,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/favicon.ico"
     );
 
+    /**
+     * 首次登录强制改密期间允许访问的已认证接口
+     */
+    private static final Set<String> FIRST_LOGIN_ALLOWED_PATHS = Set.of(
+            "/api/auth/update",
+            "/api/auth/info",
+            "/api/auth/logout"
+    );
+
     @Override
     protected void doFilterInternal( @NonNull HttpServletRequest request,
                                      @NonNull HttpServletResponse response,
@@ -98,13 +108,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             // 3. 验证token并设置认证信息
-            processToken(token, clientIp, requestURI);
+            processToken(token, clientIp, requestURI, requestMethod);
 
             // 4. 继续过滤器链
             filterChain.doFilter(request, response);
 
         } catch (Exception e) {
             log.error("[JWT过滤器] Token验证失败 - IP: {}, URI: {}, 错误: {}", clientIp, requestURI, e.getMessage(), e);
+            if ("FIRST_LOGIN_PASSWORD_RESET_REQUIRED".equals(e.getMessage())) {
+                writeResponse(response, HttpServletResponse.SC_FORBIDDEN,
+                        Result.error(ResultCode.FORBIDDEN, "首次登录请先修改密码"));
+                return;
+            }
             writeResponse(response, HttpServletResponse.SC_UNAUTHORIZED,
                     Result.error(ResultCode.UNAUTHORIZED, "登录已过期，请重新登录"));
         } finally {
@@ -116,7 +131,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     /**
      * 处理token并设置认证信息
      */
-    private void processToken(String token, String clientIp, String requestURI) {
+    private void processToken(String token, String clientIp, String requestURI, String requestMethod) {
         // 验证token是否过期（统一中文异常信息）
         if (JwtUtil.isExpired(token, jwtKey)) {
             throw new RuntimeException("Token已过期");
@@ -129,6 +144,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (latestTokenObj == null || !token.equals(latestTokenObj.toString())) {
             throw new RuntimeException("Token已失效");
         }
+        boolean isFirstLogin = parseFirstLoginClaim(claims);
+        enforceFirstLoginPasswordReset(isFirstLogin, requestURI, requestMethod);
 
         // 设置用户上下文
         BaseContext.setCurrentId(userId);
@@ -143,6 +160,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // 升级日志级别为INFO，生产环境可追踪
         log.info("[JWT过滤器] Token验证成功 - IP: {}, 用户ID: {}, URI: {},authorities:{}", clientIp, userId, requestURI, authorities);
+    }
+
+    private void enforceFirstLoginPasswordReset(boolean isFirstLogin, String requestURI, String requestMethod) {
+        if (!isFirstLogin) {
+            return;
+        }
+        if ("OPTIONS".equalsIgnoreCase(requestMethod)) {
+            return;
+        }
+        if (FIRST_LOGIN_ALLOWED_PATHS.contains(requestURI)) {
+            return;
+        }
+        throw new RuntimeException("FIRST_LOGIN_PASSWORD_RESET_REQUIRED");
+    }
+
+    private boolean parseFirstLoginClaim(Map<String, Object> claims) {
+        Object claim = claims.get("isFirstLogin");
+        if (claim == null) {
+            // Backward compatibility: old token without claim, don't block.
+            return false;
+        }
+        if (claim instanceof Boolean b) {
+            return b;
+        }
+        return Boolean.parseBoolean(claim.toString());
     }
 
     /**

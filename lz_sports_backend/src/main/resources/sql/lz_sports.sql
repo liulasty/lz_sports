@@ -73,6 +73,26 @@ CREATE TABLE `event_admin_mapping` (
                                        UNIQUE KEY `uk_event_user` (`event_id`,`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='璧涗簨绠＄悊鍛樺叧鑱旇〃';
 
+/*Table structure for table `event_status_operation_log` */
+
+DROP TABLE IF EXISTS `event_status_operation_log`;
+
+CREATE TABLE `event_status_operation_log` (
+                                              `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+                                              `event_id` bigint NOT NULL COMMENT '赛事ID',
+                                              `from_status` varchar(20) DEFAULT NULL COMMENT '原状态',
+                                              `to_status` varchar(20) NOT NULL COMMENT '目标状态',
+                                              `operator_id` bigint DEFAULT NULL COMMENT '操作人ID，定时任务为空',
+                                              `operation_type` varchar(20) NOT NULL COMMENT '操作类型：MANUAL/AUTO',
+                                              `trigger_source` varchar(20) NOT NULL COMMENT '触发来源：API/SCHEDULER',
+                                              `reason` varchar(255) DEFAULT NULL COMMENT '变更原因',
+                                              `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                                              `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                                              PRIMARY KEY (`id`),
+                                              KEY `idx_event_id` (`event_id`),
+                                              KEY `idx_create_time` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='赛事状态流转操作日志表';
+
 /*Table structure for table `event_item` */
 
 DROP TABLE IF EXISTS `event_item`;

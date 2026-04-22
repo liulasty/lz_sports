@@ -9,6 +9,7 @@ import com.lz.common.enums.EventStatus;
 import com.lz.common.enums.NotificationType;
 import com.lz.common.enums.UserRole;
 import com.lz.common.exception.BusinessException;
+import com.lz.common.result.ResultCode;
 import com.lz.common.result.PageResult;
 import com.lz.dto.EventDTO;
 import com.lz.dto.EventListDTO;
@@ -18,6 +19,7 @@ import com.lz.service.EventService;
 import com.lz.service.NotificationService;
 import com.lz.service.SportsImgService;
 import com.lz.vo.EventVO;
+import com.lz.vo.EventStatusOperationLogVO;
 import com.lz.vo.chart.TableData;
 import com.lz.vo.chart.TypeData;
 import com.lz.util.ImageUtils;
@@ -30,6 +32,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +53,7 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
     private final ProjectMapper projectMapper;
     private final RegistrationMapper registrationMapper;
     private final ScoreMapper scoreMapper;
+    private final EventStatusOperationLogMapper eventStatusOperationLogMapper;
     private final ImageUtils imageUtils;
     private final NotificationService notificationService;
 
@@ -58,27 +62,27 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
     public String addEvent(EventDTO eventDTO) {
         Long currentUserId = BaseContext.getCurrentId();
         if (currentUserId == null) {
-            throw new BusinessException("未登录");
+            throw new BusinessException("未登录", ResultCode.UNAUTHORIZED.getCode());
         }
         LambdaQueryWrapper<Event> lqw = new LambdaQueryWrapper<>();
         lqw.eq(Event::getEventName, eventDTO.getName());
         if (eventMapper.selectCount(lqw) > 0) {
-            throw new BusinessException("名字重复");
+            throw new BusinessException("赛事名称重复", ResultCode.CONFLICT.getCode());
         }
         Date regStart = stringToDate(eventDTO.getRegistrationStartTime());
         Date regEnd = stringToDate(eventDTO.getRegistrationEndTime());
         Date eventStart = stringToDate(eventDTO.getEventStartTime());
         Date eventEnd = stringToDate(eventDTO.getEventEndTime());
         if (regStart == null || regEnd == null || eventStart == null || eventEnd == null) {
-            throw new BusinessException("赛事时间参数不完整");
+            throw new BusinessException("赛事时间参数不完整", ResultCode.PARAM_ERROR.getCode());
         }
         if (!(regStart.before(regEnd) && regEnd.before(eventStart) && eventStart.before(eventEnd))) {
-            throw new BusinessException("时间必须满足 regStart < regEnd < eventStart < eventEnd");
+            throw new BusinessException("时间必须满足 regStart < regEnd < eventStart < eventEnd", ResultCode.PARAM_ERROR.getCode());
         }
         if (eventDTO.getMaxItemsPerAthlete() == null
                 || eventDTO.getMaxItemsPerAthlete() < 1
                 || eventDTO.getMaxItemsPerAthlete() > 20) {
-            throw new BusinessException("maxItemsPerAthlete 必须在1-20之间");
+            throw new BusinessException("maxItemsPerAthlete 必须在1-20之间", ResultCode.PARAM_ERROR.getCode());
         }
 
         String coverImage = imageUtils.getRandomFallbackUrl();
@@ -123,16 +127,16 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
                 Date pEnd = stringToDate(pDto.getEndTime());
                 
                 if (pStart == null || pEnd == null) {
-                    throw new BusinessException("项目时间不能为空");
+                    throw new BusinessException("项目时间不能为空", ResultCode.PARAM_ERROR.getCode());
                 }
                 if (!pStart.before(pEnd)) {
-                    throw new BusinessException("项目开始时间必须早于结束时间");
+                    throw new BusinessException("项目开始时间必须早于结束时间", ResultCode.PARAM_ERROR.getCode());
                 }
                 if (pStart.before(eventStart)) {
-                    throw new BusinessException("项目开始时间需在赛事时间范围内");
+                    throw new BusinessException("项目开始时间需在赛事时间范围内", ResultCode.PARAM_ERROR.getCode());
                 }
                 if (pEnd.after(eventEnd)) {
-                    throw new BusinessException("项目结束时间需在赛事时间范围内");
+                    throw new BusinessException("项目结束时间需在赛事时间范围内", ResultCode.PARAM_ERROR.getCode());
                 }
 
                 Project project = new Project();
@@ -176,45 +180,54 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
     public void changeStatus(Long eventId, String status) {
         Event event = getById(eventId);
         if (event == null) {
-            throw new BusinessException("赛事不存在");
+            throw new BusinessException("赛事不存在", ResultCode.NOT_FOUND.getCode());
         }
-        
+
         EventStatus targetStatus;
         try {
             targetStatus = EventStatus.valueOf(status);
         } catch (IllegalArgumentException e) {
-            throw new BusinessException("无效的状态: " + status);
+            throw new BusinessException("无效的状态: " + status, ResultCode.PARAM_ERROR.getCode());
+        }
+        if (!EventStateMachine.isManualTargetAllowed(targetStatus)) {
+            throw new BusinessException("仅支持手动发布或撤回赛事状态", ResultCode.CONFLICT.getCode());
+        }
+        if (!EventStateMachine.canManualTransition(event.getEventStatus(), targetStatus)) {
+            throw new BusinessException("当前状态不支持该操作", ResultCode.CONFLICT.getCode());
         }
         if (targetStatus == EventStatus.OPEN) {
-            if (event.getEventStatus() != EventStatus.DRAFT) {
-                throw new BusinessException("仅草稿赛事可发布");
-            }
-            long itemCount = projectMapper.selectCount(new LambdaQueryWrapper<Project>().eq(Project::getEventId, eventId));
-            if (itemCount == 0) {
-                throw new BusinessException("发布失败：至少需要一个赛事项目");
-            }
-            long adminCount = eventAdminMappingMapper.selectCount(new LambdaQueryWrapper<EventAdminMapping>().eq(EventAdminMapping::getEventId, eventId));
-            if (adminCount == 0) {
-                throw new BusinessException("发布失败：至少需要一个赛事管理员");
-            }
-            event.setEventStatus(EventStatus.OPEN);
-            updateById(event);
-            publishEventNotification(event);
-            return;
+            validatePublishPreconditions(eventId, event);
+        } else {
+            validateWithdrawPreconditions(eventId, event);
         }
-        if (targetStatus == EventStatus.DRAFT) {
-            if (event.getEventStatus() != EventStatus.OPEN) {
-                throw new BusinessException("仅OPEN状态支持撤回");
-            }
-            if (event.getRegistrationStartTime() != null && new Date().after(event.getRegistrationStartTime())) {
-                throw new BusinessException("仅报名开始前可撤回");
-            }
-            event.setEventStatus(EventStatus.DRAFT);
-            updateById(event);
-            return;
-        }
+
+        EventStatus fromStatus = event.getEventStatus();
         event.setEventStatus(targetStatus);
         updateById(event);
+        logStatusTransition(eventId, fromStatus, targetStatus, BaseContext.getCurrentId(), "MANUAL", "API", "手动状态变更");
+        if (targetStatus == EventStatus.OPEN) {
+            publishEventNotification(event);
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void refreshEventStatusesAutomatically() {
+        Date now = new Date();
+        List<Event> events = eventMapper.selectList(new LambdaQueryWrapper<>());
+        for (Event event : events) {
+            EventStatus from = event.getEventStatus();
+            EventStatus next = EventStateMachine.nextAutoStatus(event, now);
+            while (next != null && next != event.getEventStatus()) {
+                EventStatus previous = event.getEventStatus();
+                event.setEventStatus(next);
+                next = EventStateMachine.nextAutoStatus(event, now);
+                logStatusTransition(event.getId(), previous, event.getEventStatus(), null, "AUTO", "SCHEDULER", "定时任务自动推进");
+            }
+            if (event.getEventStatus() != from) {
+                updateById(event);
+            }
+        }
     }
 
     @Override
@@ -312,13 +325,62 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
     }
 
     @Override
+    public PageResult getEventStatusOperationLogs(Long eventId, int currentPage, int pageSize) {
+        checkEventPermission(eventId);
+        if (currentPage < 1) {
+            currentPage = 1;
+        }
+        if (pageSize < 1) {
+            pageSize = 10;
+        }
+        if (pageSize > 100) {
+            pageSize = 100;
+        }
+        Page<EventStatusOperationLog> page = new Page<>(currentPage, pageSize);
+        LambdaQueryWrapper<EventStatusOperationLog> wrapper = new LambdaQueryWrapper<EventStatusOperationLog>()
+                .eq(EventStatusOperationLog::getEventId, eventId)
+                .orderByDesc(EventStatusOperationLog::getCreateTime);
+        eventStatusOperationLogMapper.selectPage(page, wrapper);
+
+        List<EventStatusOperationLog> records = page.getRecords();
+        Set<Long> operatorIds = records.stream()
+                .map(EventStatusOperationLog::getOperatorId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+        final Map<Long, String> operatorNameMap;
+        if (!operatorIds.isEmpty()) {
+            List<User> operators = userMapper.selectBatchIds(operatorIds);
+            operatorNameMap = operators.stream()
+                    .collect(Collectors.toMap(User::getId, User::getUsername, (a, b) -> a));
+        } else {
+            operatorNameMap = new HashMap<>();
+        }
+
+        List<EventStatusOperationLogVO> logVOList = records.stream()
+                .map(log -> EventStatusOperationLogVO.builder()
+                        .id(log.getId())
+                        .eventId(log.getEventId())
+                        .fromStatus(log.getFromStatus())
+                        .toStatus(log.getToStatus())
+                        .operatorId(log.getOperatorId())
+                        .operatorName(log.getOperatorId() == null ? "SYSTEM" : operatorNameMap.getOrDefault(log.getOperatorId(), "UNKNOWN"))
+                        .operationType(log.getOperationType())
+                        .triggerSource(log.getTriggerSource())
+                        .reason(log.getReason())
+                        .createTime(log.getCreateTime())
+                        .build())
+                .collect(Collectors.toList());
+        return new PageResult(page.getTotal(), logVOList);
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public String deleteEvent(String eventId) {
         long id = Long.parseLong(eventId);
         checkEventPermission(id);
         Event event = getById(id);
         if (event == null) {
-            throw new BusinessException("赛事不存在");
+            throw new BusinessException("赛事不存在", ResultCode.NOT_FOUND.getCode());
         }
         if (event.getEventStatus() != EventStatus.DRAFT) {
             throw new BusinessException("仅DRAFT状态赛事允许删除");
@@ -367,13 +429,22 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
         checkEventPermission(id);
         Event event = getById(id);
         if (event == null) {
-            throw new BusinessException("事件不存在");
+            throw new BusinessException("赛事不存在", ResultCode.NOT_FOUND.getCode());
+        }
+        validateUpdateByStatus(event, eventDTO);
+
+        boolean hasTimeUpdate = eventDTO.getRegistrationStartTime() != null
+                || eventDTO.getRegistrationEndTime() != null
+                || eventDTO.getEventStartTime() != null
+                || eventDTO.getEventEndTime() != null;
+        if (hasTimeUpdate && event.getEventStatus() != EventStatus.DRAFT) {
+            throw new BusinessException("非草稿赛事不允许修改时间字段", ResultCode.CONFLICT.getCode());
         }
         if (eventDTO.getName() != null) event.setEventName(eventDTO.getName());
         if (eventDTO.getType() != null) event.setEventDescription(eventDTO.getType());
         if (eventDTO.getMaxItemsPerAthlete() != null) {
             if (eventDTO.getMaxItemsPerAthlete() < 1 || eventDTO.getMaxItemsPerAthlete() > 20) {
-                throw new BusinessException("maxItemsPerAthlete 必须在1-20之间");
+                throw new BusinessException("maxItemsPerAthlete 必须在1-20之间", ResultCode.PARAM_ERROR.getCode());
             }
             event.setMaxItemsPerAthlete(eventDTO.getMaxItemsPerAthlete());
         }
@@ -392,7 +463,7 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
             if (!(event.getRegistrationStartTime().before(event.getRegistrationEndTime())
                     && event.getRegistrationEndTime().before(event.getEventStartTime())
                     && event.getEventStartTime().before(event.getEventEndTime()))) {
-                throw new BusinessException("时间必须满足 regStart < regEnd < eventStart < eventEnd");
+                throw new BusinessException("时间必须满足 regStart < regEnd < eventStart < eventEnd", ResultCode.PARAM_ERROR.getCode());
             }
         }
         updateById(event);
@@ -425,12 +496,12 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
     private void checkEventPermission(Long eventId) {
         Long userId = BaseContext.getCurrentId();
         if (userId == null) {
-            throw new BusinessException("未登录");
+            throw new BusinessException("未登录", ResultCode.UNAUTHORIZED.getCode());
         }
 
         User user = userMapper.selectById(userId);
         if (user == null) {
-            throw new BusinessException("用户不存在");
+            throw new BusinessException("用户不存在", ResultCode.UNAUTHORIZED.getCode());
         }
 
         // School Admin has full access
@@ -448,7 +519,7 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
             }
         }
 
-        throw new BusinessException("无权操作此赛事");
+        throw new BusinessException("无权操作此赛事", ResultCode.FORBIDDEN.getCode());
     }
 
     @Override
@@ -471,19 +542,19 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
     public void addEventAdmins(Long eventId, List<Long> userIds) {
         Event event = getById(eventId);
         if (event == null) {
-            throw new BusinessException("赛事不存在");
+            throw new BusinessException("赛事不存在", ResultCode.NOT_FOUND.getCode());
         }
         if (userIds == null || userIds.isEmpty()) {
-            throw new BusinessException("请选择管理员");
+            throw new BusinessException("请选择管理员", ResultCode.PARAM_ERROR.getCode());
         }
 
         for (Long userId : userIds) {
             User user = userMapper.selectById(userId);
             if (user == null) {
-                throw new BusinessException("用户不存在: " + userId);
+                throw new BusinessException("用户不存在: " + userId, ResultCode.NOT_FOUND.getCode());
             }
             if (user.getUserType() != UserRole.SUPER_ADMIN && user.getUserType() != UserRole.EVENT_ADMIN && user.getUserType() != UserRole.SCHOOL_ADMIN) {
-                throw new BusinessException("用户 " + user.getUsername() + " 角色不符合要求");
+                throw new BusinessException("用户 " + user.getUsername() + " 角色不符合要求", ResultCode.FORBIDDEN.getCode());
             }
             long count = eventAdminMappingMapper.selectCount(new LambdaQueryWrapper<EventAdminMapping>()
                     .eq(EventAdminMapping::getEventId, eventId)
@@ -530,7 +601,7 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
         if (d != null) return d;
         d = parseWithPattern(s, "yyyy-MM-dd'T'HH:mm:ss");
         if (d != null) return d;
-        throw new BusinessException("日期格式错误");
+        throw new BusinessException("日期格式错误", ResultCode.PARAM_ERROR.getCode());
     }
 
     private Date stringToDateNullable(String s) {
@@ -544,6 +615,89 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
         } catch (ParseException e) {
             return null;
         }
+    }
+
+    private void validateUpdateByStatus(Event event, EventDTO eventDTO) {
+        EventStatus status = event.getEventStatus() == null ? EventStatus.DRAFT : event.getEventStatus();
+        if (status == EventStatus.DRAFT) {
+            return;
+        }
+        boolean hasKeyFieldUpdate = eventDTO.getMaxItemsPerAthlete() != null
+                || eventDTO.getRegistrationStartTime() != null
+                || eventDTO.getRegistrationEndTime() != null
+                || eventDTO.getEventStartTime() != null
+                || eventDTO.getEventEndTime() != null
+                || eventDTO.getAdminIds() != null;
+
+        if (status == EventStatus.OPEN) {
+            Date now = new Date();
+            if (event.getRegistrationStartTime() != null && now.before(event.getRegistrationStartTime())) {
+                if (hasKeyFieldUpdate) {
+                    throw new BusinessException("OPEN状态（报名未开始）仅允许修改非关键信息", ResultCode.CONFLICT.getCode());
+                }
+                return;
+            }
+        }
+        if (hasKeyFieldUpdate) {
+            throw new BusinessException("当前赛事状态不允许修改关键字段", ResultCode.CONFLICT.getCode());
+        }
+    }
+
+    private void validatePublishPreconditions(Long eventId, Event event) {
+        if (event.getEventStatus() != EventStatus.DRAFT) {
+            throw new BusinessException("仅草稿赛事可发布", ResultCode.CONFLICT.getCode());
+        }
+        long itemCount = projectMapper.selectCount(new LambdaQueryWrapper<Project>().eq(Project::getEventId, eventId));
+        if (itemCount == 0) {
+            throw new BusinessException("发布失败：至少需要一个赛事项目", ResultCode.CONFLICT.getCode());
+        }
+        long adminCount = eventAdminMappingMapper.selectCount(new LambdaQueryWrapper<EventAdminMapping>().eq(EventAdminMapping::getEventId, eventId));
+        if (adminCount == 0) {
+            throw new BusinessException("发布失败：至少需要一个赛事管理员", ResultCode.CONFLICT.getCode());
+        }
+        Date now = new Date();
+        if (event.getRegistrationStartTime() == null
+                || event.getRegistrationEndTime() == null
+                || event.getEventStartTime() == null
+                || event.getEventEndTime() == null) {
+            throw new BusinessException("赛事时间参数不完整", ResultCode.PARAM_ERROR.getCode());
+        }
+        if (!now.before(event.getRegistrationStartTime())) {
+            throw new BusinessException("发布失败：报名开始时间必须晚于当前时间", ResultCode.PARAM_ERROR.getCode());
+        }
+    }
+
+    private void validateWithdrawPreconditions(Long eventId, Event event) {
+        if (event.getEventStatus() != EventStatus.OPEN) {
+            throw new BusinessException("仅OPEN状态赛事支持撤回", ResultCode.CONFLICT.getCode());
+        }
+        if (event.getRegistrationStartTime() != null && new Date().after(event.getRegistrationStartTime())) {
+            throw new BusinessException("仅报名开始前可撤回", ResultCode.CONFLICT.getCode());
+        }
+        long registrationCount = registrationMapper.selectCount(new LambdaQueryWrapper<Registration>()
+                .eq(Registration::getEventId, eventId));
+        if (registrationCount > 0) {
+            throw new BusinessException("赛事已有报名记录，禁止撤回到草稿态", ResultCode.CONFLICT.getCode());
+        }
+    }
+
+    private void logStatusTransition(Long eventId,
+                                     EventStatus fromStatus,
+                                     EventStatus toStatus,
+                                     Long operatorId,
+                                     String operationType,
+                                     String triggerSource,
+                                     String reason) {
+        EventStatusOperationLog operationLog = new EventStatusOperationLog();
+        operationLog.setEventId(eventId);
+        operationLog.setFromStatus(fromStatus == null ? null : fromStatus.name());
+        operationLog.setToStatus(toStatus == null ? null : toStatus.name());
+        operationLog.setOperatorId(operatorId);
+        operationLog.setOperationType(operationType);
+        operationLog.setTriggerSource(triggerSource);
+        operationLog.setReason(reason);
+        operationLog.initTime();
+        eventStatusOperationLogMapper.insert(operationLog);
     }
 
     private void publishEventNotification(Event event) {

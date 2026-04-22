@@ -37,6 +37,11 @@ public interface EventService extends IService<Event> {
     Event getEventId(Long eventId);
 
     /**
+     * Query event status operation logs
+     */
+    PageResult getEventStatusOperationLogs(Long eventId, int currentPage, int pageSize);
+
+    /**
      * Delete Event
      */
     String deleteEvent(String eventId);
@@ -50,6 +55,11 @@ public interface EventService extends IService<Event> {
      * Change Event Status
      */
     void changeStatus(Long eventId, String status);
+
+    /**
+     * Scheduler-driven status advancing
+     */
+    void refreshEventStatusesAutomatically();
 
     /**
      * Get Event Types

@@ -257,6 +257,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (user == null) {
             throw new BusinessException("用户不存在");
         }
+        if (Boolean.TRUE.equals(user.getIsFirstLogin())
+                && (userUpdateDTO.getNewPassword() == null || userUpdateDTO.getNewPassword().isBlank())) {
+            throw new BusinessException("首次登录必须先修改密码", 403);
+        }
 
         if (userUpdateDTO.getUserName() != null) {
             user.setUsername(userUpdateDTO.getUserName());

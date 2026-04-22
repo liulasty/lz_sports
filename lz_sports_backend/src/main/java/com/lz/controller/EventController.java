@@ -85,6 +85,16 @@ public class EventController {
         return Result.success(eventService.getEventId(id));
     }
 
+    @GetMapping("/{id}/status-logs")
+    @RequireEventAdmin
+    @Operation(summary = "状态流转日志", description = "分页查询赛事状态流转日志")
+    public Result<PageResult> getStatusLogs(
+            @Parameter(description = "赛事ID") @PathVariable Long id,
+            @Parameter(description = "当前页码") @RequestParam(defaultValue = "1") int currentPage,
+            @Parameter(description = "每页数量") @RequestParam(defaultValue = "10") int pageSize) {
+        return Result.success(eventService.getEventStatusOperationLogs(id, currentPage, pageSize));
+    }
+
     /**
      * 删除赛事
      * 管理员删除指定赛事
