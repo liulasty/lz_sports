@@ -15,6 +15,8 @@ Desktop.ini
 # Temp
 tmp/
 temp/
+lz_sports_backend/target/
+lz_sports_frontend/dist/
 
 # 忽略环境配置文件
 .env

@@ -3,7 +3,7 @@
 <mapper namespace="com.lz.mapper.RegistrationMapper">
 
     <select id="selectRegistrationPage" resultType="com.lz.dto.RegistrationDTO">
-        SELECT 
+        SELECT
             r.id as id,
             r.user_id as athleteId,
             u.name as athleteName,
@@ -40,12 +40,12 @@
     </select>
 
     <select id="selectRegistrationList" resultType="com.lz.dto.RegistrationDTO">
-        SELECT 
+        SELECT
             r.id as id,
             r.user_id as athleteId,
             u.name as athleteName,
             u.gender as gender,
-            g.name as deptName,
+            COALESCE(g.dept_name, g.class_name, g.major, g.college, g.grade) as deptName,
             u.email as contact,
             r.event_id as eventId,
             e.name as eventName,
@@ -64,5 +64,39 @@
             </if>
         </where>
         ORDER BY r.create_time DESC
+    </select>
+
+    <select id="selectScoreEntryCandidates" resultType="com.lz.dto.RegistrationDTO">
+        SELECT
+            r.id as id,
+            r.id as registrationId,
+            r.user_id as athleteId,
+            u.name as athleteName,
+            u.gender as gender,
+            COALESCE(g.dept_name, g.class_name, g.major, g.college, g.grade) as deptName,
+            u.email as contact,
+            r.event_id as eventId,
+            e.name as eventName,
+            r.item_id as itemId,
+            p.name as itemName,
+            r.create_time as registrationTime,
+            r.status as registrationStatus,
+            s.id as scoreId,
+            s.score_value as scoreValue,
+            s.score_rank as scoreRank,
+            NULL as remark,
+            s.is_published as isPublished
+        FROM registration r
+        LEFT JOIN sys_user u ON r.user_id = u.id
+        LEFT JOIN department g ON u.dept_id = g.id
+        LEFT JOIN event e ON r.event_id = e.id
+        LEFT JOIN event_item p ON r.item_id = p.id
+        LEFT JOIN result s ON s.registration_id = r.id
+        WHERE r.event_id = #{eventId}
+          AND r.status IN ('APPROVED', 'CONFIRMED')
+        <if test="itemId != null">
+          AND r.item_id = #{itemId}
+        </if>
+        ORDER BY p.id ASC, r.create_time DESC
     </select>
 </mapper>

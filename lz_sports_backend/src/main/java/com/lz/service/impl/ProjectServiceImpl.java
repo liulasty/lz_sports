@@ -12,10 +12,10 @@ import com.lz.common.result.PageResult;
 import com.lz.dto.EventListDTO;
 import com.lz.dto.ProjectDTO;
 import com.lz.entity.*;
-import com.lz.mapper.AthleteMapper;
 import com.lz.mapper.EventMapper;
 import com.lz.mapper.ProjectMapper;
 import com.lz.mapper.RegistrationMapper;
+import com.lz.mapper.ScoreMapper;
 import com.lz.service.ProjectService;
 import com.lz.vo.ProjectVO;
 import lombok.RequiredArgsConstructor;
@@ -40,8 +40,8 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
 
     private final ProjectMapper projectMapper;
     private final EventMapper eventMapper;
-    private final AthleteMapper athleteMapper;
     private final RegistrationMapper registrationMapper;
+    private final ScoreMapper scoreMapper;
 
     @SuppressWarnings("unchecked")
     @Override
@@ -214,6 +214,10 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
         long registrationCount = registrationMapper.selectCount(new LambdaQueryWrapper<Registration>().eq(Registration::getItemId, id));
         if (registrationCount > 0) {
             throw new BusinessException("该项目已有" + registrationCount + "人报名，无法删除");
+        }
+        long scoreCount = scoreMapper.selectCount(new LambdaQueryWrapper<Score>().eq(Score::getItemId, id));
+        if (scoreCount > 0) {
+            throw new BusinessException("该项目已有成绩记录，无法删除");
         }
         removeById(id);
     }

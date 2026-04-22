@@ -73,14 +73,6 @@ LZ Sports 是一个面向校园运动会场景的全流程管理平台，包含�
 
 ---
 
-## AI 迭代入口
-
-- 项目迭代循环说明：`PROJECT_LOOP.md`
-- 任务队列：`BACKLOG.md`
-- Cursor 常驻规则：`.cursor/rules/project-iteration-loop.mdc`
-
----
-
 ## 常用脚本
 
 ### 前端
@@ -97,9 +89,44 @@ mvn test
 mvn -Pnon-container-baseline test
 ```
 
+### 联调 smoke（登录/报名/成绩）
+```bash
+# DryRun：仅校验步骤结构，不依赖服务
+powershell -ExecutionPolicy Bypass -File scripts/smoke-linkup.ps1 -DryRun
+
+# 真实执行：依赖本地前后端服务与可用账号
+powershell -ExecutionPolicy Bypass -File scripts/smoke-linkup.ps1 -BackendUrl http://localhost:8081
+
+# Token 模式：跳过登录，直接验证报名/成绩链路
+powershell -ExecutionPolicy Bypass -File scripts/smoke-linkup.ps1 -BackendUrl http://localhost:8081 -AccessToken "<BearerToken>"
+```
+
+### 通知 smoke（分页一致性/鉴权/隔离）
+```bash
+# 默认账号（smoke_user_447613714）回放通知链路
+powershell -ExecutionPolicy Bypass -File scripts/smoke-notification.ps1 -BackendUrl http://localhost:8081
+
+# Token 模式：跳过登录，直接验证通知分页一致性
+powershell -ExecutionPolicy Bypass -File scripts/smoke-notification.ps1 -BackendUrl http://localhost:8081 -AccessToken "<BearerToken>"
+
+# 通过统一测试入口执行
+scripts/test.bat notify-smoke http://localhost:8081
+./scripts/test.sh notify-smoke http://localhost:8081
+```
+
+### 全链路 smoke（报名/成绩 + 通知）
+```bash
+# 一次性串行执行 linkup + notification 两段 smoke
+powershell -ExecutionPolicy Bypass -File scripts/smoke-full.ps1 -BackendUrl http://localhost:8081
+
+# 通过统一测试入口执行
+scripts/test.bat full-smoke http://localhost:8081
+./scripts/test.sh full-smoke http://localhost:8081
+```
+
 ### 开工/收工闭环（本地开发推荐）
 ```bash
-# 开工：加载 config/.env.dev + 清理 8080/5173 + 启动前后端
+# 开工：自动加载 config/.env.dev、清理 8080/5173 冲突并启动前后端
 powershell -ExecutionPolicy Bypass -File scripts/dev-start.ps1
 # 或
 scripts/test.bat dev-start
@@ -110,16 +137,6 @@ powershell -ExecutionPolicy Bypass -File scripts/dev-stop.ps1
 # 或
 scripts/test.bat dev-stop
 ./scripts/test.sh dev-stop
-```
-
-### 业务回归（一键）
-```bash
-# 分支检查 + 端口健康检查 + full-smoke + rolepaths + 自动 runs 记录
-powershell -ExecutionPolicy Bypass -File scripts/smoke-oneclick.ps1 -BackendUrl http://localhost:8080 -FrontendUrl http://localhost:5173 -EventId 1
-
-# 统一入口
-scripts/test.bat oneclick http://localhost:8080 http://localhost:5173 1
-./scripts/test.sh oneclick http://localhost:8080 http://localhost:5173 1
 ```
 
 ---
@@ -134,7 +151,6 @@ mvn -Pnon-container-baseline test
 ```
 
 基线说明文档：`lz_sports_backend/src/test/README_NON_CONTAINER_BASELINE.md`
-- 扩展规范文档：`docs/后端非容器测试基线规范.md`
 
 ---
 
@@ -143,7 +159,6 @@ mvn -Pnon-container-baseline test
 - 统一前后端基础流水线：`.github/workflows/ci.yml`
   - 前端：`npm run lint` + `npm test`
   - 后端：`mvn -Pnon-container-baseline test`
-- 前端独立流水线：`.github/workflows/frontend-ci.yml`
 - 后端定向流水线：`.github/workflows/backend-smoke-ci.yml`
 
 ---

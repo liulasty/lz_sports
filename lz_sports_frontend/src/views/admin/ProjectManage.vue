@@ -167,14 +167,7 @@
 
           <div class="form-field full">
             <div class="field-label">所属赛事 <span class="req">*</span></div>
-            <el-select v-model="form.event" placeholder="请选择赛事" filterable class="fi" style="width:100%">
-              <el-option
-                  v-for="item in eventTypes"
-                  :key="item.eventId"
-                  :label="item.eventName"
-                  :value="item.eventId"
-              />
-            </el-select>
+            <SmartSelect v-model="form.event" :options="eventTypes" label-key="eventName" value-key="eventId" placeholder="请选择赛事" filterable class="fi" style="width:100%" />
           </div>
 
           <div class="form-field full">
@@ -267,6 +260,7 @@ import { getProjectList, addProject, updateProject, deleteProject } from '@/api/
 import { getEventTypes } from '@/api/event'
 import { getDepartmentTree } from '@/api/department'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import SmartSelect from '@/components/SmartSelect.vue'
 
 const loading = ref(false)
 const projectList = ref([])
@@ -899,9 +893,6 @@ html.dark .pm-dialog .el-input__inner,
 html.dark .pm-dialog .el-textarea__inner {
   color: #f0f2f8 !important;
   background: transparent !important;
-}
-html.dark .pm-dialog .el-select .el-input__wrapper {
-  background: rgba(255,255,255,0.05) !important;
 }
 html.dark .pm-dialog .el-input-number .el-input__wrapper {
   background: rgba(255,255,255,0.05) !important;

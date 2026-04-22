@@ -26,6 +26,11 @@
       <template #title><span>赛事大厅</span></template>
     </el-menu-item>
 
+    <el-menu-item index="/public-scores">
+      <el-icon><DataLine /></el-icon>
+      <template #title><span>公开成绩</span></template>
+    </el-menu-item>
+
     <!-- 我的（登录后可见，仅非管理员可见） -->
     <el-sub-menu index="my" v-if="isLoggedIn && !isEventAdmin && !isSchoolAdmin">
       <template #title>

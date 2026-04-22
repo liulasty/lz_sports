@@ -35,6 +35,12 @@ public interface RegistrationMapper extends BaseMapper<Registration> {
      */
     List<RegistrationDTO> selectRegistrationList(@Param("eventId") Long eventId);
 
+    /**
+     * 查询成绩手动录入候选名单
+     */
+    List<RegistrationDTO> selectScoreEntryCandidates(@Param("eventId") Long eventId,
+                                                     @Param("itemId") Long itemId);
+
     @Select("SELECT COUNT(*) FROM registration WHERE user_id = #{userId} AND event_id = #{eventId} AND status IN ('PENDING','APPROVED','CONFIRMED')")
     int countActiveByUserAndEvent(@Param("userId") Long userId, @Param("eventId") Long eventId);
 

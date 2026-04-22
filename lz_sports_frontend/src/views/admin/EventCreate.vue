@@ -173,11 +173,7 @@
               </div>
               <div class="project-field project-field-sm">
                 <label>性别限制</label>
-                <el-select v-model="project.limitation" style="width: 100%">
-                  <el-option label="不限" value="ALL" />
-                  <el-option label="限男" value="MALE" />
-                  <el-option label="限女" value="FEMALE" />
-                </el-select>
+                <SmartSelect v-model="project.limitation" :options="limitationOptions" style="width: 100%" />
               </div>
               <div class="project-field project-field-time">
                 <label>项目时间</label>
@@ -207,7 +203,7 @@
         </div>
 
         <div class="toolbar">
-          <el-select
+          <SmartSelect
             v-model="selectedUser"
             filterable
             remote
@@ -218,7 +214,6 @@
             :loading="userLoading"
             style="width: 320px; margin-right: 12px;"
             value-key="id"
-            popper-class="user-select-popper"
           >
             <el-option
               v-for="item in userOptions"
@@ -237,7 +232,7 @@
                 </div>
               </div>
             </el-option>
-          </el-select>
+          </SmartSelect>
           <el-button type="primary" class="toolbar-btn" @click="addAdmin" :disabled="!selectedUser">
             <svg viewBox="0 0 24 24" fill="none" class="btn-icon"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M20 8v6M23 11H17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/></svg>
             添加为管理员
@@ -345,6 +340,7 @@ import { ElMessage } from 'element-plus'
 import { addEvent, changeEventStatus } from '@/api/event'
 import { addProject, getProjectList } from '@/api/project'
 import { getAdminUserList } from '@/api/adminUser'
+import SmartSelect from '@/components/SmartSelect.vue'
 
 const router = useRouter()
 const currentStep = ref(0)
@@ -355,6 +351,11 @@ const steps = [
   { title: '基本信息', description: '设置赛事名称与时间' },
   { title: '项目配置', description: '选择并配置比赛项目' },
   { title: '指定管理员', description: '分配赛事管理员' }
+]
+const limitationOptions = [
+  { label: '不限', value: 'ALL' },
+  { label: '限男', value: 'MALE' },
+  { label: '限女', value: 'FEMALE' }
 ]
 
 const form = reactive({
@@ -1017,11 +1018,6 @@ const submitEvent = async (targetStatus) => {
   transform: scale(1.05);
 }
 
-/* ===================== Custom Select Option ===================== */
-:deep(.user-select-popper .el-select-dropdown__item) {
-  height: auto !important;
-  padding: 8px 12px;
-}
 .user-option-content {
   display: flex;
   align-items: center;

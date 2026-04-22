@@ -78,9 +78,12 @@ public class PermissionAspect {
             throw new BusinessException("用户不存在", 401);
         }
 
-        // 超级管理员直接放行
+        // 学校管理员/超级管理员直接放行，赛事管理员需继续校验赛事绑定关系
         if (user.getUserType() == UserRole.SCHOOL_ADMIN || user.getUserType() == UserRole.SUPER_ADMIN) {
             return;
+        }
+        if (user.getUserType() != UserRole.EVENT_ADMIN) {
+            throw new BusinessException("权限不足", 403);
         }
 
         // 获取 eventId
@@ -127,37 +130,41 @@ public class PermissionAspect {
         }
 
         for (Object arg : args) {
-            if (arg instanceof Long) {
-                return (Long) arg;
+            if (arg == null) {
+                continue;
             }
-            if (arg instanceof String str && str.matches("\\d+")) {
-                return Long.valueOf(str);
-            }
-            if (arg != null) {
-                for (String methodName : List.of("getEventId", "getEvent", "getId", "getRegistrationId")) {
-                    try {
-                        java.lang.reflect.Method method = arg.getClass().getMethod(methodName);
-                        Object result = method.invoke(arg);
-                        if (result instanceof Long) {
-                            Long resolved = (Long) result;
-                            if ("getRegistrationId".equals(methodName)) {
-                                Registration registration = registrationMapper.selectById(resolved);
-                                if (registration != null) {
-                                    return registration.getEventId();
-                                }
+            // Only accept explicit DTO signals, avoid treating arbitrary numeric args as eventId.
+            for (String methodName : List.of("getEventId", "getRegistrationId")) {
+                try {
+                    java.lang.reflect.Method method = arg.getClass().getMethod(methodName);
+                    Object result = method.invoke(arg);
+                    if (result instanceof Long resolved) {
+                        if ("getRegistrationId".equals(methodName)) {
+                            Registration registration = registrationMapper.selectById(resolved);
+                            if (registration != null) {
+                                return registration.getEventId();
                             }
-                            return resolved;
+                            continue;
                         }
-                        if (result instanceof String value && value.matches("\\d+")) {
-                            return Long.valueOf(value);
-                        }
-                    } catch (Exception ignored) {
+                        return resolved;
                     }
+                    if (result instanceof String value && value.matches("\\d+")) {
+                        Long resolved = Long.valueOf(value);
+                        if ("getRegistrationId".equals(methodName)) {
+                            Registration registration = registrationMapper.selectById(resolved);
+                            if (registration != null) {
+                                return registration.getEventId();
+                            }
+                            continue;
+                        }
+                        return resolved;
+                    }
+                } catch (Exception ignored) {
                 }
             }
         }
 
-        return resolveEventIdFromRequest();
+        return null;
     }
 
     private Long resolveEventIdFromRequest() {

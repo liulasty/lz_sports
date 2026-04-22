@@ -24,10 +24,10 @@ import com.lz.mapper.EventMapper;
 import com.lz.mapper.ProjectMapper;
 import com.lz.mapper.RegistrationMapper;
 import com.lz.mapper.UserMapper;
+import com.lz.mapper.EventAdminMappingMapper;
 import com.lz.service.NotificationService;
 import com.lz.service.RegistrationService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -63,6 +63,7 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
     private final EventMapper eventMapper;
     private final ProjectMapper projectMapper;
     private final UserMapper userMapper;
+    private final EventAdminMappingMapper eventAdminMappingMapper;
     private final NotificationService notificationService;
     private final RedissonClient redissonClient; // Requires Redisson dependency
     
@@ -88,14 +89,29 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
             throw new BusinessException("您的请求过于频繁，请稍后再试");
         }
 
+        Project projectSeed = projectMapper.selectById(projectId);
+        if (projectSeed == null) {
+            throw new BusinessException("项目不存在");
+        }
+        Event eventSeed = eventMapper.selectById(projectSeed.getEventId());
+        if (eventSeed == null) {
+            throw new BusinessException("赛事不存在");
+        }
+
+        String userEventLockKey = "registration:lock:user_event:" + userId + ":" + eventSeed.getId();
+        RLock userEventLock = redissonClient.getLock(userEventLockKey);
+
         String lockKey = "registration:lock:project:" + projectId;
         RLock lock = redissonClient.getLock(lockKey);
         User syncUser = null;
         Athlete syncAthlete = null;
 
         try {
-            if (lock.tryLock(5, 10, TimeUnit.SECONDS)) {
+            if (userEventLock.tryLock(5, 10, TimeUnit.SECONDS)) {
                 try {
+                    if (!lock.tryLock(5, 10, TimeUnit.SECONDS)) {
+                        throw new BusinessException("系统繁忙，请稍后再试");
+                    }
                     User user = userMapper.selectById(userId);
                     if (user == null) {
                         throw new BusinessException("用户不存在");
@@ -107,15 +123,9 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
                         throw new BusinessException("管理员角色不可申请", 403);
                     }
                     
-                    Project project = projectMapper.selectById(projectId);
-                    if (project == null) {
-                        throw new BusinessException("项目不存在");
-                    }
+                    Project project = projectSeed;
             
-                    Event event = eventMapper.selectById(project.getEventId());
-                    if (event == null) {
-                        throw new BusinessException("赛事不存在");
-                    }
+                    Event event = eventSeed;
 
                     Athlete athlete = athleteMapper.selectOne(new LambdaQueryWrapper<Athlete>()
                             .eq(Athlete::getUserId, userId)
@@ -242,7 +252,9 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
                     syncAthlete = athlete;
                     syncUser = user;
                 } finally {
-                    lock.unlock();
+                    if (lock.isHeldByCurrentThread()) {
+                        lock.unlock();
+                    }
                 }
             } else {
                 throw new BusinessException("系统繁忙，请稍后再试");
@@ -255,6 +267,10 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new BusinessException("系统中断");
+        } finally {
+            if (userEventLock.isHeldByCurrentThread()) {
+                userEventLock.unlock();
+            }
         }
     }
 
@@ -344,6 +360,7 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
     public void approve(Long id) {
         Registration r = getById(id);
         if (r == null) throw new BusinessException("报名记录不存在");
+        assertCanManageEvent(r.getEventId());
         if (r.getRegistrationStatus() != RegistrationStatus.PENDING) {
             throw new BusinessException("已审核的申请不可重复审核");
         }
@@ -357,6 +374,7 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
     public void refuse(Long id) {
         Registration r = getById(id);
         if (r == null) throw new BusinessException("报名记录不存在");
+        assertCanManageEvent(r.getEventId());
         if (r.getRegistrationStatus() != RegistrationStatus.PENDING) {
             throw new BusinessException("已审核的申请不可重复审核");
         }
@@ -406,12 +424,28 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
         }
         int success = 0;
         int skipped = 0;
+        List<Registration> pendingList = new ArrayList<>();
+        java.util.Set<Long> pendingEventIds = new java.util.HashSet<>();
         for (Long id : ids) {
             Registration registration = getById(id);
             if (registration == null || registration.getRegistrationStatus() != RegistrationStatus.PENDING) {
                 skipped++;
                 continue;
             }
+            pendingList.add(registration);
+            if (registration.getEventId() != null) {
+                pendingEventIds.add(registration.getEventId());
+            }
+        }
+
+        if (pendingEventIds.size() > 1) {
+            throw new BusinessException("批量审核仅支持同一赛事", 400);
+        }
+        if (!pendingEventIds.isEmpty()) {
+            assertCanManageEvent(pendingEventIds.iterator().next());
+        }
+
+        for (Registration registration : pendingList) {
             if (approve) {
                 registration.setRegistrationStatus(RegistrationStatus.APPROVED);
                 notificationService.create(registration.getAthleteId(), "报名审核通过", "您的报名已审核通过", NotificationType.SYSTEM);
@@ -424,6 +458,31 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
             success++;
         }
         return "已处理" + success + "条，跳过" + skipped + "条";
+    }
+
+    private void assertCanManageEvent(Long eventId) {
+        Long userId = BaseContext.getCurrentId();
+        if (userId == null) {
+            throw new BusinessException("用户未登录", 401);
+        }
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在", 401);
+        }
+        if (user.getUserType() == UserRole.SCHOOL_ADMIN || user.getUserType() == UserRole.SUPER_ADMIN) {
+            return;
+        }
+        if (user.getUserType() != UserRole.EVENT_ADMIN) {
+            throw new BusinessException("权限不足", 403);
+        }
+        long count = eventAdminMappingMapper.selectCount(
+                new LambdaQueryWrapper<com.lz.entity.EventAdminMapping>()
+                        .eq(com.lz.entity.EventAdminMapping::getEventId, eventId)
+                        .eq(com.lz.entity.EventAdminMapping::getUserId, userId)
+        );
+        if (count == 0) {
+            throw new BusinessException("您不是该赛事的管理员", 403);
+        }
     }
 
 
@@ -464,6 +523,14 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
             log.error("Export failed", e);
             throw new BusinessException("导出失败");
         }
+    }
+
+    @Override
+    public List<RegistrationDTO> listScoreEntryCandidates(Long eventId, Long itemId) {
+        if (eventId == null) {
+            throw new BusinessException("赛事ID不能为空", 400);
+        }
+        return registrationMapper.selectScoreEntryCandidates(eventId, itemId);
     }
 
     @Override

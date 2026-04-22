@@ -17,15 +17,8 @@
             </div>
           </div>
           <div class="filter-box">
-            <el-select v-model="queryParams.eventId" placeholder="选择赛事" style="width: 200px" @change="handleEventChange">
-              <el-option v-for="event in eventList" :key="event.id" :label="event.name" :value="event.id" />
-            </el-select>
-            <el-select v-model="queryParams.status" placeholder="状态" style="width: 120px" clearable>
-              <el-option label="全部" value="" />
-              <el-option label="待审核" value="PENDING" />
-              <el-option label="已通过" value="APPROVED" />
-              <el-option label="已拒绝" value="REJECTED" />
-            </el-select>
+            <SmartSelect v-model="queryParams.eventId" :options="eventList" placeholder="选择赛事" style="width: 200px" @change="handleEventChange" />
+            <SmartSelect v-model="queryParams.status" :options="statusOptions" placeholder="状态" style="width: 120px" clearable />
             <el-input v-model="queryParams.keyword" placeholder="搜索姓名" style="width: 150px" @keyup.enter="handleQuery" clearable>
               <template #prefix>
                 <svg viewBox="0 0 24 24" fill="none" class="search-icon"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -199,6 +192,7 @@ import {
   getRegistrationStats
 } from '@/api/eventAdmin'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import SmartSelect from '@/components/SmartSelect.vue'
 
 const loading = ref(false)
 const submitting = ref(false)
@@ -207,6 +201,12 @@ const eventList = ref([])
 const total = ref(0)
 const selectedRows = ref([])
 const stats = ref({ pending: 0, approved: 0, rejected: 0 })
+const statusOptions = [
+  { label: '全部', value: '' },
+  { label: '待审核', value: 'PENDING' },
+  { label: '已通过', value: 'APPROVED' },
+  { label: '已拒绝', value: 'REJECTED' }
+]
 
 const queryParams = reactive({
   eventId: null,

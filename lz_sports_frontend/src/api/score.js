@@ -50,6 +50,14 @@ export function getScorePage(params) {
   })
 }
 
+export function getScoreEntryCandidates(eventId, itemId) {
+  return request({
+    url: `/score/entry-candidates/${eventId}`,
+    method: 'get',
+    params: { itemId }
+  })
+}
+
 export function upsertScore(data) {
   return request({
     url: '/score/upsert',

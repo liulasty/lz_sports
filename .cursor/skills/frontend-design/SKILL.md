@@ -107,6 +107,54 @@ When working on matching files, follow that rule automatically.
 - **Fix applied**: Added container-level `--el-*` tokens, scoped `::deep` overrides for form controls/states, and custom finish-state module for step page; replaced plain notification table with hub layout (hero + stats + filters + message stream).
 - **Reusable rule**: In dark themes, define tokens first, then component overrides; never ship default light components inside dark containers.
 
+### 2026-04 Public scores visual polish
+- **Issue observed**: Public scores page hierarchy was flat, with weak section distinction between header, filters, and score groups.
+- **Root cause**: Layout lacked summary landmarks and card-level contrast; dark-mode Element Plus states were only partially refined.
+- **Fix applied**: Upgraded to hero + metrics + card-stream structure, improved dark token layering, and added focused overrides for select/table hover/focus states.
+- **Reusable rule**: Data listing pages should include a compact metric band and explicit card boundaries before table rendering to preserve scanability in dark themes.
+
+### 2026-04 Public scores light-theme mismatch
+- **Issue observed**: Public scores page looked detached in light shell because styles were hard-forced to dark.
+- **Root cause**: Root node included dark-only class and many fixed dark color values without theme branching.
+- **Fix applied**: Removed forced dark class; introduced semantic tokens with light defaults and `html.dark` overrides.
+- **Reusable rule**: For shared public pages, default to light tokens and gate dark variants through global theme selector only.
+
+### 2026-04 Public scores hierarchy refinement
+- **Issue observed**: Even after theme fix, page still looked like stacked generic blocks with weak status guidance.
+- **Root cause**: Filter area lacked context/state affordance and page missed a compact information band between hero and data table.
+- **Fix applied**: Added status chip and overview cards (event pool/current items/context), plus stronger hero metadata tags and responsive layout tuning.
+- **Reusable rule**: For data-public pages, keep a three-layer structure: hero intent, filter+state feedback, then data stream cards.
+
+### 2026-04 Select dropdown refinement
+- **Issue observed**: Event select and dropdown looked like default Element Plus, visually detached from page tone.
+- **Root cause**: Input wrapper was partially themed, but dropdown popper/options kept stock radius, spacing, and selection affordances.
+- **Fix applied**: Added custom `popper-class`, redesigned wrapper focus/hover states, and restyled option hover/selected states in both light and dark.
+- **Reusable rule**: For key filters, style input shell and popper as one component system; never theme only the trigger without dropdown states.
+
+### 2026-04 Reusable select extraction
+- **Issue observed**: Page-level select styling became large and hard to reuse across screens.
+- **Root cause**: Smart select visuals (trigger + dropdown) were implemented directly inside one page file.
+- **Fix applied**: Extracted a reusable `SmartSelect` component with unified trigger/panel theming and configurable options mapping.
+- **Reusable rule**: Treat heavily customized Element Plus controls as shared design primitives, not one-off page CSS blocks.
+
+### 2026-04 Multi-page SmartSelect rollout
+- **Issue observed**: Other management pages still mixed old Element Plus selects, causing visual inconsistency.
+- **Root cause**: Component extraction was done, but migration was not propagated to adjacent pages.
+- **Fix applied**: Replaced selects in first batch (`score/index`, `user/index`) with `SmartSelect`, including dialog usage.
+- **Reusable rule**: After extracting shared UI primitives, execute staged rollout by feature cluster and verify each batch with lint/tests.
+
+### 2026-04 Full select migration completion
+- **Issue observed**: Remaining admin/profile screens still used raw `el-select`, including remote and slot-rich dropdowns.
+- **Root cause**: Initial `SmartSelect` only covered simple option arrays, blocking complex replacements.
+- **Fix applied**: Extended `SmartSelect` with default-slot passthrough and broader model typing, then fully replaced all page-level `el-select`.
+- **Reusable rule**: Shared wrapper components must support both simple-data mode and advanced slot mode before declaring migration complete.
+
+### 2026-04 Legacy select CSS cleanup
+- **Issue observed**: After migration, several pages still kept old select-specific overrides, increasing CSS noise.
+- **Root cause**: Original page styles targeted `el-select` wrappers directly and were not removed during functional replacement.
+- **Fix applied**: Deleted obsolete page-level select overrides and consolidated option sizing behavior inside `SmartSelect`.
+- **Reusable rule**: After component migration, always run a second cleanup pass to remove dead selectors and centralize style ownership.
+
 ## Additional Resources
 
 - Usage examples: [examples.md](examples.md)

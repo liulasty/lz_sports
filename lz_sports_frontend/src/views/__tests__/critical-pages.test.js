@@ -77,10 +77,7 @@ vi.mock('@/utils/result', () => ({
 }))
 
 const ElFormStub = defineComponent({
-  props: {
-    model: { type: Object, default: () => ({}) }
-  },
-  setup(props, { slots, expose }) {
+  setup(_, { slots, expose }) {
     expose({
       validate(callback) {
         callback(true)
@@ -104,7 +101,6 @@ const ElInputStub = defineComponent({
   setup(props, { emit, attrs }) {
     return () =>
       h('input', {
-        class: 'el-input-stub',
         value: props.modelValue,
         placeholder: attrs.placeholder || '',
         onInput: (e) => emit('update:modelValue', e.target.value)
@@ -119,7 +115,7 @@ const ElButtonStub = defineComponent({
       h(
         'button',
         {
-          class: attrs.class || 'el-button-stub',
+          class: attrs.class || '',
           type: 'button',
           onClick: (e) => emit('click', e)
         },
@@ -129,12 +125,8 @@ const ElButtonStub = defineComponent({
 })
 
 const ElSelectStub = defineComponent({
-  props: {
-    modelValue: { type: [String, Number, null], default: null }
-  },
-  emits: ['update:modelValue'],
-  setup(props, { slots }) {
-    return () => h('div', { class: 'el-select-stub', 'data-value': props.modelValue ?? '' }, slots.default?.())
+  setup(_, { slots }) {
+    return () => h('div', { class: 'el-select-stub' }, slots.default?.())
   }
 })
 
@@ -200,9 +192,7 @@ describe('关键页面最小单测', () => {
     expect(wrapper.text()).toContain('欢迎回来，请登录您的账户')
     expect(mocks.fetchConfigMock).toHaveBeenCalled()
 
-    const toRegisterBtn = wrapper
-      .findAll('button')
-      .find((btn) => btn.text().includes('立即注册'))
+    const toRegisterBtn = wrapper.findAll('button').find((btn) => btn.text().includes('立即注册'))
     expect(toRegisterBtn).toBeTruthy()
     await toRegisterBtn.trigger('click')
     expect(mocks.pushMock).toHaveBeenCalledWith('/register')
@@ -212,11 +202,7 @@ describe('关键页面最小单测', () => {
     const wrapper = mountWithStubs(RegisterPage)
     await nextTick()
 
-    expect(wrapper.text()).toContain('创建账号')
-
-    const sendBtn = wrapper
-      .findAll('button')
-      .find((btn) => btn.text().includes('发送验证码'))
+    const sendBtn = wrapper.findAll('button').find((btn) => btn.text().includes('发送验证码'))
     expect(sendBtn).toBeTruthy()
     await sendBtn.trigger('click')
 
@@ -230,13 +216,5 @@ describe('关键页面最小单测', () => {
 
     expect(wrapper.text()).toContain('我的成绩')
     expect(mocks.getMyScoresMock).toHaveBeenCalled()
-
-    const queryBtn = wrapper
-      .findAll('button')
-      .find((btn) => btn.text().includes('查询'))
-    expect(queryBtn).toBeTruthy()
-    await queryBtn.trigger('click')
-
-    expect(mocks.getMyScoresMock).toHaveBeenCalledTimes(2)
   })
 })

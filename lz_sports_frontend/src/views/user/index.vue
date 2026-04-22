@@ -34,16 +34,8 @@
     <section class="user-shell lz-surface lz-ep-dark" v-loading="loading">
       <div class="toolbar">
         <div class="filters lz-form">
-          <el-select v-model="queryParams.role" placeholder="角色" clearable class="w-140">
-            <el-option label="普通用户" value="USER" />
-            <el-option label="运动员" value="ATHLETE" />
-            <el-option label="赛事管理员" value="EVENT_ADMIN" />
-            <el-option label="系统管理员" value="SCHOOL_ADMIN" />
-          </el-select>
-          <el-select v-model="queryParams.status" placeholder="状态" clearable class="w-120">
-            <el-option label="正常" value="ACTIVE" />
-            <el-option label="禁用" value="DISABLED" />
-          </el-select>
+          <SmartSelect v-model="queryParams.role" :options="roleOptions" placeholder="角色" clearable class="w-140" />
+          <SmartSelect v-model="queryParams.status" :options="statusOptions" placeholder="状态" clearable class="w-120" />
           <el-input
             v-model="queryParams.keyword"
             placeholder="邮箱 / 姓名"
@@ -123,10 +115,7 @@
     <el-dialog v-model="dialogVisible" title="修改角色" width="420px" class="lz-ep-dark">
       <el-form :model="roleForm" label-position="top" class="lz-form">
         <el-form-item label="角色分配">
-          <el-select v-model="roleForm.role" style="width: 100%">
-            <el-option label="普通用户" value="USER" />
-            <el-option label="赛事管理员" value="EVENT_ADMIN" />
-          </el-select>
+          <SmartSelect v-model="roleForm.role" :options="assignableRoleOptions" style="width: 100%" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -143,6 +132,7 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { getAdminUserList, changeUserRole, disableUser, enableUser } from '@/api/adminUser'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import SmartSelect from '@/components/SmartSelect.vue'
 
 interface UserData {
   id: number;
@@ -174,6 +164,23 @@ const roleForm = reactive({
   id: null as number | null,
   role: ''
 })
+
+const roleOptions = [
+  { label: '普通用户', value: 'USER' },
+  { label: '运动员', value: 'ATHLETE' },
+  { label: '赛事管理员', value: 'EVENT_ADMIN' },
+  { label: '系统管理员', value: 'SCHOOL_ADMIN' }
+]
+
+const statusOptions = [
+  { label: '正常', value: 'ACTIVE' },
+  { label: '禁用', value: 'DISABLED' }
+]
+
+const assignableRoleOptions = [
+  { label: '普通用户', value: 'USER' },
+  { label: '赛事管理员', value: 'EVENT_ADMIN' }
+]
 
 const isActiveState = (state: string) => state === 'ACTIVE' || state === '已激活'
 
