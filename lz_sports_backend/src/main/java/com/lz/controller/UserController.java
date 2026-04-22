@@ -209,8 +209,9 @@ public class UserController {
     @DeleteMapping("/{id}")
     @RequireRole({UserRole.SCHOOL_ADMIN})
     @Operation(summary = "删除用户", description = "根据ID删除用户")
-    public Result<String> delete(@Parameter(description = "用户ID") @PathVariable String id) {
-        userService.deleteUser(id);
+    public Result<String> delete(@Parameter(description = "用户ID") @PathVariable String id,
+                                 @Parameter(description = "删除原因") @RequestParam(required = false) String reason) {
+        userService.deleteUser(id, reason);
         return Result.success("删除成功");
     }
 

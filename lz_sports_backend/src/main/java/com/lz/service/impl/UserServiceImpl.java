@@ -13,12 +13,15 @@ import com.lz.dto.UserRegisterDTO;
 import com.lz.entity.User;
 import com.lz.entity.Athlete;
 import com.lz.entity.Notification;
+import com.lz.entity.AdminUserAuditLog;
 import com.lz.mapper.UserMapper;
 import com.lz.mapper.AthleteMapper;
 import com.lz.mapper.EventMapper;
 import com.lz.mapper.NotificationMapper;
 import com.lz.mapper.ProjectMapper;
 import com.lz.mapper.RegistrationMapper;
+import com.lz.mapper.EventAdminMappingMapper;
+import com.lz.mapper.AdminUserAuditLogMapper;
 import com.lz.service.SportsImgService;
 import com.lz.service.UserService;
 import com.lz.service.NotificationService;
@@ -89,7 +92,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private NotificationMapper notificationMapper;
 
     @Autowired
+    private EventAdminMappingMapper eventAdminMappingMapper;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private AdminUserAuditLogMapper adminUserAuditLogMapper;
 
     private static final long CODE_EXPIRE_MINUTES = 10;
     private static final long CODE_COOLDOWN_SECONDS = 60;
@@ -415,18 +424,40 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void deleteUser(String id) {
-        // Check if athlete exists
-        LambdaQueryWrapper<Athlete> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Athlete::getUserId, Long.valueOf(id));
-        if (athleteMapper.selectCount(wrapper) > 0) {
-            throw new BusinessException("删除失败，请删除相关信息");
-        }
-
-        int delete = userMapper.deleteById(id);
-        if (delete == 0) {
+    public void deleteUser(String id, String reason) {
+        Long userId = Long.valueOf(id);
+        User user = userMapper.selectById(userId);
+        if (user == null) {
             throw new BusinessException("删除失败，用户不存在");
         }
+        if (user.getUserType() == UserRole.SUPER_ADMIN) {
+            throw new BusinessException("禁止删除超级管理员", 403);
+        }
+        if (user.getStatus() == UserStatus.DISABLED) {
+            return;
+        }
+
+        // 统一逻辑删除语义：仅变更账号状态，不做物理删除，避免历史报名/成绩/通知关联断裂。
+        UserStatus beforeStatus = user.getStatus();
+        user.setStatus(UserStatus.DISABLED);
+        user.setUpdateTime(LocalDateTime.now());
+        userMapper.updateById(user);
+        saveDeleteAuditLog(userId, beforeStatus, reason);
+
+        // 逻辑删除后立刻使现有登录态失效，阻断后续操作。
+        redisUtil.del(buildUserLoginTokenKey(userId));
+    }
+
+    private void saveDeleteAuditLog(Long targetUserId, UserStatus beforeStatus, String reason) {
+        AdminUserAuditLog log = new AdminUserAuditLog();
+        log.setOperatorId(BaseContext.getCurrentId());
+        log.setTargetUserId(targetUserId);
+        log.setAction("LOGICAL_DELETE_USER");
+        log.setBeforeStatus(beforeStatus == null ? null : beforeStatus.name());
+        log.setAfterStatus(UserStatus.DISABLED.name());
+        log.setRemark(StringUtils.isBlank(reason) ? "管理员逻辑删除用户" : reason.trim());
+        log.initTime();
+        adminUserAuditLogMapper.insert(log);
     }
 
 

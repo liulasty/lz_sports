@@ -43,7 +43,7 @@ public interface UserService extends IService<User> {
 
     PageResult list(EventListDTO listDto);
 
-    void deleteUser(String id);
+    void deleteUser(String id, String reason);
 
     UserData getUserNumsByMonth(String month);
 
