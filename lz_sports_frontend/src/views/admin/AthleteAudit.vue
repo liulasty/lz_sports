@@ -115,7 +115,33 @@
               </span>
             </template>
           </el-table-column>
-          <el-table-column prop="deptName" label="部门/年级" width="120" />
+          <el-table-column prop="deptName" label="部门/年级" width="160">
+            <template #default="scope">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span>{{ scope.row.deptName }}</span>
+                <el-tooltip
+                  v-if="scope.row.athleteState === 'PENDING' && scope.row.agreeTime"
+                  content="该申请曾审核通过后重新提交，请重点核实部门/年级信息是否发生变更"
+                  placement="top"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" style="width: 16px; height: 16px; flex-shrink: 0; color: var(--el-color-warning); cursor: pointer;">
+                    <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2"/>
+                    <path d="M12 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    <circle cx="12" cy="16" r="1" fill="currentColor"/>
+                  </svg>
+                </el-tooltip>
+                <el-tag
+                  v-if="scope.row.athleteState === 'PENDING'"
+                  size="small"
+                  type="warning"
+                  effect="plain"
+                  style="margin-left: auto; font-size: 11px; height: 20px; line-height: 18px;"
+                >
+                  核实
+                </el-tag>
+              </div>
+            </template>
+          </el-table-column>
           <el-table-column prop="contact" label="联系方式" width="155" />
           <el-table-column prop="applyTime" label="申请时间" min-width="165">
             <template #default="scope">

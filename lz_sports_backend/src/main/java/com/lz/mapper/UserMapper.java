@@ -36,4 +36,10 @@ public interface UserMapper extends BaseMapper<User> {
 
     @Update("UPDATE sys_user SET unread_count = 0 WHERE id = #{userId}")
     int resetUnreadCount(@Param("userId") Long userId);
+
+    /**
+     * 悲观锁：锁定用户行，防止并发修改导致的竞态条件
+     */
+    @Select("SELECT * FROM sys_user WHERE id = #{id} FOR UPDATE")
+    User selectByIdForUpdate(@Param("id") Long id);
 }

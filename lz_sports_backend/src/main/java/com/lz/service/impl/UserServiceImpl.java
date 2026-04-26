@@ -262,7 +262,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Transactional(rollbackFor = Exception.class)
     public void updateUser(UserUpdateDTO userUpdateDTO) {
         Long userId = BaseContext.getCurrentId();
-        User user = userMapper.selectById(userId);
+        // 悲观锁：锁定用户行，防止并发修改个人信息时与运动员资料变更产生竞态条件
+        User user = userMapper.selectByIdForUpdate(userId);
         if (user == null) {
             throw new BusinessException("用户不存在");
         }
@@ -278,11 +279,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             user.setEmail(userUpdateDTO.getEmail());
         }
 
-        // 校验是否有已通过的运动员认证
+        // 校验是否有已通过的运动员认证（使用 FOR UPDATE 悲观锁，防止并发竞态）
         boolean hasApprovedAthlete = athleteMapper.selectCount(
                 new LambdaQueryWrapper<com.lz.entity.Athlete>()
                         .eq(com.lz.entity.Athlete::getUserId, userId)
                         .eq(com.lz.entity.Athlete::getAthleteState, com.lz.common.enums.AthleteStatus.APPROVED)
+                        .last("FOR UPDATE")
         ) > 0;
 
         if (userUpdateDTO.getName() != null) {

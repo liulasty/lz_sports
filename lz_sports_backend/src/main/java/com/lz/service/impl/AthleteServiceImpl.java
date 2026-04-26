@@ -228,6 +228,13 @@ public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> impl
             throw new BusinessException("运动员不存在");
         }
 
+        // 检测部门变更：APPROVED 状态的运动员禁止直接修改所属部门
+        if (dto.getDeptId() != null && !dto.getDeptId().equals(athlete.getDeptId())) {
+            if (AthleteStatus.APPROVED.equals(athlete.getAthleteState())) {
+                throw new BusinessException("已通过审核的运动员无法直接修改所属部门，如需变更请联系赛事管理员");
+            }
+        }
+
         // 修改申请信息，重置为待审核状态
         athlete.setName(dto.getName() != null ? dto.getName() : athlete.getName());
         athlete.setAge(dto.getAge() != null ? String.valueOf(dto.getAge()) : athlete.getAge());
@@ -236,7 +243,7 @@ public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> impl
         athlete.setDeptId(dto.getDeptId() != null ? dto.getDeptId() : athlete.getDeptId());
         athlete.setAthleteState(AthleteStatus.PENDING);
         athlete.setApplyTime(LocalDateTime.now());
-        
+
         updateById(athlete);
     }
 }
