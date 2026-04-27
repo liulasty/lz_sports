@@ -15,10 +15,11 @@ export function approveRegistration(id) {
   })
 }
 
-export function refuseRegistration(id) {
+export function refuseRegistration(id, reason) {
   return request({
     url: `/registration/refuse/${id}`,
-    method: 'put'
+    method: 'put',
+    params: { reason }
   })
 }
 

@@ -538,11 +538,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             avatarImg = "https://" + appConfig.getBucketName() + "." + appConfig.getEndpoint() + "/" + avatarImg;
         }
 
+        String role = user.getUserType().getRole();
         return UserDetailVO.builder()
                 .userId(user.getId())
                 .userName(user.getUsername())
                 .email(user.getEmail())
-                .userType(user.getUserType().getRole())
+                .role(role)
+                .type(role)
+                .userType(role)
                 .status(user.getStatus().getStatus())
                 .registerTime(user.getCreateTime())
                 .avatarSrc(avatarImg)

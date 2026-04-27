@@ -533,28 +533,13 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
         if (scores == null || scores.isEmpty()) {
             return new ArrayList<>();
         }
-        Map<Long, Event> eventMap = eventMapper.selectBatchIds(scores.stream().map(Score::getEventId).distinct().toList())
-                .stream().collect(Collectors.toMap(Event::getId, item -> item));
-        Map<Long, Project> itemMap = projectMapper.selectBatchIds(scores.stream().map(Score::getItemId).distinct().toList())
-                .stream().collect(Collectors.toMap(Project::getId, item -> item));
-        Map<Long, User> userMap = userMapper.selectBatchIds(scores.stream().map(Score::getAthleteId).distinct().toList())
-                .stream().collect(Collectors.toMap(User::getId, item -> item));
-        return scores.stream().map(score -> {
-            ScoreVO vo = new ScoreVO();
-            vo.setId(score.getId());
-            vo.setEventId(score.getEventId());
-            vo.setItemId(score.getItemId());
-            vo.setRegistrationId(score.getRegistrationId());
-            vo.setEventName(eventMap.containsKey(score.getEventId()) ? eventMap.get(score.getEventId()).getEventName() : null);
-            vo.setItemName(itemMap.containsKey(score.getItemId()) ? itemMap.get(score.getItemId()).getItemName() : null);
-            vo.setAthleteName(userMap.containsKey(score.getAthleteId()) ? userMap.get(score.getAthleteId()).getName() : null);
-            vo.setScoreValue(score.getScoreValue());
-            vo.setScoreRank(score.getScoreRank());
-            vo.setRemark(score.getRemark());
-            vo.setIsPublished(score.getIsPublished());
-            vo.setPublishedAt(score.getPublishedAt());
-            return vo;
-        }).collect(Collectors.toList());
+        List<Long> scoreIds = scores.stream().map(Score::getId).toList();
+        Map<Long, ScoreVO> voMap = baseMapper.selectScoreVOByIds(scoreIds).stream()
+                .collect(Collectors.toMap(ScoreVO::getId, vo -> vo));
+        return scoreIds.stream()
+                .map(voMap::get)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toList());
     }
 
     private static class TemplateReadonlyColumnStyleHandler implements CellWriteHandler {

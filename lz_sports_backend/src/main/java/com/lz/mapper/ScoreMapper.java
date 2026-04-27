@@ -29,6 +29,8 @@ public interface ScoreMapper extends BaseMapper<Score> {
 
     List<ScoreVO> selectPublicByEvent(@Param("eventId") Long eventId);
 
+    List<ScoreVO> selectScoreVOByIds(@Param("ids") List<Long> ids);
+
     @Select("""
             SELECT event_id as eventId, COUNT(DISTINCT item_id) as publishedCount
             FROM result

@@ -113,8 +113,9 @@ public class RegistrationController {
     @PutMapping("/refuse/{id}")
     @RequireEventAdmin
     @Operation(summary = "拒绝报名", description = "管理员拒绝报名申请")
-    public Result<String> refuse(@Parameter(description = "报名ID") @PathVariable Long id) {
-        registrationService.refuse(id);
+    public Result<String> refuse(@Parameter(description = "报名ID") @PathVariable Long id,
+                                 @RequestParam(required = false) String reason) {
+        registrationService.refuse(id, reason);
         return Result.success("已拒绝报名");
     }
 

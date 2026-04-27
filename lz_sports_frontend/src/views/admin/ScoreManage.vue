@@ -320,7 +320,7 @@ const summary = computed(() => {
   }
 })
 
-const currentRole = computed(() => userStore.userInfo?.role || userStore.userInfo?.type || userStore.userInfo?.userType || '')
+const currentRole = computed(() => userStore.userInfo?.role || '')
 
 const roleScopeText = computed(() => {
   if (currentRole.value === 'EVENT_ADMIN') {

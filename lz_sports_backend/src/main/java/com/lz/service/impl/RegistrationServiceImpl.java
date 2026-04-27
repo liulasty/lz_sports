@@ -371,7 +371,7 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void refuse(Long id) {
+    public void refuse(Long id, String reason) {
         Registration r = getById(id);
         if (r == null) throw new BusinessException("报名记录不存在");
         assertCanManageEvent(r.getEventId());
@@ -379,9 +379,10 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
             throw new BusinessException("已审核的申请不可重复审核");
         }
         r.setRegistrationStatus(RegistrationStatus.REJECTED);
+        r.setRejectReason(StringUtils.defaultIfBlank(reason, "无"));
         updateById(r);
-        String reason = StringUtils.defaultIfBlank(r.getRejectReason(), "无");
-        notificationService.create(r.getAthleteId(), "报名审核拒绝", "您的报名已被拒绝，原因：" + reason, NotificationType.SYSTEM);
+        String notifyReason = StringUtils.defaultIfBlank(r.getRejectReason(), "无");
+        notificationService.create(r.getAthleteId(), "报名审核拒绝", "您的报名已被拒绝，原因：" + notifyReason, NotificationType.SYSTEM);
     }
 
     @Override

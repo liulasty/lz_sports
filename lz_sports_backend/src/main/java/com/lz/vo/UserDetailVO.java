@@ -17,6 +17,8 @@ import java.time.LocalDateTime;
 public class UserDetailVO {
     private Long userId;
     private String userName;
+    private String role;
+    private String type;
     private String userType;
     private String email;
     private String status;

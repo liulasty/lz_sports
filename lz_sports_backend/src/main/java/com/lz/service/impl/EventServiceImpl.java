@@ -262,8 +262,18 @@ public class EventServiceImpl extends ServiceImpl<EventMapper, Event> implements
         }
         eventMapper.selectPage(page, lqw);
 
+        List<Long> eventIds = page.getRecords().stream().map(Event::getId).toList();
+        List<SportsImg> eventImages = eventIds.isEmpty()
+                ? List.of()
+                : sportsImgService.list(new LambdaQueryWrapper<SportsImg>()
+                .eq(SportsImg::getImgType, "event")
+                .in(SportsImg::getTypeId, eventIds));
+        Map<Long, List<String>> imageMap = eventImages.stream()
+                .collect(Collectors.groupingBy(SportsImg::getTypeId,
+                        Collectors.mapping(SportsImg::getImgSrc, Collectors.toList())));
+
         List<EventVO> eventVOS = page.getRecords().stream().map(event -> {
-            List<String> imageUrls = sportsImgService.selectImgs(event.getId(), "event");
+            List<String> imageUrls = imageMap.getOrDefault(event.getId(), List.of());
             EventStatus eventStatus = event.getEventStatus() != null ? event.getEventStatus() : EventStatus.DRAFT;
             return EventVO.builder()
                     .id(event.getId())

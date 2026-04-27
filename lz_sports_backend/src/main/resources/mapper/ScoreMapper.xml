@@ -74,4 +74,29 @@
         ORDER BY p.id ASC, s.score_rank ASC
     </select>
 
+    <select id="selectScoreVOByIds" resultType="com.lz.vo.ScoreVO">
+        SELECT
+            s.id,
+            s.event_id as eventId,
+            s.item_id as itemId,
+            s.registration_id as registrationId,
+            e.name as eventName,
+            p.name as itemName,
+            u.name as athleteName,
+            s.score_value as scoreValue,
+            s.score_rank as scoreRank,
+            s.remark as remark,
+            s.is_published as isPublished,
+            s.published_at as publishedAt,
+            s.create_time as createTime
+        FROM result s
+        LEFT JOIN event e ON s.event_id = e.id
+        LEFT JOIN event_item p ON s.item_id = p.id
+        LEFT JOIN sys_user u ON s.user_id = u.id
+        WHERE s.id IN
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
 </mapper>

@@ -61,6 +61,7 @@
 
             <div class="app-meta">
               <span class="meta-chip">状态码：{{ normalizeAthleteStatus(item.athleteState || item.status) }}</span>
+              <span v-if="isRejected(item)" class="meta-chip danger">拒绝原因：{{ item.rejectReason || '无' }}</span>
             </div>
           </div>
         </article>
@@ -99,6 +100,11 @@ const normalize = (item) => normalizeAthleteStatus(item?.athleteState || item?.s
 const isPending = (item) => {
   const s = normalize(item)
   return s === 'PENDING' || s === 'PROCESSING' || s === 'AUDITING'
+}
+
+const isRejected = (item) => {
+  const s = normalize(item)
+  return s === 'REJECTED' || s === 'FAIL' || s === 'DENY'
 }
 
 const statusCount = computed(() => {
@@ -307,6 +313,12 @@ const formatTime = (time) => {
   color: color-mix(in srgb, var(--text-secondary) 90%, transparent);
   border: 1px solid var(--border);
   background: color-mix(in srgb, var(--bg-card) 88%, transparent);
+}
+
+.meta-chip.danger {
+  color: color-mix(in srgb, #ff6b7a 90%, transparent);
+  border-color: color-mix(in srgb, #ff6b7a 42%, var(--border));
+  background: color-mix(in srgb, #ff6b7a 12%, var(--bg-card));
 }
 
 @media (max-width: 900px) {

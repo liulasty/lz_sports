@@ -87,9 +87,9 @@ const userStore = useUserStore()
 const configStore = useConfigStore()
 const isLoggedIn = computed(() => !!userStore.token)
 
-// 适配新旧角色标识
+// 统一使用 role 字段
 const role = computed(() => {
-  return userStore.userInfo?.role || userStore.userInfo?.type || userStore.userInfo?.userType || 'USER'
+  return userStore.userInfo?.role || 'USER'
 })
 
 // 根据后端UserRole枚举定义的权限

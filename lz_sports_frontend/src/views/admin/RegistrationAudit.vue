@@ -273,12 +273,15 @@ const handleApprove = (row) => {
 
 const handleRefuse = (row) => {
   if (submitting.value) return
-  ElMessageBox.confirm('确认拒绝该报名申请吗?', '提示', {
-    confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning'
-  }).then(async () => {
+  ElMessageBox.prompt('请输入拒绝原因（可选）', '拒绝报名申请', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    inputPlaceholder: '例如：不符合项目要求',
+    inputType: 'textarea'
+  }).then(async ({ value }) => {
     submitting.value = true
     try {
-      const res = await refuseRegistration(row.id)
+      const res = await refuseRegistration(row.id, value?.trim() || undefined)
       if (isSuccess(res)) { ElMessage.success('操作成功'); getList(); refreshStats() }
     } catch (error) { console.error(error) } finally { submitting.value = false }
   }).catch(() => {})

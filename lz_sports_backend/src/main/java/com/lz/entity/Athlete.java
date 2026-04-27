@@ -75,6 +75,12 @@ public class Athlete extends BaseEntity<Long> {
     @TableField("dept_id")
     private Long deptId;
 
+    /**
+     * 驳回原因
+     */
+    @TableField("reject_reason")
+    private String rejectReason;
+
     @TableField(exist = false)
     private String deptName;
 

@@ -80,6 +80,7 @@ public class UserController {
                 .userName(user.getUsername())
                 .role(user.getUserType().getRole())
                 .type(user.getUserType().getRole())
+                .userType(user.getUserType().getRole())
                 .isFirstLogin(Boolean.TRUE.equals(user.getIsFirstLogin()))
                 .unreadCount(userService.getUnreadCount(user.getId()))
                 .token(token)

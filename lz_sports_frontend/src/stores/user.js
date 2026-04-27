@@ -3,7 +3,7 @@ import { ref } from 'vue'
 
 export const useUserStore = defineStore('user', () => {
   const token = ref(localStorage.getItem('token') || '')
-  const userInfo = ref(JSON.parse(localStorage.getItem('userInfo') || '{}'))
+  const userInfo = ref(normalizeUserInfo(JSON.parse(localStorage.getItem('userInfo') || '{}')))
 
   function setToken(newToken) {
     token.value = newToken
@@ -13,11 +13,9 @@ export const useUserStore = defineStore('user', () => {
   function normalizeUserInfo(info = {}) {
     const normalized = { ...info }
     const role = normalized.role || normalized.type || normalized.userType
-    if (role) {
-      normalized.role = role
-      normalized.type = role
-      normalized.userType = role
-    }
+    normalized.role = role || ''
+    delete normalized.type
+    delete normalized.userType
     return normalized
   }
 

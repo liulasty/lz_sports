@@ -17,6 +17,7 @@ public class UserLoginVO {
     private String userName;
     private String role;
     private String type;
+    private String userType;
     private Boolean isFirstLogin;
     private Long unreadCount;
     private String avatarSrc;

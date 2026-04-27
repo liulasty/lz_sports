@@ -64,6 +64,10 @@
                   <el-icon><Clock /></el-icon>
                   <span>报名时间：{{ formatDate(item.registrationTime) }}</span>
                 </div>
+                <div v-if="item.registrationStatus === 'REJECTED'" class="meta-item reject-reason">
+                  <el-icon><WarningFilled /></el-icon>
+                  <span>拒绝原因：{{ item.rejectReason || '无' }}</span>
+                </div>
               </div>
             </div>
 
@@ -472,6 +476,10 @@ onMounted(() => {
 .meta-item .el-icon {
   color: var(--el-text-color-secondary);
   font-size: 15px;
+}
+
+.meta-item.reject-reason {
+  color: var(--el-color-danger);
 }
 
 /* Action Section */

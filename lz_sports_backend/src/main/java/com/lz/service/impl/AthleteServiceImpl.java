@@ -108,6 +108,7 @@ public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> impl
         athlete.setContact(user.getContact());
         athlete.setDeptId(user.getDeptId());
         athlete.setAthleteState(AthleteStatus.PENDING);
+        athlete.setRejectReason(null);
         athlete.setApplyTime(LocalDateTime.now());
         
         save(athlete);
@@ -161,8 +162,18 @@ public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> impl
             throw new BusinessException("仅待审核状态可操作");
         }
         athlete.setAthleteState(AthleteStatus.APPROVED);
+        athlete.setRejectReason(null);
         athlete.setAgreeTime(LocalDateTime.now());
         updateById(athlete);
+
+        User user = userMapper.selectById(athlete.getUserId());
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        if (user.getUserType() == UserRole.USER) {
+            user.setUserType(UserRole.ATHLETE);
+            userMapper.updateById(user);
+        }
         
         notificationService.create(athlete.getUserId(), "运动员资格审核通过", "您在赛事的运动员资格申请已通过", NotificationType.ATHLETE_APPROVED);
     }
@@ -178,9 +189,10 @@ public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> impl
             throw new BusinessException("仅待审核状态可操作");
         }
         athlete.setAthleteState(AthleteStatus.REJECTED);
+        athlete.setRejectReason(normalizeRejectReason(reason));
         updateById(athlete);
         
-        notificationService.create(athlete.getUserId(), "运动员资格审核未通过", "您在赛事的运动员资格申请未通过。原因：" + (reason != null ? reason : "无"), NotificationType.ATHLETE_REJECTED);
+        notificationService.create(athlete.getUserId(), "运动员资格审核未通过", "您在赛事的运动员资格申请未通过。原因：" + athlete.getRejectReason(), NotificationType.ATHLETE_REJECTED);
     }
 
     @Override
@@ -242,8 +254,17 @@ public class AthleteServiceImpl extends ServiceImpl<AthleteMapper, Athlete> impl
         athlete.setContact(dto.getContact() != null ? dto.getContact() : athlete.getContact());
         athlete.setDeptId(dto.getDeptId() != null ? dto.getDeptId() : athlete.getDeptId());
         athlete.setAthleteState(AthleteStatus.PENDING);
+        athlete.setRejectReason(null);
         athlete.setApplyTime(LocalDateTime.now());
 
         updateById(athlete);
+    }
+
+    private String normalizeRejectReason(String reason) {
+        if (reason == null) {
+            return "无";
+        }
+        String trimmed = reason.trim();
+        return trimmed.isEmpty() ? "无" : trimmed;
     }
 }

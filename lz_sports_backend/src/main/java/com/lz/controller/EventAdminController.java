@@ -3,7 +3,6 @@ package com.lz.controller;
 import com.lz.common.annotation.RequireEventAdmin;
 import com.lz.common.result.PageResult;
 import com.lz.common.result.Result;
-import com.lz.entity.Athlete;
 import com.lz.service.AthleteService;
 import com.lz.service.RegistrationService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -51,7 +50,14 @@ public class EventAdminController {
     public Result<String> rejectAthlete(
             @PathVariable Long eventId,
             @PathVariable Long applicationId,
-            @RequestParam(required = false) String reason) {
+            @RequestParam(required = false) String reason,
+            @RequestBody(required = false) java.util.Map<String, String> body) {
+        if ((reason == null || reason.isBlank()) && body != null) {
+            String bodyReason = body.get("rejectReason");
+            if (bodyReason != null && !bodyReason.isBlank()) {
+                reason = bodyReason.trim();
+            }
+        }
         athleteService.rejectAthleteApplication(eventId, applicationId, reason);
         return Result.success("已拒绝");
     }

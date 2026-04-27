@@ -29,7 +29,7 @@
           <h3 class="username">{{ userInfo.userName || '—' }}</h3>
           <div class="role-badge">
             <span class="role-dot"></span>
-            {{ userInfo.userType || '用户' }}
+            {{ userInfo.role || '用户' }}
           </div>
         </div>
 
@@ -72,7 +72,7 @@
               </span>
               角色
             </div>
-            <el-tag size="small" class="vivid-tag tag-role">{{ userInfo.userType || '—' }}</el-tag>
+            <el-tag size="small" class="vivid-tag tag-role">{{ userInfo.role || '—' }}</el-tag>
           </div>
 
           <div class="info-row">
@@ -288,9 +288,9 @@ const route = useRoute() // 路由对象
 const userStore = useUserStore() // 用户状态管理
 const userInfo = ref({}) // 用户详细信息
 // 判断当前用户是否为运动员
-const isAthlete = computed(() => userInfo.value.userType === 'ATHLETE' || userInfo.value.userType === '运动员')
+const isAthlete = computed(() => userInfo.value.role === 'ATHLETE' || userInfo.value.role === '运动员')
 // 判断当前用户是否为管理员
-const isAdmin = computed(() => ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'EVENT_ADMIN', '管理员'].includes(userInfo.value.userType))
+const isAdmin = computed(() => ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'EVENT_ADMIN', '管理员'].includes(userInfo.value.role))
 
 const activeTab = ref('apply') // 当前激活的标签页
 const loading = ref(false) // 表格加载状态

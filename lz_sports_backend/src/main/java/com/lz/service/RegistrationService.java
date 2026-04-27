@@ -39,7 +39,7 @@ public interface RegistrationService extends IService<Registration> {
     /**
      * 拒绝报名
      */
-    void refuse(Long id);
+    void refuse(Long id, String reason);
 
     /**
      * 删除报名记录
