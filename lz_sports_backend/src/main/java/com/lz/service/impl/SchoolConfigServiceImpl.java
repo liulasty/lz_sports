@@ -11,6 +11,7 @@ import com.lz.entity.Department;
 import com.lz.entity.SchoolConfig;
 import com.lz.entity.User;
 import com.lz.mapper.DepartmentMapper;
+import com.lz.util.DepartmentStructureSeeder;
 import com.lz.mapper.SchoolConfigMapper;
 import com.lz.mapper.UserMapper;
 import com.lz.service.SchoolConfigService;
@@ -132,23 +133,25 @@ public class SchoolConfigServiceImpl extends ServiceImpl<SchoolConfigMapper, Sch
         adminUser.setUpdateTime(LocalDateTime.now());
         userMapper.insert(adminUser);
 
-        // 4. Create Grades / Departments
+        // 4. Create top-level org units, then seed default classes (大一/大二 or 1班/2班…)
         List<String> grades = schoolInitDTO.getGrades();
         if (grades != null && !grades.isEmpty()) {
             boolean isUniversity = "UNIVERSITY".equals(schoolConfig.getOrgMode());
             for (int i = 0; i < grades.size(); i++) {
-                String gradeName = grades.get(i);
+                String unitName = grades.get(i);
                 Department dept = new Department();
                 dept.setOrgMode(schoolConfig.getOrgMode());
                 if (isUniversity) {
-                    dept.setCollege(gradeName);
+                    dept.setCollege(unitName);
                 } else {
-                    dept.setGrade(gradeName);
+                    dept.setGrade(unitName);
                 }
                 dept.setSchoolId(schoolId);
                 dept.setSortOrder(i + 1);
                 departmentMapper.insert(dept);
             }
+            DepartmentStructureSeeder.ensureDefaultClassStructure(
+                    departmentMapper, schoolId, schoolConfig.getOrgMode());
         }
         
         log.info("System initialized successfully for school: {}", schoolInitDTO.getSchoolName());

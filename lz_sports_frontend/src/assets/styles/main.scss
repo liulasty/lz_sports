@@ -63,18 +63,22 @@ html, body, #app {
   margin: 0 auto;
 }
 
-.lz-ep-dark :deep(.lz-form .el-form-item__label) {
-  color: color-mix(in srgb, var(--lz-text-2) 90%, transparent);
+.lz-ep-dark .lz-form .el-form-item__label {
+  color: var(--lz-text-2);
   font-weight: 600;
   line-height: 1.2;
   margin-bottom: 8px;
 }
 
-.lz-ep-dark :deep(.lz-form .el-form-item) {
+.lz-ep-dark .lz-form .el-form-item__label::before {
+  color: #ff8a6b;
+}
+
+.lz-ep-dark .lz-form .el-form-item {
   margin-bottom: 16px;
 }
 
-.lz-ep-dark :deep(.lz-form .el-input__wrapper) {
+.lz-ep-dark .lz-form .el-input__wrapper {
   background: color-mix(in srgb, #ffffff 5%, transparent) !important;
   box-shadow: none !important;
   border: 1px solid color-mix(in srgb, #ffffff 12%, transparent) !important;
@@ -82,63 +86,67 @@ html, body, #app {
   min-height: 42px;
 }
 
-.lz-ep-dark :deep(.lz-form .el-input__wrapper:hover) {
+.lz-ep-dark .lz-form .el-input__wrapper:hover {
   border-color: color-mix(in srgb, var(--lz-accent) 45%, transparent) !important;
 }
 
-.lz-ep-dark :deep(.lz-form .el-input__wrapper.is-focus) {
+.lz-ep-dark .lz-form .el-input__wrapper.is-focus {
   border-color: var(--lz-accent) !important;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--lz-accent) 18%, transparent) !important;
 }
 
-.lz-ep-dark :deep(.lz-form .el-input__inner) {
-  color: color-mix(in srgb, var(--lz-text-1) 78%, transparent) !important;
+.lz-ep-dark .lz-form .el-input__inner {
+  color: var(--lz-text-1) !important;
   background: transparent !important;
 }
 
-.lz-ep-dark :deep(.lz-form .el-input__inner::placeholder) {
-  color: color-mix(in srgb, var(--lz-text-2) 62%, transparent);
+.lz-ep-dark .lz-form .el-input__inner::placeholder {
+  color: color-mix(in srgb, var(--lz-text-2) 72%, transparent);
 }
 
-.lz-ep-dark :deep(.lz-form .el-radio-group) {
+.lz-ep-dark .lz-form .el-radio-group {
   display: flex;
   flex-wrap: wrap;
   gap: 14px;
 }
 
-.lz-ep-dark :deep(.lz-form .el-radio) {
+.lz-ep-dark .lz-form .el-radio {
   margin-right: 0;
 }
 
-.lz-ep-dark :deep(.lz-form .el-radio__label) {
-  color: color-mix(in srgb, var(--lz-text-2) 85%, transparent);
+.lz-ep-dark .lz-form .el-radio__label {
+  color: var(--lz-text-2);
 }
 
-.lz-ep-dark :deep(.lz-form .el-color-picker__trigger) {
+.lz-ep-dark .lz-form .el-radio.is-checked .el-radio__label {
+  color: var(--lz-accent);
+}
+
+.lz-ep-dark .lz-form .el-color-picker__trigger {
   border-color: color-mix(in srgb, #ffffff 18%, transparent);
   background: color-mix(in srgb, #ffffff 5%, transparent);
 }
 
 /* Pagination baseline inside dark containers */
-.lz-ep-dark :deep(.el-pagination) {
+.lz-ep-dark .el-pagination {
   --el-pagination-bg-color: transparent;
   --el-pagination-text-color: color-mix(in srgb, var(--lz-text-2) 85%, transparent);
   --el-pagination-button-color: color-mix(in srgb, var(--lz-text-2) 85%, transparent);
   --el-pagination-hover-color: var(--lz-accent);
 }
 
-.lz-ep-dark :deep(.el-pager li.is-active) {
+.lz-ep-dark .el-pager li.is-active {
   color: var(--lz-accent) !important;
 }
 
 /* Buttons inside dark action bars */
-.lz-ep-dark :deep(.lz-actions .el-button:not(.el-button--primary)) {
+.lz-ep-dark .lz-actions .el-button:not(.el-button--primary) {
   background: color-mix(in srgb, #ffffff 4%, transparent);
   border-color: color-mix(in srgb, #ffffff 20%, transparent);
-  color: color-mix(in srgb, var(--lz-text-2) 88%, transparent);
+  color: var(--lz-text-2);
 }
 
-.lz-ep-dark :deep(.lz-actions .el-button:not(.el-button--primary):hover) {
+.lz-ep-dark .lz-actions .el-button:not(.el-button--primary):hover {
   border-color: color-mix(in srgb, var(--lz-accent) 45%, transparent);
   color: color-mix(in srgb, var(--lz-accent) 65%, #ffffff);
   background: color-mix(in srgb, var(--lz-accent) 8%, transparent);

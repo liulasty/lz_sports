@@ -222,7 +222,7 @@ const loadEvent = async () => {
 }
 
 const goToApply = () => {
-  router.push({ path: '/profile', query: { eventId: event.value.id } })
+  router.push({ path: '/profile', query: { tab: 'apply', eventId: event.value.id } })
 }
 
 const loadProjects = async () => {

@@ -3,9 +3,11 @@ package com.lz.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lz.entity.Department;
+import com.lz.entity.SchoolConfig;
 import com.lz.mapper.DepartmentMapper;
 import com.lz.service.DepartmentService;
 import com.lz.service.SchoolConfigService;
+import com.lz.util.DepartmentStructureSeeder;
 import com.lz.vo.DepartmentTreeVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,6 +31,11 @@ public class DepartmentServiceImpl extends ServiceImpl<DepartmentMapper, Departm
     @Override
     public List<DepartmentTreeVO> getDepartmentTree() {
         String orgMode = schoolConfigService.getCurrentOrgMode();
+        SchoolConfig config = schoolConfigService.getOne(new LambdaQueryWrapper<SchoolConfig>().last("LIMIT 1"));
+        if (config != null && config.getId() != null) {
+            DepartmentStructureSeeder.ensureDefaultClassStructure(
+                    this.getBaseMapper(), config.getId(), orgMode);
+        }
         List<Department> allDepts = this.list(new LambdaQueryWrapper<Department>()
                 .eq(Department::getOrgMode, orgMode)
                 .orderByAsc(Department::getSortOrder));
@@ -45,7 +52,8 @@ public class DepartmentServiceImpl extends ServiceImpl<DepartmentMapper, Departm
             for (Department dept : allDepts) {
                 if (dept.getGrade() != null && !dept.getGrade().isEmpty() && dept.getClassName() != null && !dept.getClassName().isEmpty()) {
                     gradeMap.computeIfAbsent(dept.getGrade(), k -> new ArrayList<>()).add(dept);
-                } else if (dept.getGrade() != null && !dept.getGrade().isEmpty()) {
+                } else if (dept.getGrade() != null && !dept.getGrade().isEmpty()
+                        && !hasK12ClassForGrade(allDepts, dept.getGrade())) {
                     gradeOnlyMap.putIfAbsent(dept.getGrade(), dept);
                 } else if (dept.getDeptName() != null && !dept.getDeptName().isEmpty()) {
                     independentDepts.add(dept);
@@ -98,7 +106,8 @@ public class DepartmentServiceImpl extends ServiceImpl<DepartmentMapper, Departm
                     collegeMap.computeIfAbsent(dept.getCollege(), k -> new LinkedHashMap<>())
                              .computeIfAbsent(dept.getMajor() != null && !dept.getMajor().isEmpty() ? dept.getMajor() : "无专业", k -> new ArrayList<>())
                              .add(dept);
-                } else if (dept.getCollege() != null && !dept.getCollege().isEmpty()) {
+                } else if (dept.getCollege() != null && !dept.getCollege().isEmpty()
+                        && !hasUniversityClassForCollege(allDepts, dept.getCollege())) {
                     collegeOnlyMap.putIfAbsent(dept.getCollege(), dept);
                 } else if (dept.getDeptName() != null && !dept.getDeptName().isEmpty()) {
                     independentDepts.add(dept);
@@ -151,6 +160,20 @@ public class DepartmentServiceImpl extends ServiceImpl<DepartmentMapper, Departm
         }
         
         return tree;
+    }
+
+    private static boolean hasK12ClassForGrade(List<Department> allDepts, String grade) {
+        return allDepts.stream().anyMatch(d ->
+                grade.equals(d.getGrade())
+                        && d.getClassName() != null
+                        && !d.getClassName().isEmpty());
+    }
+
+    private static boolean hasUniversityClassForCollege(List<Department> allDepts, String college) {
+        return allDepts.stream().anyMatch(d ->
+                college.equals(d.getCollege())
+                        && d.getClassName() != null
+                        && !d.getClassName().isEmpty());
     }
 
     @Override

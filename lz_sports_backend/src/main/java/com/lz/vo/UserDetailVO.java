@@ -24,4 +24,8 @@ public class UserDetailVO {
     private String status;
     private String avatarSrc;
     private LocalDateTime registerTime;
+    private String name;
+    private String gender;
+    private String contact;
+    private Long deptId;
 }

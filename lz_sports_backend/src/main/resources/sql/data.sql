@@ -25,7 +25,10 @@ INSERT INTO `department` (`id`, `college`, `major`, `grade`, `class_name`, `dept
 (3, '电子工程学院', '通信工程', NULL, '通信1班', NULL, 'UNIVERSITY', 1, 3),
 (4, NULL, NULL, NULL, NULL, '教工组', 'UNIVERSITY', 1, 4),
 (5, NULL, NULL, '高一', '1班', NULL, 'K12', 1, 5),
-(6, NULL, NULL, '高一', '2班', NULL, 'K12', 1, 6);
+(6, NULL, NULL, '高一', '2班', NULL, 'K12', 1, 6),
+(7, '计算机科学与技术学院', '本科', NULL, '大一', NULL, 'UNIVERSITY', 1, 7),
+(8, '计算机科学与技术学院', '本科', NULL, '大二', NULL, 'UNIVERSITY', 1, 8),
+(9, NULL, NULL, '九年级', '3班', NULL, 'HIGH_SCHOOL', 1, 9);
 
 -- ----------------------------
 -- 3. Initial Events (Demo Data)

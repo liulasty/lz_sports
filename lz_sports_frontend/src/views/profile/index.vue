@@ -26,10 +26,14 @@
 
         <!-- 身份信息区域 -->
         <div class="identity-section">
-          <h3 class="username">{{ userInfo.userName || '—' }}</h3>
+          <h3 class="username">{{ displayName }}</h3>
+          <p class="account-name">@{{ userInfo.userName || '—' }}</p>
           <div class="role-badge">
             <span class="role-dot"></span>
             {{ userInfo.role || '用户' }}
+          </div>
+          <div class="profile-status-pill" :class="isProfileComplete ? 'is-complete' : 'is-incomplete'">
+            {{ isProfileComplete ? '资料已完善' : '资料待完善' }}
           </div>
         </div>
 
@@ -55,6 +59,35 @@
 
         <!-- 用户详细信息列表 -->
         <div class="info-list">
+          <div class="info-row">
+            <div class="info-label">
+              <span class="info-icon-wrap ic-name">名</span>
+              姓名
+            </div>
+            <span class="info-value" :class="{ 'is-missing': !userInfo.name }">{{ userInfo.name || '未填写' }}</span>
+          </div>
+          <div class="info-row">
+            <div class="info-label">
+              <span class="info-icon-wrap ic-gender">别</span>
+              性别
+            </div>
+            <span class="info-value" :class="{ 'is-missing': !userInfo.gender }">{{ userInfo.gender || '未填写' }}</span>
+          </div>
+          <div class="info-row">
+            <div class="info-label">
+              <span class="info-icon-wrap ic-contact">联</span>
+              联系方式
+            </div>
+            <span class="info-value" :class="{ 'is-missing': !userInfo.contact }">{{ userInfo.contact || '未填写' }}</span>
+          </div>
+          <div class="info-row">
+            <div class="info-label">
+              <span class="info-icon-wrap ic-dept">部</span>
+              部门/班级
+            </div>
+            <span class="info-value" :class="{ 'is-missing': !deptLabel }">{{ deptLabel || '未选择' }}</span>
+          </div>
+
           <div class="info-row">
             <div class="info-label">
               <span class="info-icon-wrap ic-email">
@@ -104,8 +137,50 @@
       <!-- ── 右侧：主内容面板 ── -->
       <div class="main-card">
         <el-tabs v-model="activeTab" class="profile-tabs">
+          <el-tab-pane label="个人信息" name="profile" v-if="!isAdmin">
+            <div ref="profileSectionRef" class="profile-section">
+              <div class="section-header">
+                <span class="section-badge badge-orange">资料</span>
+                <h4 class="section-title">完善个人身份信息</h4>
+              </div>
+              <p class="profile-section-desc">
+                请填写真实信息，并在组织归属中选到最末级班级（大学如「大一」、K12 如「3班」）。保存后可继续申请运动员认证。
+              </p>
+              <el-alert
+                v-if="!isProfileComplete"
+                title="资料尚未完善，请先保存个人信息后再申请运动员认证。"
+                type="warning"
+                show-icon
+                :closable="false"
+                class="profile-inline-alert"
+              />
+              <ProfileIdentityForm
+                ref="profileFormRef"
+                :model="profileForm"
+                :rules="profileRules"
+                :department-tree="departmentTree"
+                :org-mode="schoolConfig.orgMode"
+              >
+                <template #actions>
+                  <el-button type="primary" size="large" :loading="profileSaving" @click="submitProfileEdit">保存个人信息</el-button>
+                  <el-button v-if="isProfileComplete" size="large" plain @click="activeTab = 'apply'">前往运动员认证</el-button>
+                </template>
+              </ProfileIdentityForm>
+            </div>
+          </el-tab-pane>
+
           <el-tab-pane label="运动员认证" name="apply" v-if="!isAdmin">
             <div class="certification-section">
+              <div v-if="!isProfileComplete" class="profile-apply-hint">
+                <el-alert
+                  title="请先完善「个人信息」中的姓名、性别、联系方式及部门/班级，再提交运动员认证。"
+                  type="warning"
+                  show-icon
+                  :closable="false"
+                  class="profile-inline-alert"
+                />
+                <el-button link type="primary" class="profile-apply-hint-btn" @click="goToProfileTab">去完善个人信息</el-button>
+              </div>
 
               <!-- 已申请的赛事列表 -->
               <div v-if="myApplications.length > 0" class="applications-list">
@@ -162,9 +237,8 @@
                     :closable="false"
                     style="margin-bottom: 20px;"
                   />
-
                   <div class="form-actions">
-                    <button class="submit-btn" type="button" @click="submitApply">
+                    <button class="submit-btn" type="button" :disabled="!isProfileComplete" @click="submitApply">
                       <span class="btn-text">提交认证申请</span>
                       <svg class="btn-arrow" viewBox="0 0 24 24" fill="none">
                         <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -270,10 +344,10 @@
  * @file index.vue
  * @description 个人中心/运动员认证页面组件，包含个人信息展示、赛事认证申请、报名记录查询等功能
  */
-import { ref, reactive, onMounted, computed, watch } from 'vue'
+import { ref, reactive, onMounted, computed, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { getUserInfo } from '@/api/user'
+import { getUserInfo, updateUser } from '@/api/user'
 import { getRegistrationList } from '@/api/registration'
 import { applyAthlete, getMyApplications, deleteAthleteRecord, updateAthlete } from '@/api/athlete'
 import { getEventList } from '@/api/event'
@@ -282,7 +356,14 @@ import { getSchoolConfig } from '@/api/init'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { isSuccess } from '@/utils/result'
 import { normalizeAthleteStatus } from '@/utils/athleteStatus'
+import {
+  extractApiMessage,
+  isProfileComplete as checkProfileComplete,
+  isProfileIncompleteMessage
+} from '@/utils/profileIncomplete'
+import { findDeptPathLabels } from '@/utils/departmentTree'
 import SmartSelect from '@/components/SmartSelect.vue'
+import ProfileIdentityForm from '@/components/ProfileIdentityForm.vue'
 
 const route = useRoute() // 路由对象
 const userStore = useUserStore() // 用户状态管理
@@ -291,8 +372,15 @@ const userInfo = ref({}) // 用户详细信息
 const isAthlete = computed(() => userInfo.value.role === 'ATHLETE' || userInfo.value.role === '运动员')
 // 判断当前用户是否为管理员
 const isAdmin = computed(() => ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'EVENT_ADMIN', '管理员'].includes(userInfo.value.role))
+const isProfileComplete = computed(() => checkProfileComplete(userInfo.value))
+const displayName = computed(() => userInfo.value.name?.trim() || userInfo.value.userName || '—')
+const deptLabel = computed(() => {
+  const parts = findDeptPathLabels(departmentTree.value, userInfo.value.deptId)
+  return parts.length ? parts.join(' · ') : ''
+})
 
-const activeTab = ref('apply') // 当前激活的标签页
+const activeTab = ref('profile') // 当前激活的标签页
+const profileSectionRef = ref(null)
 const loading = ref(false) // 表格加载状态
 const registrationList = ref([]) // 报名记录列表
 const total = ref(0) // 报名记录总数
@@ -312,7 +400,22 @@ const updating = ref(false) // 修改提交状态
 const updateFormRef = ref(null) // 修改表单引用
 // 由于后端去掉了所有身份字段，修改逻辑可能需要从此处移除或只允许修改某些东西
 // 为适应后端最新接口，移除 updateForm 中的相关字段，或暂保留作其他用途
-const updateForm = reactive({ id: null }) 
+const updateForm = reactive({ id: null })
+
+const profileSaving = ref(false)
+const profileFormRef = ref(null)
+const profileForm = reactive({
+  name: '',
+  gender: '',
+  contact: '',
+  deptId: null
+})
+const profileRules = {
+  name: [{ required: true, message: '请输入真实姓名', trigger: 'blur' }],
+  gender: [{ required: true, message: '请选择性别', trigger: 'change' }],
+  contact: [{ required: true, message: '请输入联系方式', trigger: 'blur' }],
+  deptId: [{ required: true, message: '请选择部门/班级', trigger: 'change' }]
+}
 
 const departmentTree = ref([])
 const schoolConfig = ref({ orgMode: 'UNIVERSITY' })
@@ -381,6 +484,69 @@ const getApplyPillClass = (status) => {
   return 'pill-warning'
 }
 
+const syncProfileFormFromUser = (data = {}) => {
+  profileForm.name = data.name || ''
+  profileForm.gender = data.gender || ''
+  profileForm.contact = data.contact || ''
+  profileForm.deptId = data.deptId || null
+}
+
+const goToProfileTab = async () => {
+  activeTab.value = 'profile'
+  await nextTick()
+  profileSectionRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+const promptCompleteProfile = (message) => {
+  return ElMessageBox.confirm(
+    message || '请先完善个人身份信息（姓名、性别、联系方式、部门/班级）后，再申请运动员认证。',
+    '身份信息不完整',
+    {
+      confirmButtonText: '去完善',
+      cancelButtonText: '稍后再说',
+      type: 'warning'
+    }
+  ).then(() => goToProfileTab())
+}
+
+const handleApplyFailure = (response) => {
+  const message = extractApiMessage(response) || '申请失败'
+  if (isProfileIncompleteMessage(message)) {
+    return promptCompleteProfile(message).catch(() => {})
+  }
+  ElMessage.error(message)
+  return Promise.resolve()
+}
+
+const submitProfileEdit = async () => {
+  if (!profileFormRef.value) return
+  const valid = await profileFormRef.value.validate()
+  if (!valid) return
+  profileSaving.value = true
+  try {
+    const res = await updateUser({
+      name: profileForm.name.trim(),
+      gender: profileForm.gender,
+      contact: profileForm.contact.trim(),
+      deptId: profileForm.deptId
+    })
+    if (isSuccess(res)) {
+      ElMessage.success('个人信息已保存')
+      await loadBaseData()
+      await getInfo()
+      if (route.query.eventId) {
+        activeTab.value = 'apply'
+      }
+    } else {
+      ElMessage.error(extractApiMessage(res) || '保存失败')
+    }
+  } catch (error) {
+    console.error('保存个人信息失败:', error)
+  } finally {
+    profileSaving.value = false
+  }
+}
+
 /**
  * 获取用户基础信息并初始化页面数据
  */
@@ -389,17 +555,25 @@ const getInfo = async () => {
     const res = await getUserInfo()
     if (isSuccess(res)) {
       userInfo.value = res.data
+      syncProfileFormFromUser(res.data)
       userStore.setUserInfo(res.data)
       applyForm.userId = res.data.userId
       if (isAdmin.value) {
         activeTab.value = 'admin'
       } else {
         await loadMyApplications()
-        if (isAthlete.value || myApplications.value.length > 0) {
+        const queryTab = route.query.tab
+        if (queryTab === 'apply' || queryTab === 'profile' || queryTab === 'registrations') {
+          activeTab.value = queryTab
+        } else if (route.query.eventId) {
+          activeTab.value = isProfileComplete.value ? 'apply' : 'profile'
+        } else if (!isProfileComplete.value) {
+          activeTab.value = 'profile'
+        } else if (isAthlete.value || myApplications.value.length > 0) {
+          activeTab.value = 'registrations'
+        }
+        if ((isAthlete.value || myApplications.value.length > 0) && activeTab.value === 'registrations') {
           getRegistrations()
-          if (!route.query.eventId && activeTab.value !== 'apply') {
-            activeTab.value = 'registrations'
-          }
         }
         await loadEvents()
       }
@@ -500,6 +674,10 @@ const submitUpdate = async () => {
  * 提交新的赛事认证申请
  */
 const submitApply = async () => {
+  if (!isProfileComplete.value) {
+    await promptCompleteProfile().catch(() => {})
+    return
+  }
   if (!applyFormRef.value) return
   await applyFormRef.value.validate(async (valid) => {
     if (valid) {
@@ -515,11 +693,10 @@ const submitApply = async () => {
             applyFormRef.value.resetFields()
             await getInfo()
           } else {
-            ElMessage.error(res.message || '申请失败')
+            await handleApplyFailure(res)
           }
         } catch (error) {
           console.error('提交申请失败:', error)
-          // 提示由后端抛出的业务异常，如“请先在个人中心完善身份信息”
         }
       }).catch(() => {})
     }
@@ -545,6 +722,16 @@ const formatDate = (dateStr) => {
   if (!dateStr) return ''
   return new Date(dateStr).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
+
+watch(
+  () => route.query.tab,
+  (tab) => {
+    if (tab === 'profile' || tab === 'apply' || tab === 'registrations') {
+      activeTab.value = tab
+    }
+  },
+  { immediate: true }
+)
 
 onMounted(async () => {
   await loadBaseData()
@@ -1052,6 +1239,89 @@ html.dark .bg-blob { opacity: 0.10; }
 /* ── 申请表单 ── */
 .apply-form-wrap { }
 
+.account-name {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--pc-text-muted);
+}
+
+.profile-status-pill {
+  display: inline-flex;
+  margin-top: 12px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.profile-status-pill.is-complete {
+  color: var(--c-emerald);
+  background: var(--c-emerald-dim);
+}
+
+.profile-status-pill.is-incomplete {
+  color: var(--c-amber);
+  background: rgba(245, 158, 11, 0.14);
+}
+
+.info-value.is-missing {
+  color: var(--c-amber);
+}
+
+.ic-name,
+.ic-gender,
+.ic-contact,
+.ic-dept {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.profile-section {
+  padding: 4px 2px 8px;
+}
+
+.profile-section-desc {
+  margin: 0 0 20px;
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--pc-text-sub);
+}
+
+.profile-inline-alert {
+  margin-bottom: 18px;
+}
+
+.profile-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 20px;
+}
+
+.profile-form-grid .full-width {
+  grid-column: 1 / -1;
+}
+
+.profile-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.profile-apply-hint {
+  margin-bottom: 20px;
+}
+
+.profile-apply-hint-btn {
+  margin-top: 8px;
+  padding-left: 0;
+}
+
+:deep(.embedded-profile-form .el-form-item__label) {
+  color: var(--pc-text-sub);
+  font-weight: 600;
+}
+
 .apply-form { }
 
 .form-grid {
@@ -1196,6 +1466,13 @@ html.dark .bg-blob { opacity: 0.10; }
 }
 .submit-btn:hover::before { opacity: 1; }
 .submit-btn:active { transform: translateY(0); }
+.submit-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+.submit-btn:disabled:hover::before { opacity: 0; }
 
 .btn-arrow {
   width: 16px; height: 16px;

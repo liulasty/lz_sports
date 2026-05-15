@@ -34,15 +34,37 @@
       </div>
 
       <el-card class="wizard-card lz-ep-dark">
-        <template #header>
-          <div class="card-header">
-            <div>
-              <h2 class="card-title">系统初始化向导</h2>
-              <p class="card-subtitle">{{ stepDescriptions[active] }}</p>
-            </div>
-            <div class="step-index">STEP {{ active + 1 }} / 4</div>
+        <div v-if="pageMode === 'loading'" class="state-panel">
+          <el-icon class="state-icon is-loading"><Loading /></el-icon>
+          <p class="state-text">正在检查系统状态…</p>
+        </div>
+
+        <div v-else-if="pageMode === 'already_initialized'" class="state-panel">
+          <div class="finish-icon">✓</div>
+          <h3 class="finish-title">系统已完成初始化</h3>
+          <p class="finish-subtitle">当前环境已配置完毕，请使用管理员账号登录系统。</p>
+          <div class="step-footer lz-actions state-actions">
+            <el-button type="primary" @click="goLogin">前往登录</el-button>
           </div>
-        </template>
+        </div>
+
+        <div v-else-if="pageMode === 'success'" class="state-panel">
+          <div class="finish-icon">✓</div>
+          <h3 class="finish-title">初始化成功</h3>
+          <p class="finish-subtitle">系统已就绪，{{ redirectCountdown }} 秒后自动跳转至登录页。</p>
+          <div class="step-footer lz-actions state-actions">
+            <el-button type="primary" @click="goLogin">立即登录</el-button>
+          </div>
+        </div>
+
+        <template v-else>
+        <div class="wizard-header card-header">
+          <div>
+            <h2 class="card-title">系统初始化向导</h2>
+            <p class="card-subtitle">{{ stepDescriptions[active] }}</p>
+          </div>
+          <div class="step-index">STEP {{ active + 1 }} / 4</div>
+        </div>
 
         <el-steps :active="active" finish-status="success" align-center class="init-steps">
           <el-step title="学校信息" />
@@ -53,14 +75,14 @@
 
         <div class="step-content">
           <!-- Step 1: School Info -->
-          <el-form v-if="active === 0" :model="form" label-position="top" :rules="rules" ref="step1Form" class="lz-form">
+          <el-form v-if="active === 0" :model="form" label-position="top" :rules="rules" ref="step1Form" class="lz-form setup-form">
             <el-form-item label="学校名称" prop="schoolName">
               <el-input v-model="form.schoolName" placeholder="例如：xx大学" />
             </el-form-item>
             <el-form-item label="组织模式" prop="orgMode">
               <el-radio-group v-model="form.orgMode" @change="handleModeChange">
                 <el-radio value="UNIVERSITY">大学模式 (学院-专业-班级)</el-radio>
-                <el-radio value="K12">K12模式 (年级-班级)</el-radio>
+                <el-radio value="HIGH_SCHOOL">K12模式 (年级-班级)</el-radio>
               </el-radio-group>
             </el-form-item>
             <el-form-item label="Logo 链接" prop="logoUrl">
@@ -75,7 +97,7 @@
           </el-form>
 
           <!-- Step 2: Admin Info -->
-          <el-form v-if="active === 1" :model="form" label-position="top" :rules="rules" ref="step2Form" class="lz-form">
+          <el-form v-if="active === 1" :model="form" label-position="top" :rules="rules" ref="step2Form" class="lz-form setup-form">
             <el-form-item label="管理员账号" prop="adminUsername">
               <el-input v-model="form.adminUsername" />
             </el-form-item>
@@ -97,7 +119,7 @@
                 </el-radio-button>
               </el-radio-group>
             </div>
-            <p class="grade-tip">请确认顶级部门/院系列表（可添加或删除）：</p>
+            <p class="grade-tip">请确认顶级部门/院系列表（可添加或删除）。保存后将自动为每个学院/年级生成默认班级（大学：大一至大四；K12：1班至3班）。</p>
             <div class="grade-tags">
               <el-tag
                 v-for="tag in form.grades"
@@ -129,39 +151,49 @@
             <div class="finish-icon">✓</div>
             <h3 class="finish-title">确认初始化</h3>
             <p class="finish-subtitle">请确认以上信息无误，点击下方按钮开始初始化系统。</p>
-            <el-descriptions title="配置摘要" :column="1" border class="summary-table">
-              <el-descriptions-item label="学校名称">{{ form.schoolName }}</el-descriptions-item>
-              <el-descriptions-item label="管理员账号">{{ form.adminUsername }}</el-descriptions-item>
-              <el-descriptions-item label="部门数量">{{ form.grades.length }}</el-descriptions-item>
-            </el-descriptions>
+            <div class="summary-panel">
+              <h4 class="summary-heading">配置摘要</h4>
+              <div class="summary-list">
+                <div v-for="item in summaryItems" :key="item.label" class="summary-row">
+                  <span class="summary-label">{{ item.label }}</span>
+                  <span class="summary-value">{{ item.value }}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
         <div class="step-footer lz-actions">
           <el-button @click="prev" v-if="active > 0">上一步</el-button>
-          <el-button @click="next" v-if="active < 3">下一步</el-button>
+          <el-button type="primary" @click="next" v-if="active < 3">下一步</el-button>
           <el-button type="primary" @click="submit" v-if="active === 3" :loading="loading">完成初始化</el-button>
-          <el-button v-if="active < 3" class="ghost-btn" @click="router.push('/login')">返回登录</el-button>
+          <el-button v-if="active < 3" class="ghost-btn" @click="goLogin">返回登录</el-button>
         </div>
+        </template>
       </el-card>
     </div>
   </div>
  </template>
 
 <script setup>
-import { ref, reactive, nextTick, computed } from 'vue'
-import { initSystem } from '@/api/init'
+import { ref, reactive, nextTick, computed, onMounted, onBeforeUnmount } from 'vue'
+import { initSystem, checkInit } from '@/api/init'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { Loading } from '@element-plus/icons-vue'
 
 const router = useRouter()
+const pageMode = ref('loading')
+const redirectCountdown = ref(3)
 const active = ref(0)
+let redirectTimer = null
+let countdownTimer = null
 const step1Form = ref(null)
 const step2Form = ref(null)
 const loading = ref(false)
 
 const templates = {
-  K12: [
+  HIGH_SCHOOL: [
     { name: '小学', grades: ['一年级', '二年级', '三年级', '四年级', '五年级', '六年级'] },
     { name: '初中', grades: ['初一', '初二', '初三'] },
     { name: '高中', grades: ['高一', '高二', '高三'] },
@@ -194,6 +226,12 @@ const stepDescriptions = [
   '校验配置并一键完成系统初始化'
 ]
 
+const summaryItems = computed(() => [
+  { label: '学校名称', value: form.schoolName || '—' },
+  { label: '管理员账号', value: form.adminUsername || '—' },
+  { label: '部门数量', value: String(form.grades.length) }
+])
+
 const currentTemplates = computed(() => {
   return templates[form.orgMode] || []
 })
@@ -210,8 +248,8 @@ const handleModeChange = (val) => {
     selectedTemplate.value = templates.UNIVERSITY[0].name
     form.grades = [...templates.UNIVERSITY[0].grades]
   } else {
-    selectedTemplate.value = templates.K12[0].name
-    form.grades = [...templates.K12[0].grades]
+    selectedTemplate.value = templates.HIGH_SCHOOL[0].name
+    form.grades = [...templates.HIGH_SCHOOL[0].grades]
   }
 }
 
@@ -266,14 +304,71 @@ const handleInputConfirm = () => {
   inputValue.value = ''
 }
 
+const goLogin = () => {
+  if (redirectTimer) {
+    clearTimeout(redirectTimer)
+    redirectTimer = null
+  }
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+    countdownTimer = null
+  }
+  router.replace('/login')
+}
+
+const startRedirectCountdown = () => {
+  redirectCountdown.value = 3
+  countdownTimer = setInterval(() => {
+    redirectCountdown.value -= 1
+    if (redirectCountdown.value <= 0 && countdownTimer) {
+      clearInterval(countdownTimer)
+      countdownTimer = null
+    }
+  }, 1000)
+  redirectTimer = setTimeout(() => {
+    goLogin()
+  }, 3000)
+}
+
+const markInitialized = () => {
+  localStorage.setItem('isInitialized', 'true')
+}
+
+const resolveInitStatus = async () => {
+  if (localStorage.getItem('isInitialized') === 'true') {
+    return true
+  }
+  try {
+    const { data } = await checkInit()
+    if (data === true) {
+      markInitialized()
+      return true
+    }
+  } catch (error) {
+    console.error('Init status check failed', error)
+  }
+  return false
+}
+
+onMounted(async () => {
+  const initialized = await resolveInitStatus()
+  pageMode.value = initialized ? 'already_initialized' : 'wizard'
+})
+
+onBeforeUnmount(() => {
+  if (redirectTimer) clearTimeout(redirectTimer)
+  if (countdownTimer) clearInterval(countdownTimer)
+})
+
 const submit = () => {
   loading.value = true
-  initSystem(form).then(res => {
+  initSystem({ ...form }).then(() => {
+    markInitialized()
+    pageMode.value = 'success'
     ElMessage.success('初始化成功！')
-    localStorage.setItem('isInitialized', 'true')
-    setTimeout(() => {
-      router.push('/login')
-    }, 1500)
+    startRedirectCountdown()
+  }).catch(() => {
+    // 错误信息由 request 拦截器统一提示
   }).finally(() => {
     loading.value = false
   })
@@ -422,6 +517,21 @@ const submit = () => {
   border: none;
   border-radius: 0;
   background: #161921;
+  --el-bg-color: #161921;
+  --el-fill-color-blank: rgba(255, 255, 255, 0.05);
+  --el-border-color: rgba(255, 255, 255, 0.12);
+  --el-border-color-hover: rgba(255, 107, 53, 0.5);
+  --el-text-color-primary: #eef4ff;
+  --el-text-color-regular: #c9d1de;
+  --el-text-color-secondary: #95a0b3;
+  --el-text-color-placeholder: #6f7889;
+  --el-color-primary: #ff6b35;
+}
+
+.wizard-header {
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .card-header {
@@ -440,7 +550,7 @@ const submit = () => {
 .card-subtitle {
   margin: 0;
   font-size: 13px;
-  color: #7f8898;
+  color: #95a0b3;
 }
 
 .step-index {
@@ -451,12 +561,19 @@ const submit = () => {
 }
 
 .init-steps {
-  margin-bottom: 18px;
+  margin-bottom: 22px;
+  padding: 0 4px;
 }
 
 .step-content {
   margin: 22px 0 28px;
   min-height: 265px;
+  padding: 0 6px;
+}
+
+.setup-form {
+  max-width: 520px;
+  margin: 0 auto;
 }
 
 .grade-toolbar {
@@ -484,6 +601,32 @@ const submit = () => {
 
 .input-new-tag {
   width: 132px;
+}
+
+.state-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 420px;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.state-icon {
+  font-size: 36px;
+  color: #ff6b35;
+  margin-bottom: 16px;
+}
+
+.state-text {
+  margin: 0;
+  font-size: 14px;
+  color: #95a0b3;
+}
+
+.state-actions {
+  margin-top: 8px;
 }
 
 .finish-panel {
@@ -517,13 +660,59 @@ const submit = () => {
 .finish-subtitle {
   margin: 0 0 24px;
   font-size: 14px;
-  color: #8f98a9;
+  color: #95a0b3;
 }
 
-.summary-table {
-  width: min(86%, 560px);
+.summary-panel {
+  width: min(92%, 520px);
   margin: 0 auto;
   text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.summary-heading {
+  margin: 0;
+  padding: 14px 18px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #eef4ff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.summary-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.summary-row {
+  display: grid;
+  grid-template-columns: 132px 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.summary-row:last-child {
+  border-bottom: none;
+}
+
+.summary-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #95a0b3;
+  letter-spacing: 0.02em;
+}
+
+.summary-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: #eef4ff;
+  word-break: break-word;
 }
 
 .step-footer {
@@ -549,29 +738,145 @@ const submit = () => {
   padding: 18px 26px 26px;
 }
 
-::deep(.el-step__title) {
-  color: #9ba4b5;
+:deep(.init-steps .el-step__title) {
+  font-size: 13px;
+  line-height: 1.35;
 }
 
-::deep(.el-step__title.is-process),
-::deep(.el-step__title.is-success) {
-  color: #cdd5e2;
+:deep(.init-steps .el-step__title.is-wait) {
+  color: #95a0b3;
+  font-weight: 500;
 }
 
-::deep(.el-descriptions__label) {
-  width: 130px;
-  color: #c4ccda !important;
-  background: rgba(255, 255, 255, 0.06) !important;
+:deep(.init-steps .el-step__title.is-process) {
+  color: #eef4ff;
+  font-weight: 600;
 }
 
-::deep(.el-descriptions__content) {
-  color: #9eabbe !important;
-  background: rgba(255, 255, 255, 0.03) !important;
+:deep(.init-steps .el-step__title.is-success) {
+  color: #c9d1de;
 }
 
-::deep(.summary-table .el-descriptions__title) {
-  color: #cfd7e4;
-  margin-bottom: 12px;
+:deep(.init-steps .el-step__head.is-wait .el-step__icon) {
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #95a0b3;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+:deep(.init-steps .el-step__head.is-process .el-step__icon) {
+  border-color: #ff6b35;
+  background: rgba(255, 107, 53, 0.15);
+  color: #ff8f66;
+}
+
+:deep(.init-steps .el-step__head.is-success .el-step__icon) {
+  border-color: rgba(255, 107, 53, 0.55);
+  color: #ff8f66;
+}
+
+:deep(.init-steps .el-step__line) {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+:deep(.init-steps .el-step__line-inner) {
+  border-color: #ff6b35;
+}
+
+:deep(.setup-form .el-form-item__label) {
+  color: #c9d1de !important;
+  font-weight: 600;
+  font-size: 14px;
+  padding-bottom: 6px;
+}
+
+:deep(.setup-form .el-form-item__label::before) {
+  color: #ff8a6b !important;
+}
+
+:deep(.setup-form .el-radio__label) {
+  color: #c9d1de;
+  font-size: 14px;
+}
+
+:deep(.setup-form .el-radio.is-checked .el-radio__label) {
+  color: #ff8f66;
+}
+
+:deep(.setup-form .el-radio__inner) {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+:deep(.setup-form .el-radio__input.is-checked .el-radio__inner) {
+  border-color: #ff6b35;
+  background: #ff6b35;
+}
+
+:deep(.setup-form .el-input__wrapper) {
+  background: rgba(255, 255, 255, 0.05) !important;
+  box-shadow: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 10px;
+  min-height: 42px;
+}
+
+:deep(.setup-form .el-input__wrapper:hover) {
+  border-color: rgba(255, 107, 53, 0.45) !important;
+}
+
+:deep(.setup-form .el-input__wrapper.is-focus) {
+  border-color: #ff6b35 !important;
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.18) !important;
+}
+
+:deep(.setup-form .el-input__inner) {
+  color: #eef4ff !important;
+}
+
+:deep(.setup-form .el-input__inner::placeholder) {
+  color: #6f7889;
+}
+
+:deep(.setup-form .el-color-picker__trigger) {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+:deep(.grade-toolbar .el-radio-button__inner) {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #c9d1de;
+  box-shadow: none;
+}
+
+:deep(.grade-toolbar .el-radio-button__original-radio:checked + .el-radio-button__inner) {
+  background: rgba(255, 107, 53, 0.18);
+  border-color: rgba(255, 107, 53, 0.55);
+  color: #ff8f66;
+  box-shadow: none;
+}
+
+:deep(.grade-tag) {
+  background: rgba(255, 107, 53, 0.12);
+  border-color: rgba(255, 107, 53, 0.35);
+  color: #eef4ff;
+}
+
+:deep(.button-new-tag) {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #c9d1de;
+  background: transparent;
+}
+
+:deep(.step-footer .el-button--primary) {
+  background: linear-gradient(135deg, #ff6b35, #e0541e);
+  border: none;
+  box-shadow: 0 4px 18px rgba(255, 107, 53, 0.35);
+}
+
+:deep(.step-footer .el-button--primary:hover) {
+  background: linear-gradient(135deg, #ff7d4d, #e85f2a);
+  box-shadow: 0 6px 22px rgba(255, 107, 53, 0.42);
 }
 
 @media (max-width: 900px) {
@@ -595,8 +900,13 @@ const submit = () => {
     min-height: 540px;
   }
 
-  .summary-table {
+  .summary-panel {
     width: 100%;
+  }
+
+  .summary-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
   }
 }
 </style>

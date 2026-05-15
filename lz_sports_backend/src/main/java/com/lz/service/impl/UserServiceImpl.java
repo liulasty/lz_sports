@@ -549,6 +549,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 .status(user.getStatus().getStatus())
                 .registerTime(user.getCreateTime())
                 .avatarSrc(avatarImg)
+                .name(user.getName())
+                .gender(user.getGender())
+                .contact(user.getContact())
+                .deptId(user.getDeptId())
                 .build();
     }
 
