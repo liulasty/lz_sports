@@ -183,36 +183,54 @@
             />
           </div>
 
-          <div class="form-field">
-            <div class="field-label">限制部门</div>
-            <el-cascader
-                v-model="form.limitDeptIds"
-                :options="departmentTree"
-                :props="{ checkStrictly: true, multiple: true, value: 'value', label: 'label', emitPath: false }"
-                clearable
-                placeholder="留空表示不限制部门"
-                class="fi"
-                style="width: 100%"
-            />
+          <!-- 资格规则配置 -->
+          <div class="form-field full">
+            <div class="field-label">
+              资格规则
+              <el-switch v-model="form.eligibilityEnabled" size="small" style="margin-left:8px" />
+              <span class="field-hint">关闭 = 全体可报</span>
+            </div>
           </div>
+
+          <template v-if="form.eligibilityEnabled">
+            <div class="form-field">
+              <div class="field-label">性别限制</div>
+              <div class="toggle-group">
+                <button
+                    v-for="opt in limitOptions"
+                    :key="opt.value"
+                    class="toggle-btn"
+                    :class="{ active: form.limitation === opt.value }"
+                    type="button"
+                    @click="form.limitation = opt.value"
+                >{{ opt.label }}</button>
+              </div>
+            </div>
+
+            <div class="form-field">
+              <div class="field-label">限制部门</div>
+              <el-cascader
+                  v-model="form.limitDeptIds"
+                  :options="departmentTree"
+                  :props="{ checkStrictly: true, multiple: true, value: 'value', label: 'label', emitPath: false }"
+                  clearable
+                  placeholder="留空表示不限制部门"
+                  class="fi"
+                  style="width: 100%"
+              />
+            </div>
+
+            <div class="form-field">
+              <div class="field-label">年级限制</div>
+              <el-select v-model="form.limitGrades" multiple placeholder="不限年级" clearable class="fi" style="width:100%">
+                <el-option v-for="g in gradeOptions" :key="g" :label="g" :value="g" />
+              </el-select>
+            </div>
+          </template>
 
           <div class="form-field">
             <div class="field-label">最大人数</div>
             <el-input-number v-model="form.maxAttendance" :min="1" controls-position="right" class="fi" style="width:100%" />
-          </div>
-
-          <div class="form-field">
-            <div class="field-label">性别限制</div>
-            <div class="toggle-group">
-              <button
-                  v-for="opt in limitOptions"
-                  :key="opt.value"
-                  class="toggle-btn"
-                  :class="{ active: form.limitation === opt.value }"
-                  type="button"
-                  @click="form.limitation = opt.value"
-              >{{ opt.label }}</button>
-            </div>
           </div>
 
           <div class="form-field">
@@ -256,7 +274,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { getProjectList, addProject, updateProject, deleteProject } from '@/api/project'
+import { getProjectList, addProject, updateProject, deleteProject, saveEligibilityConfig, getEligibilityConfig } from '@/api/project'
 import { getEventTypes } from '@/api/event'
 import { getDepartmentTree } from '@/api/department'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -270,6 +288,7 @@ const dialogTitle = ref('新增项目')
 const isEdit = ref(false)
 const eventTypes = ref([])
 const departmentTree = ref([])
+const gradeOptions = ['大一', '大二', '大三', '大四', '研一', '研二', '研三', '一年级', '二年级', '三年级', '四年级', '五年级', '六年级', '初一', '初二', '初三', '高一', '高二', '高三']
 
 const limitOptions   = [{ label: '不限', value: 'ALL' }, { label: '男', value: 'MALE' }, { label: '女', value: 'FEMALE' }]
 const categoryOptions = [{ label: '自定义', value: 'CUSTOM' }, { label: '标准项目', value: 'STANDARD' }]
@@ -278,11 +297,16 @@ const queryParams = reactive({ currentPage: 1, pageSize: 5, name: '' })
 
 const form = reactive({
   id: '', name: '', event: '', limitDeptIds: [], limitation: 'ALL',
-  category: 'CUSTOM', maxAttendance: 50, dateRange: [], imageUrlInput: ''
+  category: 'CUSTOM', maxAttendance: 50, dateRange: [], imageUrlInput: '',
+  eligibilityEnabled: false, limitGrades: []
 })
 
 const resetForm = () => {
-  Object.assign(form, { id: '', name: '', event: '', limitDeptIds: [], limitation: 'ALL', category: 'CUSTOM', maxAttendance: 50, dateRange: [], imageUrlInput: '' })
+  Object.assign(form, {
+    id: '', name: '', event: '', limitDeptIds: [], limitation: 'ALL',
+    category: 'CUSTOM', maxAttendance: 50, dateRange: [], imageUrlInput: '',
+    eligibilityEnabled: false, limitGrades: []
+  })
 }
 
 const getList = async () => {
@@ -316,13 +340,34 @@ const handleAdd = () => {
   dialogTitle.value = '新增项目'; isEdit.value = false; resetForm(); dialogVisible.value = true
 }
 
-const handleEdit = (row) => {
+const handleEdit = async (row) => {
   dialogTitle.value = '编辑项目'; isEdit.value = true
   Object.assign(form, {
     id: row.id, name: row.itemName, event: row.eventId, limitDeptIds: row.limitDeptIds || [],
     limitation: row.limitation || 'ALL', category: row.category || 'CUSTOM',
-    maxAttendance: row.maxAttendance, dateRange: [row.startTime, row.endTime], imageUrlInput: ''
+    maxAttendance: row.maxAttendance, dateRange: [row.startTime, row.endTime], imageUrlInput: '',
+    eligibilityEnabled: false, limitGrades: []
   })
+  // 加载已有资格规则
+  try {
+    const res = await getEligibilityConfig(row.id)
+    if (res.code === 200 && res.data && res.data.groups && res.data.groups.length > 0) {
+      form.eligibilityEnabled = res.data.enabled !== false
+      // 解析第一组规则提取性别 + 部门 + 年级限制
+      const g = res.data.groups[0]
+      if (g.rules) {
+        for (const r of g.rules) {
+          if (r.dimension === 'GENDER' && r.operator === 'EQ') {
+            form.limitation = r.value === '男' ? 'MALE' : 'FEMALE'
+          } else if (r.dimension === 'DEPT' && r.operator === 'IN') {
+            form.limitDeptIds = Array.isArray(r.value) ? r.value : []
+          } else if (r.dimension === 'GRADE' && r.operator === 'IN') {
+            form.limitGrades = Array.isArray(r.value) ? r.value : []
+          }
+        }
+      }
+    }
+  } catch (e) { /* 无规则 = 默认 */ }
   dialogVisible.value = true
 }
 
@@ -335,6 +380,28 @@ const handleDelete = (row) => {
   }).catch(() => {})
 }
 
+/** 从表单字段生成资格规则配置 */
+const buildEligibilityConfig = () => {
+  if (!form.eligibilityEnabled) {
+    return { groupCombination: 'AND', enabled: false, groups: [] }
+  }
+  const rules = []
+  if (form.limitation && form.limitation !== 'ALL') {
+    rules.push({ dimension: 'GENDER', operator: 'EQ', value: form.limitation === 'MALE' ? '男' : '女' })
+  }
+  if (form.limitDeptIds && form.limitDeptIds.length > 0) {
+    rules.push({ dimension: 'DEPT', operator: 'IN', value: form.limitDeptIds })
+  }
+  if (form.limitGrades && form.limitGrades.length > 0) {
+    rules.push({ dimension: 'GRADE', operator: 'IN', value: form.limitGrades })
+  }
+  return {
+    groupCombination: 'AND',
+    enabled: true,
+    groups: rules.length > 0 ? [{ groupLogic: 'AND', groupDesc: '', rules }] : []
+  }
+}
+
 const submitForm = async () => {
   const data = {
     name: form.name, event: form.event, limitDeptIds: form.limitDeptIds, limitation: form.limitation,
@@ -342,11 +409,20 @@ const submitForm = async () => {
     addImage: form.imageUrlInput ? form.imageUrlInput.split('\n').filter(s => s.trim()) : []
   }
   try {
-    const res = isEdit.value ? await updateProject(form.id, data) : await addProject(data)
-    if (res.code === 200) {
-      ElMessage.success(isEdit.value ? '更新成功' : '添加成功')
-      dialogVisible.value = false; getList()
+    let projectId = form.id
+    if (isEdit.value) {
+      await updateProject(form.id, data)
+    } else {
+      const res = await addProject(data)
+      if (res.code === 200) projectId = res.data
     }
+    // 同步保存资格规则
+    if (projectId) {
+      const eligibilityConfig = buildEligibilityConfig()
+      await saveEligibilityConfig(projectId, eligibilityConfig)
+    }
+    ElMessage.success(isEdit.value ? '更新成功' : '添加成功')
+    dialogVisible.value = false; getList()
   } catch (e) { console.error(e) }
 }
 
@@ -778,6 +854,7 @@ onMounted(() => { getList(); getEventOptions(); getDeptTree() })
   letter-spacing: 0.04em;
 }
 .req { color: var(--accent, #FF6B35); }
+.field-hint { font-size: 11px; color: var(--text-secondary, var(--el-text-color-placeholder)); font-weight: 400; margin-left: 4px; }
 
 :deep(.fi .el-input__wrapper),
 :deep(.fi.el-input .el-input__wrapper) {

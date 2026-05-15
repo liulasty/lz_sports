@@ -24,9 +24,9 @@ public interface ProjectService extends IService<Project> {
     PageResult list(EventListDTO listDto);
 
     /**
-     * Add Project
+     * Add Project, returns generated project ID
      */
-    void add(ProjectDTO projectDTO);
+    Long add(ProjectDTO projectDTO);
 
     /**
      * Update Project

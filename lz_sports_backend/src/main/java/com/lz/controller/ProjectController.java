@@ -4,10 +4,13 @@ import com.lz.common.context.BaseContext;
 import com.lz.common.annotation.RequireRole;
 import com.lz.common.enums.UserRole;
 import com.lz.common.result.PageResult;
+import com.lz.service.EligibilityService;
 import com.lz.common.result.Result;
 import com.lz.dto.EventListDTO;
 import com.lz.dto.ProjectDTO;
+import com.lz.dto.EligibilityPreviewVO;
 import com.lz.entity.Athlete;
+import com.lz.entity.Project;
 import com.lz.mapper.AthleteMapper;
 import com.lz.service.ProjectService;
 import com.lz.vo.ProjectVO;
@@ -34,6 +37,7 @@ public class ProjectController {
 
     private final ProjectService projectService;
     private final AthleteMapper athleteMapper;
+    private final EligibilityService eligibilityService;
 
     /**
      * 分页查询项目列表
@@ -68,12 +72,12 @@ public class ProjectController {
     @PostMapping
     @RequireRole({UserRole.SCHOOL_ADMIN})
     @Operation(summary = "添加项目", description = "管理员添加新的比赛项目")
-    public Result<String> addProject(@Valid @RequestBody ProjectDTO projectDTO) {
+    public Result<Long> addProject(@Valid @RequestBody ProjectDTO projectDTO) {
         if (projectDTO.getImageUrls() != null) {
             projectDTO.mapOssUrlToAddImage();
         }
-        projectService.add(projectDTO);
-        return Result.success("添加项目成功");
+        Long projectId = projectService.add(projectDTO);
+        return Result.success(projectId);
     }
 
     /**
@@ -112,12 +116,47 @@ public class ProjectController {
     @RequireRole({UserRole.SCHOOL_ADMIN})
     @Operation(summary = "更新项目", description = "更新比赛项目信息")
     public Result<String> update(
-            @Parameter(description = "项目ID") @PathVariable Long id, 
+            @Parameter(description = "项目ID") @PathVariable Long id,
             @Valid @RequestBody ProjectDTO projectDTO) {
         if (projectDTO.getImageUrls() != null) {
             projectDTO.mapOssUrlToAddImage();
         }
         projectService.update(projectDTO, id);
         return Result.success("更新成功");
+    }
+
+    /**
+     * 当前用户资格预览
+     */
+    @GetMapping("/{id}/eligibility/preview")
+    @Operation(summary = "资格预览", description = "当前登录用户是否有资格报名该项目")
+    public Result<EligibilityPreviewVO> preview(@PathVariable Long id) {
+        Long userId = BaseContext.getCurrentId();
+        if (userId == null) {
+            return Result.success(new EligibilityPreviewVO(id, false, "用户未登录"));
+        }
+        Project project = projectService.getById(id);
+        if (project == null) {
+            return Result.success(new EligibilityPreviewVO(id, false, "项目不存在"));
+        }
+        com.lz.eligibility.engine.EligibilityResult result = eligibilityService.check(userId, project.getEventId(), id);
+        return Result.success(new EligibilityPreviewVO(id, result.isPassed(), result.getReason()));
+    }
+
+    /**
+     * 批量资格检查（项目列表灰显用）
+     */
+    @PostMapping("/eligibility/batch-check")
+    @Operation(summary = "批量资格检查", description = "当前用户在多个项目上的资格状态")
+    public Result<List<EligibilityPreviewVO>> batchCheck(@RequestBody List<Long> itemIds) {
+        Long userId = BaseContext.getCurrentId();
+        if (userId == null || itemIds == null || itemIds.isEmpty()) {
+            return Result.success(List.of());
+        }
+        // 从第一个项目获取 eventId（同一页面列表的 eventId 相同）
+        Project first = projectService.getById(itemIds.get(0));
+        if (first == null) return Result.success(List.of());
+        List<EligibilityPreviewVO> results = eligibilityService.batchCheck(userId, first.getEventId(), itemIds);
+        return Result.success(results);
     }
 }

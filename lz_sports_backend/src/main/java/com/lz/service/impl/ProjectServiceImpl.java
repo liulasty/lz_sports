@@ -20,6 +20,8 @@ import com.lz.mapper.ProjectMapper;
 import com.lz.mapper.RegistrationMapper;
 import com.lz.mapper.ScoreMapper;
 import com.lz.mapper.UserMapper;
+import com.lz.mapper.DepartmentMapper;
+import com.lz.service.EligibilityService;
 import com.lz.service.ProjectService;
 import com.lz.vo.ProjectVO;
 import lombok.RequiredArgsConstructor;
@@ -48,6 +50,8 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
     private final ScoreMapper scoreMapper;
     private final UserMapper userMapper;
     private final AthleteMapper athleteMapper;
+    private final DepartmentMapper departmentMapper;
+    private final EligibilityService eligibilityService;
 
     @SuppressWarnings("unchecked")
     @Override
@@ -121,7 +125,7 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void add(ProjectDTO projectDTO) {
+    public Long add(ProjectDTO projectDTO) {
         Event event = eventMapper.selectById(projectDTO.getEvent());
         if (event == null) {
             throw new BusinessException("赛事不存在");
@@ -168,6 +172,8 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
         }
         project.initTime();
         save(project);
+        syncEligibilityFromOldFields(project.getId(), projectDTO, project);
+        return project.getId();
     }
 
     @Override
@@ -285,6 +291,53 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
         }
         project.setUpdateTime(java.time.LocalDateTime.now());
         updateById(project);
+        syncEligibilityFromOldFields(id, projectDTO, project);
+    }
+
+    /**
+     * 旧字段双写：当通过 limitation/limitDeptIds 更新时，自动同步到新资格规则表。
+     */
+    private void syncEligibilityFromOldFields(Long itemId, ProjectDTO dto, Project project) {
+        try {
+            com.lz.dto.EligibilityConfigDTO config = new com.lz.dto.EligibilityConfigDTO();
+            java.util.List<com.lz.dto.EligibilityConfigDTO.RuleDTO> rules = new java.util.ArrayList<>();
+
+            String limitStr = dto.getLimitation() != null && !dto.getLimitation().isEmpty()
+                    ? dto.getLimitation() : (project.getLimitation() != null ? project.getLimitation().name() : "ALL");
+            if (!"ALL".equals(limitStr)) {
+                com.lz.dto.EligibilityConfigDTO.RuleDTO r = new com.lz.dto.EligibilityConfigDTO.RuleDTO();
+                r.setDimension("GENDER");
+                r.setOperator("EQ");
+                r.setValue("MALE".equals(limitStr) ? "男" : "女");
+                rules.add(r);
+            }
+
+            java.util.List<Long> deptIds = dto.getLimitDeptIds() != null
+                    ? dto.getLimitDeptIds() : parseDeptIds(project.getLimitDeptIds());
+            if (deptIds != null && !deptIds.isEmpty()) {
+                com.lz.dto.EligibilityConfigDTO.RuleDTO r = new com.lz.dto.EligibilityConfigDTO.RuleDTO();
+                r.setDimension("DEPT");
+                r.setOperator("IN");
+                r.setValue(deptIds);
+                rules.add(r);
+            }
+
+            if (!rules.isEmpty()) {
+                com.lz.dto.EligibilityConfigDTO.GroupDTO group = new com.lz.dto.EligibilityConfigDTO.GroupDTO();
+                group.setGroupLogic("AND");
+                group.setRules(rules);
+                config.setGroupCombination("AND");
+                config.setEnabled(true);
+                config.setGroups(java.util.List.of(group));
+            } else {
+                config.setGroupCombination("AND");
+                config.setEnabled(false);
+                config.setGroups(java.util.List.of());
+            }
+            eligibilityService.saveConfig(itemId, config);
+        } catch (Exception e) {
+            log.warn("syncEligibilityFromOldFields failed for itemId={}: {}", itemId, e.getMessage());
+        }
     }
 
     private void validateUpdateByEventStatus(Event event, ProjectDTO projectDTO) {
@@ -312,29 +365,42 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
         }
     }
 
+    /**
+     * 使用资格规则引擎校验：改严限制时，现有活跃报名运动员是否仍满足新条件。
+     * 构建内存 GroupEntry 避免未保存的规则无法查询。
+     */
     private void validateRestrictionUpdate(Project project, ProjectDTO projectDTO, Long eventId) {
         if (!hasRestrictionFieldUpdate(projectDTO)) {
             return;
         }
+        // 从 DTO 构建内存规则组
+        com.lz.eligibility.engine.GroupEntry proposedRules = buildProposedRestrictionGroup(project, projectDTO);
+        if (proposedRules == null) return;
 
-        GenderLimit newLimit = resolveNewGenderLimit(project, projectDTO);
-        List<Long> newDeptLimitIds = resolveNewDeptLimitIds(projectDTO, project.getLimitDeptIds());
         List<Registration> activeRegistrations = registrationMapper.selectList(new LambdaQueryWrapper<Registration>()
                 .eq(Registration::getItemId, project.getId())
                 .notIn(Registration::getRegistrationStatus, RegistrationStatus.CANCELLED, RegistrationStatus.REJECTED));
+
+        com.lz.eligibility.engine.RuleEvaluator evaluator = new com.lz.eligibility.engine.RuleEvaluator();
 
         for (Registration registration : activeRegistrations) {
             Athlete athlete = athleteMapper.selectOne(new LambdaQueryWrapper<Athlete>()
                     .eq(Athlete::getEventId, eventId)
                     .eq(Athlete::getUserId, registration.getAthleteId()));
-            User user = userMapper.selectById(registration.getAthleteId());
-            if (athlete == null && user == null) {
-                continue;
-            }
+            if (athlete == null) continue;
 
-            String gender = athlete != null ? athlete.getGender() : user.getGender();
-            Long deptId = athlete != null ? athlete.getDeptId() : user.getDeptId();
-            if (!matchesGender(gender, newLimit) || !matchesDept(deptId, newDeptLimitIds)) {
+            // 获取祖先部门 ID
+            List<Long> ancestorDeptIds = resolveAncestorDeptIds(athlete.getDeptId());
+
+            com.lz.eligibility.engine.AthleteContext ctx = com.lz.eligibility.engine.AthleteContext.builder()
+                    .gender(athlete.getGender())
+                    .deptId(athlete.getDeptId())
+                    .ancestorDeptIds(ancestorDeptIds)
+                    .build();
+
+            com.lz.eligibility.engine.EligibilityResult result = evaluator.evaluate(
+                    ctx, List.of(proposedRules), com.lz.eligibility.engine.GroupLogic.AND);
+            if (!result.isPassed()) {
                 throw new BusinessException("存在不符条件的报名数据，禁止修改");
             }
         }
@@ -345,46 +411,98 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
                 || projectDTO.getLimitDeptIds() != null;
     }
 
-    private GenderLimit resolveNewGenderLimit(Project project, ProjectDTO projectDTO) {
-        if (projectDTO.getLimitation() != null && !projectDTO.getLimitation().isEmpty()) {
-            return GenderLimit.valueOf(projectDTO.getLimitation());
+    /**
+     * 将旧格式的 gender_limit + limit_dept_ids 转为引擎 GroupEntry。
+     */
+    private com.lz.eligibility.engine.GroupEntry buildProposedRestrictionGroup(Project project, ProjectDTO projectDTO) {
+        List<com.lz.eligibility.engine.RuleEntry> rules = new java.util.ArrayList<>();
+
+        // gender
+        String limitStr = projectDTO.getLimitation() != null && !projectDTO.getLimitation().isEmpty()
+                ? projectDTO.getLimitation() : (project.getLimitation() != null ? project.getLimitation().name() : "ALL");
+        if (!"ALL".equals(limitStr)) {
+            String genderValue = "MALE".equals(limitStr) ? "男" : "女";
+            rules.add(new com.lz.eligibility.engine.RuleEntry(
+                    com.lz.eligibility.engine.Dimension.GENDER,
+                    com.lz.eligibility.engine.Operator.EQ,
+                    genderValue));
         }
-        return project.getLimitation() == null ? GenderLimit.ALL : project.getLimitation();
+
+        // dept
+        List<Long> deptIds = projectDTO.getLimitDeptIds() != null
+                ? projectDTO.getLimitDeptIds()
+                : parseDeptIds(project.getLimitDeptIds());
+        if (deptIds != null && !deptIds.isEmpty()) {
+            rules.add(new com.lz.eligibility.engine.RuleEntry(
+                    com.lz.eligibility.engine.Dimension.DEPT,
+                    com.lz.eligibility.engine.Operator.IN,
+                    deptIds));
+        }
+
+        if (rules.isEmpty()) return null;
+        return new com.lz.eligibility.engine.GroupEntry(
+                com.lz.eligibility.engine.GroupLogic.AND, null, rules);
     }
 
-    private List<Long> resolveNewDeptLimitIds(ProjectDTO projectDTO, String oldLimitDeptIds) {
-        if (projectDTO.getLimitDeptIds() != null) {
-            return projectDTO.getLimitDeptIds();
-        }
-        if (oldLimitDeptIds == null || oldLimitDeptIds.isEmpty()) {
-            return List.of();
-        }
+    private List<Long> parseDeptIds(String json) {
+        if (json == null || json.isBlank()) return List.of();
         try {
             return new com.fasterxml.jackson.databind.ObjectMapper()
-                    .readValue(oldLimitDeptIds, new com.fasterxml.jackson.core.type.TypeReference<List<Long>>() {});
+                    .readValue(json, new com.fasterxml.jackson.core.type.TypeReference<List<Long>>() {});
         } catch (Exception e) {
             return List.of();
         }
     }
 
-    private boolean matchesGender(String gender, GenderLimit limit) {
-        if (limit == null || limit == GenderLimit.ALL) {
-            return true;
-        }
-        if (gender == null || gender.isBlank()) {
-            return false;
-        }
-        if (limit == GenderLimit.MALE) {
-            return "男".equals(gender) || "MALE".equalsIgnoreCase(gender);
-        }
-        return "女".equals(gender) || "FEMALE".equalsIgnoreCase(gender);
-    }
+    /**
+     * 解析部门祖先节点 ID（复用 AthleteContextResolver 的逻辑）。
+     * 由于 ProjectService 中不方便注入 Resolver，内联实现。
+     */
+    private List<Long> resolveAncestorDeptIds(Long deptId) {
+        if (deptId == null) return List.of();
+        com.lz.entity.Department dept = departmentMapper.selectById(deptId);
+        if (dept == null) return List.of();
+        List<Long> ancestors = new java.util.ArrayList<>();
+        boolean isK12 = "K12".equalsIgnoreCase(dept.getOrgMode()) || "HIGH_SCHOOL".equalsIgnoreCase(dept.getOrgMode());
 
-    private boolean matchesDept(Long deptId, List<Long> limitDeptIds) {
-        if (limitDeptIds == null || limitDeptIds.isEmpty()) {
-            return true;
+        if (isK12) {
+            if (dept.getGrade() != null) {
+                List<com.lz.entity.Department> grades = departmentMapper.selectList(
+                        new LambdaQueryWrapper<com.lz.entity.Department>()
+                                .eq(com.lz.entity.Department::getGrade, dept.getGrade())
+                                .eq(com.lz.entity.Department::getOrgMode, dept.getOrgMode())
+                                .and(w -> w.isNull(com.lz.entity.Department::getClassName)
+                                        .or(w2 -> w2.eq(com.lz.entity.Department::getClassName, ""))));
+                for (com.lz.entity.Department d : grades) {
+                    if (d.getId() != null && !d.getId().equals(dept.getId())) ancestors.add(d.getId());
+                }
+            }
+        } else {
+            if (dept.getMajor() != null && !dept.getMajor().isEmpty()) {
+                List<com.lz.entity.Department> majors = departmentMapper.selectList(
+                        new LambdaQueryWrapper<com.lz.entity.Department>()
+                                .eq(com.lz.entity.Department::getCollege, dept.getCollege())
+                                .eq(com.lz.entity.Department::getMajor, dept.getMajor())
+                                .and(w -> w.isNull(com.lz.entity.Department::getClassName)
+                                        .or(w2 -> w2.eq(com.lz.entity.Department::getClassName, ""))));
+                for (com.lz.entity.Department d : majors) {
+                    if (d.getId() != null && !d.getId().equals(dept.getId())) ancestors.add(d.getId());
+                }
+            }
+            if (dept.getCollege() != null) {
+                List<com.lz.entity.Department> colleges = departmentMapper.selectList(
+                        new LambdaQueryWrapper<com.lz.entity.Department>()
+                                .eq(com.lz.entity.Department::getCollege, dept.getCollege())
+                                .and(w -> w.isNull(com.lz.entity.Department::getMajor)
+                                        .or(w2 -> w2.eq(com.lz.entity.Department::getMajor, "")))
+                                .and(w -> w.isNull(com.lz.entity.Department::getClassName)
+                                        .or(w2 -> w2.eq(com.lz.entity.Department::getClassName, ""))));
+                for (com.lz.entity.Department d : colleges) {
+                    if (d.getId() != null && !d.getId().equals(dept.getId())) ancestors.add(d.getId());
+                }
+            }
         }
-        return deptId != null && limitDeptIds.contains(deptId);
+        return ancestors;
     }
 
     private Date parseDate(String value) {

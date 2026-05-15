@@ -25,6 +25,7 @@ import com.lz.mapper.ProjectMapper;
 import com.lz.mapper.RegistrationMapper;
 import com.lz.mapper.UserMapper;
 import com.lz.mapper.EventAdminMappingMapper;
+import com.lz.service.EligibilityService;
 import com.lz.service.NotificationService;
 import com.lz.service.RegistrationService;
 import lombok.RequiredArgsConstructor;
@@ -65,8 +66,9 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
     private final UserMapper userMapper;
     private final EventAdminMappingMapper eventAdminMappingMapper;
     private final NotificationService notificationService;
-    private final RedissonClient redissonClient; // Requires Redisson dependency
-    
+    private final RedissonClient redissonClient;
+    private final EligibilityService eligibilityService;
+
     private ApplicationContext applicationContext;
 
     @Override
@@ -172,60 +174,11 @@ public class RegistrationServiceImpl extends ServiceImpl<RegistrationMapper, Reg
                         }
                     }
             
-                    if (project.getLimitation() != null && project.getLimitation() != com.lz.common.enums.GenderLimit.ALL) {
-                        boolean maleProject = project.getLimitation() == com.lz.common.enums.GenderLimit.MALE;
-                        boolean femaleProject = project.getLimitation() == com.lz.common.enums.GenderLimit.FEMALE;
-                        if ((maleProject && !"男".equals(athlete.getGender())) || (femaleProject && !"女".equals(athlete.getGender()))) {
-                            throw new BusinessException("性别不符合项目要求");
-                        }
-                    }
-
-                    if (project.getLimitDeptIds() != null && !project.getLimitDeptIds().isEmpty()) {
-                        try {
-                            List<Long> limitIds = new com.fasterxml.jackson.databind.ObjectMapper().readValue(project.getLimitDeptIds(), new com.fasterxml.jackson.core.type.TypeReference<List<Long>>() {});
-                            if (limitIds != null && !limitIds.isEmpty()) {
-                                com.lz.service.DepartmentService departmentService = applicationContext.getBean(com.lz.service.DepartmentService.class);
-                                com.lz.entity.Department userDept = departmentService.getById(athlete.getDeptId());
-                                boolean match = false;
-                                if (userDept != null) {
-                                    // 检查用户的部门是否在限制列表中
-                                    if (limitIds.contains(userDept.getId())) {
-                                        match = true;
-                                    } else {
-                                        // 由于是宽表，我们需要找出用户部门的上级节点是否在限制列表中。
-                                        // 例如用户在"软工1班"(id=3)，它的上级是"软件工程"专业或"计算机学院"。
-                                        // 我们可以通过全表扫描找出这些父级节点。或者简化逻辑：只匹配当前选择的 deptId
-                                        // 如果需要精确匹配，建议在 limit_dept_ids 包含精确的班级/部门ID。
-                                        // 或者提供一个根据名称回溯的逻辑。
-                                        List<com.lz.entity.Department> allDepts = departmentService.list();
-                                        for (com.lz.entity.Department d : allDepts) {
-                                            if (limitIds.contains(d.getId())) {
-                                                // 如果限制的是学院，且用户的学院名等于该限制学院名
-                                                if (d.getCollege() != null && d.getCollege().equals(userDept.getCollege()) && d.getMajor() == null && d.getClassName() == null) {
-                                                    match = true; break;
-                                                }
-                                                // 如果限制的是专业
-                                                if (d.getMajor() != null && d.getMajor().equals(userDept.getMajor()) && d.getClassName() == null) {
-                                                    match = true; break;
-                                                }
-                                                // 如果限制的是年级
-                                                if (d.getGrade() != null && d.getGrade().equals(userDept.getGrade()) && d.getClassName() == null) {
-                                                    match = true; break;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                if (!match) {
-                                    throw new BusinessException("您的部门/年级不符合该项目的报名要求");
-                                }
-                            }
-                        } catch (Exception e) {
-                            if (e instanceof BusinessException) {
-                                throw (BusinessException) e;
-                            }
-                            log.error("Failed to parse limitDeptIds or check limit", e);
-                        }
+                    // 使用资格规则引擎校验（替代旧 gender_limit + limit_dept_ids 硬编码）
+                    com.lz.eligibility.engine.EligibilityResult eligibilityResult =
+                            eligibilityService.check(userId, event.getId(), projectId);
+                    if (!eligibilityResult.isPassed()) {
+                        throw new BusinessException(eligibilityResult.getReason());
                     }
             
                     int updated = projectMapper.incrementAttendance(projectId, project.getMaxAttendance());

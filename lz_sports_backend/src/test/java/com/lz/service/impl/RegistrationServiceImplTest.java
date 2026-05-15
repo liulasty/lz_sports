@@ -19,6 +19,7 @@ import com.lz.mapper.ProjectMapper;
 import com.lz.mapper.RegistrationMapper;
 import com.lz.mapper.UserMapper;
 import com.lz.service.NotificationService;
+import com.lz.service.EligibilityService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -72,6 +73,9 @@ class RegistrationServiceImplTest {
 
     @Mock
     private RedissonClient redissonClient;
+
+    @Mock
+    private EligibilityService eligibilityService;
 
     @Mock
     private ApplicationContext applicationContext;
@@ -290,6 +294,8 @@ class RegistrationServiceImplTest {
         when(projectMapper.selectById(projectId)).thenReturn(project);
         when(eventMapper.selectById(eventId)).thenReturn(event);
         when(athleteMapper.selectOne(any())).thenReturn(athlete);
+        when(eligibilityService.check(userId, eventId, projectId))
+                .thenReturn(com.lz.eligibility.engine.EligibilityResult.ok());
         when(registrationMapper.lockAthleteRowForEvent(userId, eventId)).thenReturn(10L);
         doReturn(cancelled).when(registrationService).getOne(any());
         when(registrationMapper.countActiveByUserAndEvent(userId, eventId)).thenReturn(0);
@@ -357,6 +363,8 @@ class RegistrationServiceImplTest {
         when(projectMapper.selectById(projectId)).thenReturn(project);
         when(eventMapper.selectById(eventId)).thenReturn(event);
         when(athleteMapper.selectOne(any())).thenReturn(athlete);
+        when(eligibilityService.check(userId, eventId, projectId))
+                .thenReturn(com.lz.eligibility.engine.EligibilityResult.ok());
         when(registrationMapper.lockAthleteRowForEvent(userId, eventId)).thenReturn(11L);
         doReturn(rejected).when(registrationService).getOne(any());
         when(registrationMapper.countActiveByUserAndEvent(userId, eventId)).thenReturn(0);
